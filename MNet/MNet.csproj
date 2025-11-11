@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.1;net8.0</TargetFrameworks>
+		<Nullable>annotations</Nullable>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(TargetFramework)'=='net8.0'">
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+	
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard2.1|AnyCPU'">
+		<WarningLevel>8</WarningLevel>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|netstandard2.1|AnyCPU'">
+		<WarningLevel>8</WarningLevel>
+	</PropertyGroup>
+
+</Project>
