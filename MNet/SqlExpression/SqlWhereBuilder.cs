@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -52,7 +52,6 @@ namespace MNet.SqlExpression
 
             return val;
         }
-        
         private string AddParameter(object val)
         {
             if (val is IEnumerable enumer && !(val is string))
@@ -73,7 +72,6 @@ namespace MNet.SqlExpression
             this.AddParameter(pName, val);
             return pName;
         }
-
         private void AddParameter(string pName, object val)
         {
             if (this._sqlParameters.ContainsKey(pName))
@@ -209,7 +207,7 @@ namespace MNet.SqlExpression
             return node;
         }
 
-        public string Build<T>(Expression<Func<T, bool>> expr)
+        public string Build(Expression expr)
         {
             this._nums = new Stack<SqlPart>();
             this._sqlParameters = new Dictionary<string, object>();
@@ -217,13 +215,13 @@ namespace MNet.SqlExpression
             this.Visit(expr);
             string sql = this._nums.Pop().part;
 
-            Console.WriteLine("************************************************************************************");
-            Console.WriteLine(sql);
-            foreach (var paras in this._sqlParameters)
-            {
-                Console.WriteLine($"{paras.Key}: {(paras.Value == null ? null : paras.Value)}");
-            }
-            Console.WriteLine("************************************************************************************");
+            //Console.WriteLine("************************************************************************************");
+            //Console.WriteLine(sql);
+            //foreach (var paras in this._sqlParameters)
+            //{
+            //    Console.WriteLine($"{paras.Key}: {(paras.Value == null ? null : paras.Value)}");
+            //}
+            //Console.WriteLine("************************************************************************************");
 
             return sql;
         }

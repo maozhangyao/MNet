@@ -12,7 +12,6 @@ namespace MNet.SqlExpression
         public static readonly Dictionary<string, Func<DbType, MemberInfo, string[], string>> FunctionMaps = new Dictionary<string, Func<DbType, MemberInfo, string[], string>>()
         {
             { GetFunctionMapKey(typeof(string).GetProperty(nameof(string.Length))), MapStringLength },
-
             { GetFunctionMapKey(typeof(List<int>).GetMethod(nameof(List<int>.Contains))), MapListContainer },
             { GetFunctionMapKey(typeof(Enumerable).GetMethods().FirstOrDefault(p => p.Name == "Contains")), MapListContainer }
         };
@@ -50,7 +49,6 @@ namespace MNet.SqlExpression
         {
             return $"{sqlParts[1]} in ({string.Join(',', sqlParts[0])})";
         }
-
 
         public static string GetTypeName(Type t)
         {

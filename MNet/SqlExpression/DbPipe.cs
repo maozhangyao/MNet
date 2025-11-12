@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -11,8 +11,7 @@ namespace MNet.SqlExpression
     /// <typeparam name="T"></typeparam>
     internal class DbPipe<T> : IDbSet<T> where T : class
     {
-        public Expression<Func<T, bool>> WhereExpr { get; set; }
-        public List<DbSetOrder> OrderExprs { get; set; } = new List<DbSetOrder>();
+        public DbSetStrcut DbSet { get; protected set; }
 
         public IEnumerator<T> GetEnumerator()
         {
@@ -22,30 +21,28 @@ namespace MNet.SqlExpression
         {
             return GetEnumerator();
         }
-        
+
         public void AddWhere(Expression<Func<T, bool>> expr)
         {
             LogicExpresionCombine combine = new LogicExpresionCombine();
 
-            Expression<Func<T, bool>> left = this.WhereExpr;
+            Expression<Func<T, bool>> left = this.DbSet.WhereExpr as Expression<Func<T, bool>>;
             Expression<Func<T, bool>> right = expr;
-            this.WhereExpr = combine.Combine(left, right);
+            this.DbSet.WhereExpr = combine.Combine(left, right);
         }
-    }
-
-    /// <summary>
-    /// 表示 T1 到 T2 的投影
-    /// </summary>
-    /// <typeparam name="T1"></typeparam>
-    /// <typeparam name="T2"></typeparam>
-    internal class DbSelect<T1, T2> : DbPipe<T2> where T1 : class where T2 : class
-    {
-        public DbSelect(IDbSet<T1> src)
+        public void AddOrder<Tkey>(Expression<Func<T, Tkey>> expr, bool descending)
         {
-            this.Source = src;
-        }
+            if (expr == null)
+                throw new Exception("Order 排序表达式能不为空");
 
-        public IDbSet<T1> Source { get; set; }
-        public Expression<Func<T1, T2>> SelectExpr { get; set; }
+            this.DbSet.OrderExprs.Add(new DbSetOrder(expr, descending));
+        }
+        public void AddSelect<TResult>(Expression<Func<T, TResult>> expr) where TResult : class
+        {
+            if (expr == null)
+                throw new Exception("Select 表达式不能为null");
+
+            this.DbSet.SelectExprs = expr;
+        }
     }
 }

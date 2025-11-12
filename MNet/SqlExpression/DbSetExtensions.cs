@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
@@ -21,14 +21,15 @@ namespace MNet.SqlExpression
             if (keyExpre == null)
                 throw new Exception($"空条件表达式：{nameof(keyExpre)}");
 
-            set.OrderExprs.Add(new DbSetOrder(keyExpre, isDesc));
+            set.AddOrder(keyExpre, isDesc);
             return set;
         }
 
 
         public static IDbSet<T> AsDbSet<T>() where T : class
         {
-            return new DbSelect<T, T>(null);
+            DbSet<T, T> head = new DbSet<T, T>(null);
+            return head.Select(p => p);//初始的from，即自身
         }
         public static IDbSet<T> AsDbSet<T>(this T entity) where T : class
         {
@@ -63,10 +64,18 @@ namespace MNet.SqlExpression
         {
             if (src == null)
                 throw new Exception($"Select {nameof(src)}参数不能为空。");
-            return new DbSelect<T, TResult>(src)
-            {
-                SelectExpr = expr
-            };
+
+            DbPipe<T> db = GetDbSet(src);
+            db.AddSelect(expr);
+
+            DbSet<T,TResult> set = new DbSet<T, TResult>(db);
+            set.AddSelect(p => p);
+            return set;
+        }
+        public static string ToSql<T>(this IDbSet<T> src) where T : class
+        {
+            ISqlBuilder builder = new SqlBuilder();
+            return builder.Build(src, new SqlOptions { Db = DbType.Mysql });
         }
     }
 }
