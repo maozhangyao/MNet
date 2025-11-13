@@ -28,7 +28,7 @@ namespace MNet.SqlExpression
 
         public static IDbSet<T> AsDbSet<T>() where T : class
         {
-            DbSet<T, T> head = new DbSet<T, T>(null);
+            DbSet<T, T> head = new DbSet<T, T>();
             return head.Select(p => p);//初始的from，即自身
         }
         public static IDbSet<T> AsDbSet<T>(this T entity) where T : class

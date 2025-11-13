@@ -20,7 +20,7 @@ namespace MNet.SqlExpression
         public DbSet(IDbSet<T1> src)
         {
             DbPipe<T1> from = src as DbPipe<T1>;
-            this.DbSet = new DbSetStrcut();
+            this.DbSet = new DbSetStrcut(typeof(T2));
             this.DbSet.From = from?.DbSet;
         }
     }

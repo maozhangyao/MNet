@@ -12,9 +12,11 @@ namespace MNet.SqlExpression
         string Build<T>(IDbSet<T> dbset, SqlOptions options) where T : class;
     }
 
+    /// <summary>
+    /// 构造sql
+    /// </summary>
     public class SqlBuilder : ISqlBuilder
     {
-
         private string BuildFrom(DbSetStrcut set, SqlOptions options)
         {
             if (set.From != null)
@@ -31,32 +33,31 @@ namespace MNet.SqlExpression
             if (set.IsRoot)
                 return form;
 
-            SqlWhereBuilder whereBuilder = new SqlWhereBuilder();
+            SqlBuildContext context = new SqlBuildContext();
+            context.Options = options;
+
+            SqlExpressionBuilder exprBuilder = new SqlExpressionBuilder(context);
+
+            //where
             string where = null;
             if (set.WhereExpr != null)
-                where = whereBuilder.Build(set.WhereExpr);
+                where = exprBuilder.BuildWhere(set.WhereExpr);
 
-            //build from
-            //build where
-            //build order
-
-            SqlOrderBuilder orderBuilder = new SqlOrderBuilder();
+            //order
             string order = null;
             if (set.OrderExprs?.Count > 0)
-                order = orderBuilder.Build(set.OrderExprs);
+                order = exprBuilder.BuildOrder(set.OrderExprs);
 
-            //build select
-            SqlSelectBuilder selectBuilder = new SqlSelectBuilder();
+            //select
             string select = null;
-            if(set.SelectExprs != null)
-                select = selectBuilder.Build(set.SelectExprs);
+            if (set.SelectExprs != null)
+                select = exprBuilder.BuildSelect();
 
-            return $@"select {select}
-from {form}
+            return $@"
+select {select}
 where {where}
 order by {order}
 ";
-
         }
 
 

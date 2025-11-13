@@ -11,6 +11,10 @@ namespace MNet.SqlExpression
         {
             this.OrderExprs = new List<DbSetOrder>();
         }
+        public DbSetStrcut(Type t): this()
+        {
+            this.Type = t;
+        }
 
 
         //表示 from 中的数据集
@@ -21,6 +25,8 @@ namespace MNet.SqlExpression
         public List<DbSetOrder> OrderExprs { get; set; }
         //表示 select
         public Expression SelectExprs { get; set; }
+        //绑定的类型
+        public Type Type { get; set; }
 
         public bool IsEmpty => this.WhereExpr == null && this.OrderExprs.Count <= 0 && this.SelectExprs == null;
         public bool IsRoot => this.SelectExprs != null && this.WhereExpr == null && this.OrderExprs.Count <= 0;

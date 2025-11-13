@@ -11,6 +11,9 @@ namespace MNet.SqlExpression
     /// <typeparam name="T"></typeparam>
     internal class DbPipe<T> : IDbSet<T> where T : class
     {
+        protected DbPipe()
+        { }
+
         public DbSetStrcut DbSet { get; protected set; }
 
         public IEnumerator<T> GetEnumerator()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
@@ -7,49 +7,26 @@ namespace MNet.SqlExpression
 {
     public class FunctionMapping
     {
+        static FunctionMapping()
+        {
+            FunctionMaps = new Dictionary<string, Func<DbType, MemberInfo, SqlToken[], string>>
+            {
+                // string.Length 映射
+                { GetFunctionMapKey(typeof(string).GetProperty(nameof(string.Length))), MapStringLength },
+                // List.Contains 映射
+                { GetFunctionMapKey(typeof(List<int>).GetMethod(nameof(List<int>.Contains))), MapListContainer },
+                // IEnumerable<>.Contains 映射
+                { GetFunctionMapKey(typeof(Enumerable).GetMethods().FirstOrDefault(p => p.Name == "Contains")), MapListContainer }
+            };
+        }
+
         //类属性或者字段映射到 sql
         //类方法映射到 sql
-        public static readonly Dictionary<string, Func<DbType, MemberInfo, string[], string>> FunctionMaps = new Dictionary<string, Func<DbType, MemberInfo, string[], string>>()
-        {
-            { GetFunctionMapKey(typeof(string).GetProperty(nameof(string.Length))), MapStringLength },
-            { GetFunctionMapKey(typeof(List<int>).GetMethod(nameof(List<int>.Contains))), MapListContainer },
-            { GetFunctionMapKey(typeof(Enumerable).GetMethods().FirstOrDefault(p => p.Name == "Contains")), MapListContainer }
-        };
+        public static readonly Dictionary<string, Func<DbType, MemberInfo, SqlToken[], string>> FunctionMaps;
 
 
-        /// <summary>
-        /// 字符串 Length 属性转换为 SQL 函数
-        /// </summary>
-        /// <param name="dbType"></param>
-        /// <param name="lengthProp"></param>
-        /// <param name="sqlParts">参数</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException"></exception>
-        public static string MapStringLength(DbType dbType, MemberInfo lengthProp, string[] sqlParts)
-        {
-            if (sqlParts.Length != 1)
-                throw new ArgumentException("Length函数仅支持一个参数");
 
-            if (dbType == DbType.Mysql)
-            {
-                return $"LENGTH({sqlParts[0]})";
-            }
-
-            throw new ArgumentException($"Length函数暂不支持该数据库({dbType})的映射");
-        }
-
-        /// <summary>
-        /// 将IEnumerable的Contains方法以及List.Contains 方法转换为 SQL 的 in() 函数
-        /// </summary>
-        /// <param name="dbTyp"></param>
-        /// <param name="containerMethod"></param>
-        /// <param name="sqlParts"></param>
-        /// <returns></returns>
-        public static string MapListContainer(DbType dbTyp, MemberInfo containerMethod, string[] sqlParts)
-        {
-            return $"{sqlParts[1]} in ({string.Join(',', sqlParts[0])})";
-        }
-
+        //获取类型的映射key(屏蔽掉泛型以及命名空间)
         public static string GetTypeName(Type t)
         {
             //获取成员所在的类型
@@ -111,5 +88,37 @@ namespace MNet.SqlExpression
             }
             throw new Exception("仅支持字段，属性或者函数成员做为映射key");
         }
+        /// <summary>
+        /// 字符串 Length 属性转换为 SQL 函数
+        /// </summary>
+        /// <param name="dbType"></param>
+        /// <param name="lengthProp"></param>
+        /// <param name="sqlParts">参数</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public static string MapStringLength(DbType dbType, MemberInfo lengthProp, SqlToken[] sqlParts)
+        {
+            if (sqlParts.Length != 1)
+                throw new ArgumentException("Length函数仅支持一个参数");
+
+            if (dbType == DbType.Mysql)
+            {
+                return $"LENGTH({sqlParts[0].SqlPart})";
+            }
+
+            throw new ArgumentException($"Length函数暂不支持该数据库({dbType})的映射");
+        }
+        /// <summary>
+        /// 将IEnumerable的Contains方法以及List.Contains 方法转换为 SQL 的 in() 函数
+        /// </summary>
+        /// <param name="dbTyp"></param>
+        /// <param name="containerMethod"></param>
+        /// <param name="sqlParts"></param>
+        /// <returns></returns>
+        public static string MapListContainer(DbType dbTyp, MemberInfo containerMethod, SqlToken[] sqlParts)
+        {
+            return $"{sqlParts[1].SqlPart} in ({string.Join(',', sqlParts[0].SqlPart)})";
+        }
+
     }
 }
