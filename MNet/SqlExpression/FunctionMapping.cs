@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace MNet.SqlExpression
 {
@@ -9,20 +10,22 @@ namespace MNet.SqlExpression
     {
         static FunctionMapping()
         {
-            FunctionMaps = new Dictionary<string, Func<DbType, MemberInfo, SqlToken[], string>>
+            FunctionMaps = new Dictionary<string, Func<MemberMappingContext, SqlToken>>
             {
                 // string.Length 映射
-                { GetFunctionMapKey(typeof(string).GetProperty(nameof(string.Length))), MapStringLength },
+                { GetFunctionMapKey(typeof(string).GetProperty(nameof(string.Length))), MapStringLength }
                 // List.Contains 映射
-                { GetFunctionMapKey(typeof(List<int>).GetMethod(nameof(List<int>.Contains))), MapListContainer },
+                ,{ GetFunctionMapKey(typeof(List<int>).GetMethod(nameof(List<int>.Contains))), MapListContainer }
                 // IEnumerable<>.Contains 映射
-                { GetFunctionMapKey(typeof(Enumerable).GetMethods().FirstOrDefault(p => p.Name == "Contains")), MapListContainer }
+                ,{ GetFunctionMapKey(typeof(Enumerable).GetMethods().FirstOrDefault(p => p.Name == "Contains")), MapListContainer }
+                // DbSetExtensions.First 映射
+                ,{ GetFunctionMapKey(typeof(DbSetExtensions).GetMethods().FirstOrDefault(p => p.Name == "First")), MapDbSetFirst }
             };
         }
 
         //类属性或者字段映射到 sql
         //类方法映射到 sql
-        public static readonly Dictionary<string, Func<DbType, MemberInfo, SqlToken[], string>> FunctionMaps;
+        public static readonly Dictionary<string, Func<MemberMappingContext, SqlToken>> FunctionMaps;
 
 
 
@@ -96,17 +99,17 @@ namespace MNet.SqlExpression
         /// <param name="sqlParts">参数</param>
         /// <returns></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static string MapStringLength(DbType dbType, MemberInfo lengthProp, SqlToken[] sqlParts)
+        public static SqlToken MapStringLength(MemberMappingContext context)
         {
-            if (sqlParts.Length != 1)
-                throw new ArgumentException("Length函数仅支持一个参数");
+            if (context.Args.Length != 1)
+                throw new ArgumentException("Length函数仅支持有且仅有一个参数");
 
-            if (dbType == DbType.Mysql)
+            if (context.SqlOptions?.Db == DbType.Mysql)
             {
-                return $"LENGTH({sqlParts[0].SqlPart})";
+                return new SqlToken($"LENGTH({context.Instance.SqlPart})", null, context.Expr);
             }
 
-            throw new ArgumentException($"Length函数暂不支持该数据库({dbType})的映射");
+            throw new ArgumentException($"Length函数暂不支持该数据库({context.SqlOptions?.Db})的映射");
         }
         /// <summary>
         /// 将IEnumerable的Contains方法以及List.Contains 方法转换为 SQL 的 in() 函数
@@ -115,10 +118,56 @@ namespace MNet.SqlExpression
         /// <param name="containerMethod"></param>
         /// <param name="sqlParts"></param>
         /// <returns></returns>
-        public static string MapListContainer(DbType dbTyp, MemberInfo containerMethod, SqlToken[] sqlParts)
+        public static SqlToken MapListContainer(MemberMappingContext context)
         {
-            return $"{sqlParts[1].SqlPart} in ({string.Join(',', sqlParts[0].SqlPart)})";
+            return new SqlToken($"{context.Args[1].SqlPart} in ({string.Join(',', context.Instance.SqlPart)})", null, context.Expr);
         }
+        /// <summary>
+        /// 对 DbSetExtensions.First 方法转换成SQL
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public static SqlToken MapDbSetFirst(MemberMappingContext context)
+        {
+            ISqlBuilder builder = new SqlBuilder();
+            string sql = builder.Build(context.Args[0].Dynamic, context.SqlOptions);
+            return new SqlToken($"({sql})", null, context.Expr);
+        }
+    }
 
+
+    /// <summary>
+    /// 对象成员映射SQL上下文
+    /// </summary>
+    public class MemberMappingContext
+    {
+        public ISqlBuilder SqlBuilder { get; set; }
+        public SqlBuildContext BuildContext { get; set; }
+
+        /// <summary>
+        /// SQL配置
+        /// </summary>
+        public SqlOptions SqlOptions { get; set; }
+        /// <summary>
+        /// 当前翻译过程中对应的表达式节点
+        /// </summary>
+        public Expression Expr { get; set; }
+        /// <summary>
+        /// 需要映射的成员
+        /// </summary>
+        public MemberInfo MappMember { get; set; }
+        /// <summary>
+        /// 成员所属的对象
+        /// </summary>
+        public SqlToken Instance { get; set; }
+        /// <summary>
+        /// 当成员为方法时，所传递的参数
+        /// </summary>
+        public SqlToken[] Args { get; set; }
+        //需要SQL参数化的值
+        public SqlParamter AddParameter(object val)
+        {
+            return null;
+        }
     }
 }

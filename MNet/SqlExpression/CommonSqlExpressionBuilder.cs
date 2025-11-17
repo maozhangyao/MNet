@@ -16,9 +16,14 @@ namespace MNet.SqlExpression
         {
             this.Stack = new Stack<SqlToken>();
             this.Paramters = new List<SqlParamter>();
+
+            //动态求值模式
+            this._dvModel = new Stack<bool>();
         }
 
 
+        //动态求值模式栈
+        private Stack<bool> _dvModel;
         private DbType _dbType => this.Context?.Options?.Db ?? DbType.Mysql;
 
 
@@ -28,25 +33,89 @@ namespace MNet.SqlExpression
         protected Stack<SqlToken> Stack { get; }
 
 
+        //以动态求值的模式开启访问
+        private Expression VisitWithDvModel(Expression expr, bool dvModel)
+        {
+            this.PushDvModel(dvModel);
+            expr = this.Visit(expr);
+            this.PopDvModel();
+
+            return expr;
+        }
+        //队成员访问做SQL转换
+        private SqlToken DoMemberMapping(SqlToken inst, MemberExpression node)
+        {
+            MemberMappingContext mapp = new MemberMappingContext();
+            mapp.SqlOptions = this.Context.Options;
+            mapp.Expr = node;
+            mapp.MappMember = node.Member;
+            mapp.Instance = inst;
+            mapp.Args = Array.Empty<SqlToken>();
+            
+            string key = FunctionMapping.GetFunctionMapKey(node.Member);
+            SqlToken token = FunctionMapping.FunctionMaps[key](mapp);
+            return token;
+        }
+        private SqlToken DoMethodMapping(SqlToken inst, SqlToken[] args, MethodCallExpression node)
+        {
+            MemberMappingContext mapp = new MemberMappingContext();
+            mapp.BuildContext = this.Context;
+            mapp.SqlOptions = this.Context.Options;
+            mapp.Expr = node;
+            mapp.MappMember = node.Method;
+            mapp.Instance = inst;
+            mapp.Args = args;
+            
+            //自定义转化
+            string key = FunctionMapping.GetFunctionMapKey(node.Method);
+            SqlToken token = FunctionMapping.FunctionMaps[key](mapp);
+            return token;
+        }
+
+
+        protected bool IsDvModel()
+        {
+            return this._dvModel.Count > 0 ? this._dvModel.Peek() : false;
+        }
+        protected void PushDvModel(bool dvModel)
+        {
+            this._dvModel.Push(dvModel);
+        }
+        protected bool PopDvModel()
+        {
+            return this._dvModel.Pop();
+        }
+        protected SqlToken PeekToken()
+        {
+            return this.Stack.Count <= 0 ? null : this.Stack.Peek();
+        }
         protected SqlToken PopToken()
         {
             return this.Stack.Pop();
+        }
+        //弹出指定的个数
+        protected SqlToken[] PopToken(int cnt)
+        {
+            Stack<SqlToken> buffer = new Stack<SqlToken>(4);
+            while (cnt-- > 0)
+                buffer.Push(this.PopToken());
+            return buffer.ToArray();
         }
         protected void PushToken(SqlToken token)
         {
             this.Stack.Push(token);
         }
-        protected SqlToken PushToken(string part, object dynamic)
+        protected SqlToken PushToken(string part, object dynamic, Expression expr)
         {
-            SqlToken token = new SqlToken(part, dynamic);
+            SqlToken token = new SqlToken(part, dynamic, expr);
             this.PushToken(token);
             return token;
         }
         //增加一个SQL参数token
-        protected SqlToken PushParameter(object val)
+        protected SqlToken PushParameter(object val, Expression parameter)
         {
             SqlParamter p = this.AddParameter(val);
-            SqlToken token = new SqlToken(p.Name, val);
+            SqlToken token = new SqlToken(p.Name, val, parameter);
             this.PushToken(token);
             return token;
         }
@@ -66,7 +135,7 @@ namespace MNet.SqlExpression
             base.VisitConstant(node);
 
             //访问到常量，该常量值需要动态求值
-            this.PushToken(null, node.Value);
+            this.PushToken(null, node.Value, node);
             return node;
         }
         protected override Expression VisitMember(MemberExpression node)
@@ -76,72 +145,104 @@ namespace MNet.SqlExpression
             //访问参数的成员，一般为字段或者属性
             if (node.Expression is ParameterExpression parameter)
             {
-                this.PushToken(DbUtils.Escape(node.Member.Name, this._dbType), null);
+                this.PushToken(DbUtils.Escape(node.Member.Name, this._dbType), null, node);
             }
             //访问到了静态成员的属性或者字段
             else if (node.Expression == null)
             {
                 object val = this.TakeMemberValue(null, node.Member);
-                this.PushToken(null, val);
+                this.PushToken(null, val, node);
             }
             //访问的实例成员的属性或者字段
             else
             {
                 SqlToken pre = this.PopToken();
-                if (pre.IsDynamic)
+                string key = FunctionMapping.GetFunctionMapKey(node.Member);
+
+                //自定义取值
+                if (FunctionMapping.FunctionMaps.ContainsKey(key))
                 {
-                    //对常量分支做求值
+                    SqlToken token = this.DoMemberMapping(pre, node);
+                    this.PushToken(token);
+                }
+                //对常量分支做求值
+                else if (pre.IsDynamic)
+                {
                     object val = this.TakeMemberValue(pre.Dynamic, node.Member);
-                    this.PushToken(null, val);
+                    this.PushToken(null, val, node);
                 }
                 else
                 {
-                    //对参数分支做转换
-                    string key = FunctionMapping.GetFunctionMapKey(node.Member);
-                    string par = FunctionMapping.FunctionMaps[key](this._dbType, node.Member, new SqlToken[] { pre });
-                    this.PushToken(par, null);
+                    throw new Exception($"无法转换该成员访问：{node}");
                 }
             }
             return node;
         }
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            base.VisitMethodCall(node);
+            //可能需求动态求值，也可能需要直接转换成SQL
+            SqlToken obj = null;
+            //是否静态方法
+            bool isStatic = node.Object == null; 
+            bool dynamic = this.IsDvModel() || isStatic;
 
-            int args = node.Arguments.Count;
-            Stack<SqlToken> sqlTokens = new Stack<SqlToken>();
-            //调用了静态函数
-            if (node.Object == null)
+            //首先访问实例对象，求出实例对象值
+            if (node.Object != null)
             {
-                for (int i = 0; i < args; i++)
-                    sqlTokens.Push(this.PopToken());
+                this.Visit(node.Object);
+                obj = this.PeekToken();
+                dynamic |= obj.IsDynamic;
             }
-            //调用了实例函数
+
+            //访问参数
+            foreach (Expression parameter in node.Arguments)
+                this.VisitWithDvModel(parameter, dynamic);
+            
+            //取出参数
+            SqlToken[] args = this.PopToken(node.Arguments.Count);
+            //表示，参数中全部都是动态值，可以直接求值
+            if (args.Length > 0)
+                dynamic |= args.All(p => p.IsDynamic);
+
+            string key = FunctionMapping.GetFunctionMapKey(node.Method);
+            //自定义求值
+            if (FunctionMapping.FunctionMaps.ContainsKey(key))
+            {
+                SqlToken token = this.DoMethodMapping(obj, args, node);
+                this.PushToken(token);
+            }
+            //动态求值
+            else if (dynamic)
+            {
+                object inst = obj != null ? obj.Dynamic : null;
+                object val = node.Method.Invoke(inst, args.Select(p => p.Dynamic).ToArray());
+
+                this.PushToken(null, val, node);
+            }
+            //无法求值
             else
             {
-                for (int i = 0; i <= args; i++)
-                    sqlTokens.Push(this.PopToken());
+                throw new Exception($"无法转换该方法调用：{node}");
             }
 
-            SqlToken[] tokens = sqlTokens.ToArray();
-            //如果所有的节点都需要动态求值，则
-            if (sqlTokens.All(p => p.IsDynamic) //表示所有的参数节点都是需要动态求值的，所以直接动态求值 
-                || (sqlTokens.Count <= 0 && node.Object == null)) //表示调用了无参数的静态函数，直接求值即可
+            return node;
+        }
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            if (this.IsDvModel())
             {
-                //这个方法是应该动态求值，还是转化为sql
-                object obj = node.Object == null ? node.Method.Invoke(null, tokens.Select(p => p.Dynamic).ToArray()) //调用静态函数
-                    : node.Method.Invoke(tokens[0], tokens.Skip(1).Select(p => p.Dynamic).ToArray()); //调用实例函数
-
-                this.PushToken(null, obj);
-            }
-            else
-            {
-                //直接转换为sql
-                string key = FunctionMapping.GetFunctionMapKey(node.Method);
-                string par = FunctionMapping.FunctionMaps[key](this._dbType, node.Method, sqlTokens.ToArray());
-                this.PushToken(par, null);
+                //本身就是值(表示一个函数实例对象)
+                this.PushToken(null, node, node); 
+                return node;
             }
 
+            base.VisitLambda(node);
+            
+            SqlToken token = this.PopToken();
+            if (token.IsDynamic)
+                token.SqlPart = this.AddParameter(token.Dynamic).Name;
+
+            this.PushToken(token);
             return node;
         }
         protected override Expression VisitBinary(BinaryExpression node)
@@ -169,19 +270,8 @@ namespace MNet.SqlExpression
             if (left.IsDynamic)
                 left.SqlPart = this.ToParameter(left.Dynamic).Name;
 
-            this.PushToken($"({left.SqlPart} {opt} {right.SqlPart})", null);
+            this.PushToken($"({left.SqlPart} {opt} {right.SqlPart})", null, node);
             //Console.WriteLine(node);
-            return node;
-        }
-        protected override Expression VisitLambda<T>(Expression<T> node)
-        {
-            base.VisitLambda(node);
-
-            SqlToken token = this.PopToken();
-            if (token.IsDynamic)
-                token.SqlPart = this.AddParameter(token.Dynamic).Name;
-
-            this.PushToken(token);
             return node;
         }
 

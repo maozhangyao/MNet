@@ -7,7 +7,7 @@ namespace MNet.SqlExpression
     /// </summary>
     /// <typeparam name="T1"></typeparam>
     /// <typeparam name="T2"></typeparam>
-    internal class DbSet<T1, T2> : DbPipe<T2> where T1 : class where T2 : class
+    internal class DbSet<T1, T2> : DbPipe<T2>
     {
         public DbSet() : this(null)
         { }

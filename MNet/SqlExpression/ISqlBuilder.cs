@@ -9,7 +9,8 @@ namespace MNet.SqlExpression
     /// </summary>
     public interface ISqlBuilder
     {
-        string Build<T>(IDbSet<T> dbset, SqlOptions options) where T : class;
+        string Build(object dbset, SqlOptions options);
+        
     }
 
     /// <summary>
@@ -61,13 +62,9 @@ order by {order}
         }
 
 
-        public string Build<T>(IDbSet<T> dbset, SqlOptions options) where T : class 
+        public string Build(object dbset, SqlOptions options)
         {
-            DbPipe<T> pipe = dbset as DbPipe<T>;
-            if (pipe == null)
-                throw new Exception($"{nameof(dbset)}参数不能未null");
-
-            DbSetStrcut set = pipe.DbSet;
+            DbSetStrcut set = DbSetExtensions.GetDbSetStruct(dbset);
             return this.Build(set, options);
         }
     }

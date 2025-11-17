@@ -8,14 +8,14 @@ namespace MNet.SqlExpression
 {
     public static class DbSetExtensions
     {
-        private static DbPipe<T> GetDbSet<T>(IDbSet<T> src) where T : class
+        private static DbPipe<T> GetDbSet<T>(IDbSet<T> src) 
         {
             var set = src as DbPipe<T>;
             if (set == null)
                 throw new Exception($"无效参数{nameof(src)}");
             return set;
         }
-        private static IDbSet<T> AddOrder<T, TKey>(IDbSet<T> src, Expression<Func<T, TKey>> keyExpre, bool isDesc) where T : class
+        private static IDbSet<T> AddOrder<T, TKey>(IDbSet<T> src, Expression<Func<T, TKey>> keyExpre, bool isDesc) 
         {
             DbPipe<T> set = GetDbSet(src);
             if (keyExpre == null)
@@ -26,16 +26,32 @@ namespace MNet.SqlExpression
         }
 
 
-        public static IDbSet<T> AsDbSet<T>() where T : class
+        public static IDbSet<T> AsDbSet<T>() 
         {
             DbSet<T, T> head = new DbSet<T, T>();
             return head.Select(p => p);//初始的from，即自身
         }
-        public static IDbSet<T> AsDbSet<T>(this T entity) where T : class
+        public static IDbSet<T> AsDbSet<T>(this T entity) 
         {
             return AsDbSet<T>();
         }
-        public static IDbSet<T> Where<T>(this IDbSet<T> src, Expression<Func<T, bool>> expr) where T : class
+        public static bool IsDbSet(object obj)
+        {
+            if (obj == null)
+                return false;
+
+            Type t1 = typeof(IDbSet<>);
+            Type t = obj.GetType().GetInterface(t1.Name);
+            return t != null && t.GetGenericTypeDefinition() == t1;
+        }
+        internal static DbSetStrcut GetDbSetStruct(object obj)
+        {
+            if (IsDbSet(obj))
+                return obj.GetType().GetProperty(nameof(DbPipe<int>.DbSet)).GetValue(obj) as DbSetStrcut;
+
+            return null;
+        }
+        public static IDbSet<T> Where<T>(this IDbSet<T> src, Expression<Func<T, bool>> expr) 
         {
             DbPipe<T> set = GetDbSet(src);
             if (expr == null)
@@ -44,23 +60,23 @@ namespace MNet.SqlExpression
             set.AddWhere(expr);
             return src;
         }
-        public static IDbSet<T> OrderBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpre) where T : class
+        public static IDbSet<T> OrderBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
         {
-            return AddOrder(src, keyExpre, false);
+            return AddOrder(src, keyExpr, false);
         }
-        public static IDbSet<T> ThenBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpre) where T : class
+        public static IDbSet<T> ThenBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
         {
-            return AddOrder(src, keyExpre, false);
+            return AddOrder(src, keyExpr, false);
         }
-        public static IDbSet<T> OrderByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpre) where T : class
+        public static IDbSet<T> OrderByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
         {
-            return AddOrder(src, keyExpre, true);
+            return AddOrder(src, keyExpr, true);
         }
-        public static IDbSet<T> ThenByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpre) where T : class
+        public static IDbSet<T> ThenByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
         {
-            return AddOrder(src, keyExpre, true);
+            return AddOrder(src, keyExpr, true);
         }
-        public static IDbSet<TResult> Select<T, TResult>(this IDbSet<T> src, Expression<Func<T, TResult>> expr) where T : class where TResult : class
+        public static IDbSet<TResult> Select<T, TResult>(this IDbSet<T> src, Expression<Func<T, TResult>> expr)
         {
             if (src == null)
                 throw new Exception($"Select {nameof(src)}参数不能为空。");
@@ -72,7 +88,12 @@ namespace MNet.SqlExpression
             set.AddSelect(p => p);
             return set;
         }
-        public static string ToSql<T>(this IDbSet<T> src) where T : class
+        public static T First<T>(this IDbSet<T> src)
+        {
+            DbPipe<T> set = GetDbSet<T>(src);
+            return default;
+        }
+        public static string ToSql<T>(this IDbSet<T> src) 
         {
             ISqlBuilder builder = new SqlBuilder();
             return builder.Build(src, new SqlOptions { Db = DbType.Mysql });

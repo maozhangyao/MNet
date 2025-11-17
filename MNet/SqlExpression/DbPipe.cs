@@ -9,7 +9,7 @@ namespace MNet.SqlExpression
     /// 数据管道，表达对数据的操作，如过滤，排序，分组等等（表达sql结构)
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal class DbPipe<T> : IDbSet<T> where T : class
+    internal class DbPipe<T> : IDbSet<T>
     {
         protected DbPipe()
         { }
@@ -40,7 +40,7 @@ namespace MNet.SqlExpression
 
             this.DbSet.OrderExprs.Add(new DbSetOrder(expr, descending));
         }
-        public void AddSelect<TResult>(Expression<Func<T, TResult>> expr) where TResult : class
+        public void AddSelect<TResult>(Expression<Func<T, TResult>> expr)
         {
             if (expr == null)
                 throw new Exception("Select 表达式不能为null");

@@ -1,4 +1,5 @@
 using MNet.SqlExpression;
+using System.Data.Common;
 
 CEnumT c = new CEnumT();
 c.Name = "hello";
@@ -8,14 +9,22 @@ var tem = from e in c.AsDbSet()
           where e.Id == (from e1 in c.AsDbSet() where e1.Id == e.Id + 1 select e1.Id).First()
           select e;
 
+//Console.WriteLine(DbSetExtensions.IsDbSet(tem));
+
 string sql = tem.ToSql();
 Console.WriteLine(sql);
 
 /*
- 
- p => (p.Id == value(Program+<>c__DisplayClass0_0).c.AsDbSet().Where(p => (p.Id == (p.Id + 1))).Select(p => p.Id).First())
-
  e => (e.Id == value(Program+<>c__DisplayClass0_0).c.AsDbSet().Where(e1 => (e1.Id == (e.Id + 1))).Select(e1 => e1.Id).First())
+
+ p => (e.Id == value(Program+<>c__DisplayClass0_0).c.AsDbSet().Where(e1 => (e1.Id == (e.Id + 1))).Select(e1 => e1.Id).First())
+
+ p => p.Id == value(Program+<>c__DisplayClass0_0).c.AsDbSet().Where(e1 => (e1.Id == (p.Id + 1))).Select(e1 => e1.Id).First()
+
+  .first
+    .select
+        .where
+            src
  */
 
 public class CEnumT
