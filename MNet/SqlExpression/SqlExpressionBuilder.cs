@@ -103,11 +103,15 @@ namespace MNet.SqlExpression
             {
                 this.SqlDecriptor.OrderBy = this.BuildOrder(root.OrderExprs);
             }
-            
+
             //select
-            if (root.SelectExprs != null) 
+            if (root.SelectExprs != null)
             {
                 this.SqlDecriptor.Select = this.BuildSelect(root.SelectExprs);
+            }
+            else if (this.SqlDecriptor.From != null)
+            {
+                this.SqlDecriptor.Fields.AddRange(this.SqlDecriptor.From.Fields); //直接继承 from 的投射
             }
 
             return this.SqlDecriptor;
