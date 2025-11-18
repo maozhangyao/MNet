@@ -91,6 +91,8 @@ namespace MNet.SqlExpression
             }
             throw new Exception("仅支持字段，属性或者函数成员做为映射key");
         }
+
+
         /// <summary>
         /// 字符串 Length 属性转换为 SQL 函数
         /// </summary>

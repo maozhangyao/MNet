@@ -28,8 +28,10 @@ namespace MNet.SqlExpression
 
 
         public SqlBuildContext Context { get; set; }
+        public SqlDescriptor SqlDecriptor { get; set; }
         //当前生成过程中，产生的参数
         public List<SqlParamter> Paramters { get; set; }
+        //生成过程中的SQL token 栈
         protected Stack<SqlToken> Stack { get; }
 
 
@@ -46,6 +48,7 @@ namespace MNet.SqlExpression
         private SqlToken DoMemberMapping(SqlToken inst, MemberExpression node)
         {
             MemberMappingContext mapp = new MemberMappingContext();
+            mapp.SqlBuilder = new SqlBuilder();
             mapp.SqlOptions = this.Context.Options;
             mapp.Expr = node;
             mapp.MappMember = node.Member;
@@ -59,6 +62,7 @@ namespace MNet.SqlExpression
         private SqlToken DoMethodMapping(SqlToken inst, SqlToken[] args, MethodCallExpression node)
         {
             MemberMappingContext mapp = new MemberMappingContext();
+            mapp.SqlBuilder = new SqlBuilder();
             mapp.BuildContext = this.Context;
             mapp.SqlOptions = this.Context.Options;
             mapp.Expr = node;
@@ -130,6 +134,11 @@ namespace MNet.SqlExpression
         }
 
 
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            
+            return base.VisitParameter(node);
+        }
         protected override Expression VisitConstant(ConstantExpression node)
         {
             base.VisitConstant(node);

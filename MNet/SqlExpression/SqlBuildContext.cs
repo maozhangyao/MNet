@@ -8,6 +8,9 @@ namespace MNet.SqlExpression
     {
         public SqlBuildContext()
         {
+            this.RefTableCount = 0;
+            this.RefParamCount = 0;
+            this.Descriptors = new List<SqlDescriptor>(5);
             this.RefParameters = new List<SqlParamter>(32);
         }
 
@@ -24,32 +27,12 @@ namespace MNet.SqlExpression
         /// </summary>
         public int RefTableCount { get; set; }
         /// <summary>
-        /// 需要生成的 SQL
-        /// </summary>
-        public SqlDescriptor Descriptor { get; set; }
-        /// <summary>
         /// 所有涉及到的SQL参数
         /// </summary>
         public List<SqlParamter> RefParameters { get; set; }
-    }
-
-    /// <summary>
-    /// SQL 结构描述
-    /// </summary>
-    public class SqlDescriptor
-    {
-        public SqlDescriptor From { get; set; }
         /// <summary>
-        /// 引用到其他的数据源
+        /// 所有需要生成的SQL
         /// </summary>
-        public List<SqlDescriptor> Refs { get; set; }
-        public string Where { get; set; }
-        public string OrderBy { get; set; }
-        public string Select { get; set; }
-        public string Name { get; set; }
-        /// <summary>
-        /// 引用的SQL参数
-        /// </summary>
-        public List<SqlParamter> RefParameters { get; set; }
+        public List<SqlDescriptor> Descriptors { get; set; }
     }
 }
