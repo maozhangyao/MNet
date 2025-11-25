@@ -20,8 +20,21 @@ namespace MNet.SqlExpression
         public DbSet(IDbSet<T1> src)
         {
             DbPipe<T1> from = src as DbPipe<T1>;
+
+            //命名机制流动
+            if(from != null)
+                this.Namer = from.Namer;
+
             this.DbSet = new DbSetStrcut(typeof(T2));
             this.DbSet.From = from?.DbSet;
+
+            //为 from 命名
+            if (this.DbSet.From != null)
+            {
+                TypeNamed named = this.CreateNamed(this.DbSet.From.Type);
+                this.DbSet.FromNamed = named;
+                this.DbSet.TypeNamed.Add(named.Name, named);
+            }
         }
     }
 }

@@ -37,7 +37,10 @@ namespace MNet.SqlExpression
         //生成where
         public string BuildWhere(Expression expr)
         {
-            return this.Begin(expr).SqlPart;
+            LambdaExpression lambda = expr as LambdaExpression;
+
+            //不需要访问参数，只需要从body开始即可
+            return this.Begin(lambda.Body).SqlPart;
         }
         //生成 order by
         public string BuildOrder(IEnumerable<DbSetOrder> orders)
@@ -46,8 +49,9 @@ namespace MNet.SqlExpression
             foreach (DbSetOrder order in orders)
             {
                 this.Clear();
-                
-                SqlToken token = this.Begin(order.OrderByExpress);
+
+                LambdaExpression lambda = order.OrderByExpress as LambdaExpression;
+                SqlToken token = this.Begin(lambda.Body);
                 orderbys.Add($"{token.SqlPart}{(order.IsDesc ? " desc" : "")}");
             }
             return string.Join(",", orderbys);
@@ -79,21 +83,30 @@ namespace MNet.SqlExpression
         public SqlDescriptor Build(DbSetStrcut root)
         {
             this.Clear();
-            
+
             this.SqlDecriptor = new SqlDescriptor();
             this.SqlDecriptor.Define = root;
-            this.SqlDecriptor.Name = $"t{this.Context.RefTableCount++}";
-            
-            this.Context.Descriptors.Add(this.SqlDecriptor);
+            this.SqlDecriptor.Name = this.Context.TableNamer.Next();
 
-            if(root.From != null)
+            // sql 结构
+            this.Context.Descriptors.Add(this.SqlDecriptor);
+            // sql 作用域
+            this.Context.SqlScope = new SqlScope(this.Context.SqlScope, this.SqlDecriptor);
+
+            //from 部分
+            if(root.From == null)
+            {
+                //生成表名
+                this.SqlDecriptor.Table = DbUtils.Escape(root.Type.Name, this.Context.Options.Db);
+            }
+            else
             {
                 SqlDescriptor from = new SqlExpressionBuilder(this.Context).Build(root.From);
                 this.SqlDecriptor.From = from;
             }
 
             //where
-            if(root.WhereExpr != null)
+            if (root.WhereExpr != null)
             {
                 this.SqlDecriptor.Where = this.BuildWhere(root.WhereExpr);
             }
@@ -109,11 +122,23 @@ namespace MNet.SqlExpression
             {
                 this.SqlDecriptor.Select = this.BuildSelect(root.SelectExprs);
             }
+            //直接继承 from 部分的投射
             else if (this.SqlDecriptor.From != null)
             {
-                this.SqlDecriptor.Fields.AddRange(this.SqlDecriptor.From.Fields); //直接继承 from 的投射
+                foreach (string field in this.SqlDecriptor.From.Fields)
+                {
+                    this.SqlDecriptor.Fields.Add($"{this.SqlDecriptor.From.Name}.{field} AS {field}");
+                }
+                this.SqlDecriptor.Select = string.Join(", ", this.SqlDecriptor.Fields);
+            }
+            else
+            {
+                //没有指定from , 只能是 select * 了
+                this.SqlDecriptor.Select = "*";
             }
 
+            //还原作用域
+            this.Context.SqlScope = this.Context.SqlScope.ParentScope; 
             return this.SqlDecriptor;
         }
     }

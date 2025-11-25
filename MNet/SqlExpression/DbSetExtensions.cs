@@ -51,7 +51,7 @@ namespace MNet.SqlExpression
 
             return null;
         }
-        public static IDbSet<T> Where<T>(this IDbSet<T> src, Expression<Func<T, bool>> expr) 
+        public static IDbSet<T> Where<T>(this IDbSet<T> src, Expression<Func<T, bool>> expr)
         {
             DbPipe<T> set = GetDbSet(src);
             if (expr == null)
@@ -85,7 +85,6 @@ namespace MNet.SqlExpression
             db.AddSelect(expr);
 
             DbSet<T,TResult> set = new DbSet<T, TResult>(db);
-            set.AddSelect(p => p);
             return set;
         }
         public static T First<T>(this IDbSet<T> src)

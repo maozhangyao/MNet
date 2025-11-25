@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Collections;
 using System.Linq.Expressions;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace MNet.SqlExpression
 {
@@ -136,7 +137,19 @@ namespace MNet.SqlExpression
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            
+            //绑定表格引用
+            SqlScope scope = this.Context.SqlScope;
+            while (scope != null && !scope.IsScope(node))
+            {
+                scope = scope.ParentScope;
+            }
+            if (scope == null)
+                throw new Exception($"表达式参数：{node}，未找到作用域");
+
+            //确定表名, 目前默认是 from 部分的表名
+            string tname = this.SqlDecriptor.From.Name;
+            this.PushToken(tname, null, node);
+
             return base.VisitParameter(node);
         }
         protected override Expression VisitConstant(ConstantExpression node)
@@ -149,12 +162,14 @@ namespace MNet.SqlExpression
         }
         protected override Expression VisitMember(MemberExpression node)
         {
-            base.VisitMember(node);
+             base.VisitMember(node);
 
             //访问参数的成员，一般为字段或者属性
             if (node.Expression is ParameterExpression parameter)
             {
-                this.PushToken(DbUtils.Escape(node.Member.Name, this._dbType), null, node);
+                SqlToken pre = this.PopToken(); //表名成
+
+                this.PushToken(pre.SqlPart + "." + DbUtils.Escape(node.Member.Name, this._dbType), null, node);
             }
             //访问到了静态成员的属性或者字段
             else if (node.Expression == null)
@@ -304,16 +319,15 @@ namespace MNet.SqlExpression
                 //列表
                 foreach (var item in enumer)
                 {
-                    //this.ToParameter(item);
                     if (pNames == null)
-                        pNames = $"@p{this.Context.RefParamCount++}";
+                        pNames = this.Context.SqlParamNamer.Next();
                     else
-                        pNames = pNames + "," + $"@p{this.Context.RefParamCount++}";
+                        pNames = pNames + "," + this.Context.SqlParamNamer.Next();
                 }
             }
             else
             {
-                pNames = $"@p{this.Context.RefParamCount++}";
+                pNames = this.Context.SqlParamNamer.Next();
             }
             return new SqlParamter(pNames, val);
         }

@@ -10,6 +10,7 @@ namespace MNet.SqlExpression
         public DbSetStrcut()
         {
             this.OrderExprs = new List<DbSetOrder>();
+            this.TypeNamed = new Dictionary<string, TypeNamed>();
         }
         public DbSetStrcut(Type t): this()
         {
@@ -19,6 +20,9 @@ namespace MNet.SqlExpression
 
         //表示 from 中的数据集
         public DbSetStrcut From { get; set; }
+        // from 命名
+        public TypeNamed FromNamed { get; set; }
+
         //表示 where
         public Expression WhereExpr { get; set; }
         //表示 order
@@ -27,8 +31,11 @@ namespace MNet.SqlExpression
         public Expression SelectExprs { get; set; }
         //绑定的类型
         public Type Type { get; set; }
+        public Dictionary<string, TypeNamed> TypeNamed { get; set; }
 
-        public bool IsEmpty => this.WhereExpr == null && this.OrderExprs.Count <= 0 && this.SelectExprs == null;
+
         public bool IsRoot => this.SelectExprs != null && this.WhereExpr == null && this.OrderExprs.Count <= 0;
+        public bool IsEmpty => this.WhereExpr == null && this.OrderExprs.Count <= 0 && this.SelectExprs == null && this.From == null;
+        public bool IsInherit => this.WhereExpr == null && this.OrderExprs.Count <= 0 && this.SelectExprs == null && this.From != null;
     }
 }
