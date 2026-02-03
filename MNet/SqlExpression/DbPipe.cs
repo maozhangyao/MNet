@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
+using System.Security.Cryptography.X509Certificates;
 
 namespace MNet.SqlExpression
 {
@@ -73,6 +74,23 @@ namespace MNet.SqlExpression
                 Name = this.Namer.Next(),
                 Type = t
             };
+        }
+    }
+
+
+    //
+    public class DbGrouping<Tkey, TElement> : IGrouping<Tkey, TElement>
+    {
+        public Tkey Key { get; set; }
+
+        public IEnumerator<TElement> GetEnumerator()
+        {
+            return ((IEnumerable<TElement>)Array.Empty<TElement>()).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }

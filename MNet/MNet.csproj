@@ -25,4 +25,8 @@
 	  <WarningLevel>9999</WarningLevel>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <Folder Include="SqlExpression\v2\" />
+	</ItemGroup>
+
 </Project>

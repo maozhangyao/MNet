@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -51,42 +52,77 @@ namespace MNet.SqlExpression
 
             return null;
         }
+
+
         public static IDbSet<T> Where<T>(this IDbSet<T> src, Expression<Func<T, bool>> expr)
         {
-            DbPipe<T> set = GetDbSet(src);
-            if (expr == null)
-                throw new Exception($"空条件表达式：{nameof(expr)}");
+            Console.WriteLine("WHERE =========================================================");
+            Console.WriteLine(expr);
+            //DbPipe<T> set = GetDbSet(src);
+            //if (expr == null)
+            //    throw new Exception($"空条件表达式：{nameof(expr)}");
 
-            set.AddWhere(expr);
+            //set.AddWhere(expr);
             return src;
         }
-        public static IDbSet<T> OrderBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
+        public static IDbSet<T> OrderBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> expr) 
         {
-            return AddOrder(src, keyExpr, false);
+            Console.WriteLine("OrderAsc =========================================================");
+            Console.WriteLine(expr);
+            return null;
+            return AddOrder(src, expr, false);
         }
-        public static IDbSet<T> ThenBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
+        public static IDbSet<T> ThenBy<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> expr) 
         {
-            return AddOrder(src, keyExpr, false);
+            Console.WriteLine("ThenOrderAsc =========================================================");
+            Console.WriteLine(expr);
+            return null;
+            return AddOrder(src, expr, false);
         }
-        public static IDbSet<T> OrderByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
+        public static IDbSet<T> OrderByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> expr) 
         {
-            return AddOrder(src, keyExpr, true);
+            Console.WriteLine("OrderDesc =========================================================");
+            Console.WriteLine(expr);
+            return null;
+            return AddOrder(src, expr, true);
         }
-        public static IDbSet<T> ThenByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> keyExpr) 
+        public static IDbSet<T> ThenByDescending<T, TKey>(this IDbSet<T> src, Expression<Func<T, TKey>> expr) 
         {
-            return AddOrder(src, keyExpr, true);
+            Console.WriteLine("ThenOrderDesc =========================================================");
+            Console.WriteLine(expr);
+            return null;
+            return AddOrder(src, expr, true);
         }
         public static IDbSet<TResult> Select<T, TResult>(this IDbSet<T> src, Expression<Func<T, TResult>> expr)
         {
+            Console.WriteLine("SELECT =========================================================");
+            Console.WriteLine(expr);
+            return null;
             if (src == null)
                 throw new Exception($"Select {nameof(src)}参数不能为空。");
 
             DbPipe<T> db = GetDbSet(src);
             db.AddSelect(expr);
 
-            DbSet<T,TResult> set = new DbSet<T, TResult>(db);
+            DbSet<T, TResult> set = new DbSet<T, TResult>(db);
             return set;
         }
+        public static IDbSet<IGrouping<TKey, T>> GroupBy<TKey, T>(this IDbSet<T> src, Expression<Func<T, TKey>> expr)
+        {
+            Console.WriteLine("GROUPBY =========================================================");
+            Console.WriteLine(expr);
+            return null;
+        }
+        public static IDbSet<TResult> Join<TOuter, TInner, TKey, TResult>(this IDbSet<TOuter> outer, IDbSet<TInner> inner, Expression<Func<TOuter, TKey>> outerKey, Expression<Func<TInner, TKey>> innerKey, Expression<Func<TOuter, TInner, TResult>> expr)
+        {
+            Console.WriteLine("JOIN =========================================================");
+            Console.WriteLine($"outerKey:{outerKey}");
+            Console.WriteLine($"innerKey:{innerKey}");
+            Console.WriteLine($"expr:{expr}");
+            return null;
+        }
+
+
         public static T First<T>(this IDbSet<T> src)
         {
             DbPipe<T> set = GetDbSet<T>(src);

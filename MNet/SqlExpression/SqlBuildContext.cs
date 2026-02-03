@@ -9,8 +9,8 @@ namespace MNet.SqlExpression
     {
         public SqlBuildContext()
         {
-            this.RefTableCount = 0;
-            this.RefParamCount = 0;
+            //this.RefTableCount = 0;
+            //this.RefParamCount = 0;
 
             this.TableNamer = new NamedCreator(i => $"t{i.ToString().PadLeft(2, '0')}");
             this.SqlParamNamer = new NamedCreator(i => $"@p{i.ToString().PadLeft(3, '0')}");
@@ -25,14 +25,6 @@ namespace MNet.SqlExpression
         /// 配置
         /// </summary>
         public SqlOptions Options { get; set; }
-        /// <summary>
-        /// 引用 sql 参数名的计数
-        /// </summary>
-        public int RefParamCount { get; set; }
-        /// <summary>
-        /// 引用表名的计数
-        /// </summary>
-        public int RefTableCount { get; set; }
         /// <summary>
         /// 所有涉及到的SQL参数
         /// </summary>
