@@ -85,6 +85,8 @@ namespace MNet.LTSQL.v1
                 query.Select = new SelectUnit();
 
             query.Select.SelectKey = expr;
+            query.Select.NewType = typeof(TResult);
+
             return new LTSQLObject<TResult>(new QuerySequence()
             {
                 From = new FromUnit() { Source = query }
@@ -98,13 +100,28 @@ namespace MNet.LTSQL.v1
             Expression<Func<TInner, TKey>> innerKeyExpr,
             Expression<Func<TOuter, TInner, TResult>> joinExpr)
         {
+            FromUnit outerFrom = null;
+            
+            QuerySequence complex = outer.Query;
+            if (complex.IsSimpleSelect())
+            {
+                //连续join 合并
+                outerFrom = complex.From;
+            }
+            else
+            {
+                //内联查询 join
+                outerFrom = new FromUnit();
+                outerFrom.Source = complex;
+            }
+
             //需要检验参数命名是否相同
             return new LTSQLObject<TResult>(new QuerySequence
             {
-                From = new JoinUnit()
+                From = new FromJoinUnit()
                 {
-                    Source = outer.Query,
-                    Source2 = inner.Query,
+                    From = outerFrom,
+                    Source = inner.Query,
                     Source1Key = outerKeyExpr,
                     Source2Key = innerKeyExpr,
                     JoinExpr = joinExpr

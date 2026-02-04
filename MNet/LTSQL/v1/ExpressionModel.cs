@@ -8,6 +8,9 @@ namespace MNet.LTSQL.v1
     //可命名的数据序列
     public class Sequence
     {
+        //字段集合
+        public string[] Fields { get; set; }
+        //命名
         public string Alias { get; set; }
     }
     //单表数据源
@@ -34,8 +37,29 @@ namespace MNet.LTSQL.v1
         public HavingUnit Having { get; set; }
         public OrderUnit Order { get; set; }
         public SelectUnit Select { get; set; }
-        public int Skip { get; set; }
-        public int Take { get; set; }
+        public int? Skip { get; set; }
+        public int? Take { get; set; }
+
+
+        internal bool IsSimpleSelect()
+        {
+            //简单查询，除了from子句，没有其余的子句了
+            return this.From != null
+                && this.Where == null
+                && this.Group == null
+                && this.Having == null
+                && this.Order == null
+                && this.Skip == null
+                && this.Take == null;
+        }
+        internal Sequence UnWrap()
+        {
+            //拆包：属于简单查询，但对于from子句是内联查询，则直接返回内联查询
+            if (!this.IsSimpleSelect())
+                return this;
+
+            return this.IsSimpleSelect() && this.From.Source is QuerySequence complex ? complex : this;
+        }
     }
 
 
@@ -43,10 +67,10 @@ namespace MNet.LTSQL.v1
     {
         public Sequence Source { get; set; }
     }
-    public class JoinUnit : FromUnit
+    public class FromJoinUnit : FromUnit
     {
-        //
-        public Sequence Source2 { get; set; }
+        public FromUnit From { get; set; }
+
         // 连接的左侧key选择
         public Expression Source1Key { get; set; }
         // 连接的右侧key选择(即当前类)
@@ -75,5 +99,6 @@ namespace MNet.LTSQL.v1
     public class SelectUnit
     {
         public Expression SelectKey { get; set; }
+        public Type NewType { get; set; }
     }
 }

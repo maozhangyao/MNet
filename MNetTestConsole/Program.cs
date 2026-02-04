@@ -1,15 +1,22 @@
+using MNet.LTSQL.v1;
 using MNet.SqlExpression;
 using System.Data.Common;
-using MNet.LTSQL.v1;
+using System.Runtime.InteropServices.ObjectiveC;
+using System.Runtime.Loader;
 
 C_Enum_t c = new C_Enum_t();
-var query = from e in c.AsLTSQL()
-            join e2 in c.AsLTSQL() on e.EnumCode equals e2.EnumCode
-            where e.EnumCode == 1 && e.Display.Contains("hello")
-            select new { Code = e.EnumCode };
+var query1 = from e in c.AsLTSQL()
+             join e2 in c.AsLTSQL() on e.EnumCode equals e2.EnumCode
+             join e3 in c.AsLTSQL() on e.EnumCode equals e3.EnumCode
+             where c.AsLTSQL().Where(p => p.EnumCode == e.EnumCode).Any()
+             select new { Code = e.EnumCode };
 
 
-Console.WriteLine(query);
+var query2 = from e in c.AsLTSQL()
+             where e.EnumCode == 1
+             select e;
+
+new SequenceTranslater().Translate(query1.Query);
 
 return 0;
 
