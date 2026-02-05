@@ -18,6 +18,8 @@ var query2 = from e in c.AsLTSQL()
 
 new SequenceTranslater().Translate(query1.Query);
 
+
+
 return 0;
 
 

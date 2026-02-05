@@ -118,6 +118,7 @@ namespace MNet.LTSQL.v1
             //需要检验参数命名是否相同
             return new LTSQLObject<TResult>(new QuerySequence
             {
+                Type = typeof(TResult),
                 From = new FromJoinUnit()
                 {
                     From = outerFrom,

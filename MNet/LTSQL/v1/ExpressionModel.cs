@@ -12,6 +12,8 @@ namespace MNet.LTSQL.v1
         public string[] Fields { get; set; }
         //命名
         public string Alias { get; set; }
+        //an object type that mappting to table in a database
+        public Type Type { get; set; }
     }
     //单表数据源
     public class SimpleSequence : Sequence
@@ -20,9 +22,6 @@ namespace MNet.LTSQL.v1
         {
             this.Type = mappingType;
         }
-
-        //an object type that mappting to table in a database
-        public Type Type { get; set; }
     }
 
     //复杂查询结构数据源
@@ -52,7 +51,7 @@ namespace MNet.LTSQL.v1
                 && this.Skip == null
                 && this.Take == null;
         }
-        internal Sequence UnWrap()
+        internal QuerySequence UnWrap()
         {
             //拆包：属于简单查询，但对于from子句是内联查询，则直接返回内联查询
             if (!this.IsSimpleSelect())

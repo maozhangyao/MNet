@@ -1,14 +1,8 @@
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Text;
 
 namespace MNet.LTSQL.v1
 {
-    public class ParameterExpressionVisitor
-    {
-    }
-
     public class ExpressionModifier : ExpressionVisitor
     {
 
@@ -18,17 +12,26 @@ namespace MNet.LTSQL.v1
         {
             Expression expr = null;
             if (_parameterModifier != null)
+            {
                 expr = _parameterModifier(node);
-
-            Expression temp = base.VisitParameter(node);
-            return expr ?? temp;
+                base.VisitParameter(node);
+            }
+            else
+            {
+                expr = base.VisitParameter(node);
+            }
+            return expr;
         }
 
-        public void VisitParameter(Expression expr, Func<Expression, Expression> modifier)
+        public Expression VisitParameter(Expression expr, Func<Expression, Expression> modifier)
         {
             this._parameterModifier = modifier;
-            this.Visit(expr);
+            
+            Expression updated = this.Visit(expr);
+            
             this._parameterModifier = null;
+
+            return updated;
         }
     }
 }
