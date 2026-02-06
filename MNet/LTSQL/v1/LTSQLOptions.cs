@@ -10,7 +10,7 @@ namespace MNet.LTSQL.v1
         public DbType DbType { get; set; }
         //是否参数化
         public bool UseSqlParameter { get; set; }
-        public MemberTranslaterSelector SQLTokenTranslaters { get; set; }
+        public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
     }
 
     

@@ -18,11 +18,11 @@ namespace MNet.LTSQL.v1
 
         private LTSQLScope _scope;
         private LTSQLContext _context;
-
         //是否需要常量求值
         private Stack<bool> _flags;
         //生成的SQL令牌栈
         private Stack<LTSQLToken> _tokens;
+        private TranslateContext _templateContext;
 
 
         private void PushToken(LTSQLToken token)
@@ -37,7 +37,17 @@ namespace MNet.LTSQL.v1
         {
             return this._tokens.Peek();
         }
-        
+        private TranslateContext NewTranslateContext()
+        {
+            this._templateContext ??= new TranslateContext(this._tokens);
+            this._templateContext.ClearProps();
+
+            this._templateContext.Tokens = this._tokens;
+            this._templateContext.Options = this._context.Options;
+            this._templateContext.ParameterNameGenerator = this._context.ParameterNameGenerator;
+
+            return this._templateContext;
+        }
 
 
         //递归分配表名
@@ -51,15 +61,17 @@ namespace MNet.LTSQL.v1
 
             //分配表名
             Dictionary<string, string> param2table = new Dictionary<string, string>();
+            HashSet<string> objPrefixs = new HashSet<string>();
             if (complex.From is FromJoinUnit join)
             {
-                this.AssignFromJoinAlias(join, param2table, root);
+                this.AssignFromJoinAlias(join, param2table, objPrefixs, root);
             }
             else
             {
                 param2table[root] = root;
             }
-            
+
+
             //统一参数名
             ExpressionModifier exprModifier = new ExpressionModifier();
             ParameterExpression newParameter = Expression.Parameter(complex.Type, root);
@@ -108,9 +120,9 @@ namespace MNet.LTSQL.v1
             }
 
             //
-            this._context.ObjectPrefix = new LTSQLTableNameMapping(param2table);
+            this._context.ObjectPrefix = new LTSQLTableNameMapping(param2table, objPrefixs);
         }
-        private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, string prefix)
+        private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, HashSet<string> prefixs, string prefix)
         {
             if (from is FromJoinUnit join)
             {
@@ -122,24 +134,61 @@ namespace MNet.LTSQL.v1
                     p2 = $"{prefix}.{p2}";
                 }
 
+                prefixs.Add(p1);
+                prefixs.Add(p2);
                 param2table[p2] = this._context.TableNameGenerator.Next();
-                this.AssignFromJoinAlias(join.From, param2table, string.IsNullOrWhiteSpace(prefix) ? p1 : $"{prefix}.{p1}");
+                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1);
             }
             else
             {
                 param2table[prefix] = this._context.TableNameGenerator.Next();
             }
         }
+        private void TranslateCore()
+        {
+            //分配表名
+            this.AssignTableAlias();
+
+        }
+
+        private bool TranslateExpression(TranslateContext ctx)
+        {
+            this._context.LTSQLTranslater.TranslateExpression(ctx);
+            if (ctx.ResultToken != null)
+                this.PushToken(ctx.ResultToken);
+
+            return ctx.ResultToken != null;
+        }
 
 
         protected override Expression VisitParameter(ParameterExpression node)
         {
             string objprefix = node.Name;
-            string tableName = this._context.ObjectPrefix.GetTableName(objprefix);
-            this.PushToken(new AliasToken()
+            if (this._context.ObjectPrefix.IsObjectPrefix(objprefix))
             {
-                Alias = tableName ?? objprefix
-            });
+                this.PushToken(new AliasToken()
+                {
+                    Type = node.Type,
+                    Alias = objprefix
+                });
+            }
+            else
+            {
+                string tableName = this._context.ObjectPrefix.GetTableName(objprefix);
+                TranslateContext ctx = this.NewTranslateContext();
+                ctx.TranslateExpr = node;
+                ctx.MemberOnwerType = node.Type;
+
+                //外部转换优先
+                if (!this.TranslateExpression(ctx))
+                {
+                    //默认转换
+                    this.PushToken(new AliasToken(tableName)
+                    {
+                        Type = node.Type
+                    });
+                }
+            }
 
             return base.VisitParameter(node);
         }
@@ -255,25 +304,26 @@ namespace MNet.LTSQL.v1
                 args.Add(argToken);
             }
 
-            this._context.Options.SQLTokenTranslaters.Select(null, method);
+            //this._context.Options.SQLTokenTranslaters.Select(null, method);
 
             return node;
         }
 
 
-
-        public LTSQLToken Translate(QuerySequence query)
+        public LTSQLToken Translate(QuerySequence query, LTSQLOptions options)
         {
             return this.Translate(query, new LTSQLScope()
             {
                 Context = new LTSQLContext()
                 {
+                    Options = options,
                     TableNameGenerator = new NameGenerator(i => $"t{i}"),
-                    ParameterNameGenerator = new NameGenerator(i => $"p{i}")
+                    ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
+                    LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, new LTSQLTokenTranslaterSelector())
                 }
             });
         }
-        public LTSQLToken Translate(QuerySequence query, LTSQLScope scope)
+        internal LTSQLToken Translate(QuerySequence query, LTSQLScope scope)
         {
             query = query.UnWrap();
 
@@ -282,11 +332,9 @@ namespace MNet.LTSQL.v1
             this._context.Root = query;
 
             this._flags = new Stack<bool>();
-            //this._objs = new Stack<object>();
             this._tokens = new Stack<LTSQLToken>();
 
-            //分配表名
-            this.AssignTableAlias();
+            this.TranslateCore();
             return null;
         }
     }

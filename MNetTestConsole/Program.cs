@@ -1,6 +1,8 @@
 using MNet.LTSQL.v1;
 using MNet.SqlExpression;
 using System.Data.Common;
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Runtime.InteropServices.ObjectiveC;
 using System.Runtime.Loader;
 
@@ -16,10 +18,7 @@ var query2 = from e in c.AsLTSQL()
              where e.EnumCode == 1
              select e;
 
-new SequenceTranslater().Translate(query1.Query);
-
-
-
+new SequenceTranslater().Translate(query1.Query, null);
 return 0;
 
 

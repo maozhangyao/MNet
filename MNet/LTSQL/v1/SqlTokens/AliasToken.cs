@@ -3,7 +3,7 @@ using System;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     /// <summary>
-    /// SQL 对象命名
+    /// 命名对象
     /// </summary>
     public class AliasToken : LTSQLToken
     {
@@ -14,7 +14,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.Alias = alias;
         }
 
-        
+
         //
         public Type Type { get; set; }
         public string Alias { get; set; }
