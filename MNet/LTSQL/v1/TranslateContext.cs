@@ -36,6 +36,10 @@ namespace MNet.LTSQL.v1
         {
             return this.Tokens == null || this.Tokens.Count < 1 ? null : this.Tokens.Pop();
         }
+        public LTSQLToken PeekToken()
+        {
+            return this.Tokens?.Peek();
+        }
         public LTSQLToken[] PopParameters(int argsCnt)
         {
             if (argsCnt < 1)
@@ -49,10 +53,6 @@ namespace MNet.LTSQL.v1
 
             return args.ToArray();
         }
-        public LTSQLToken PeekToken()
-        {
-            return this.Tokens?.Peek();
-        }
         public SqlParameterToken TokenSqlParameter(object value)
         {
             return new SqlParameterToken()
@@ -61,7 +61,6 @@ namespace MNet.LTSQL.v1
                 ParameterName = this.ParameterNameGenerator.Next()
             };
         }
-
         internal void ClearProps()
         {
             this.Tokens = null;

@@ -12,9 +12,6 @@ namespace MNet.LTSQL.v1
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
 
-        //sql参数
-        //public Dictionary<string, object> SqlParameters { get; set; } = new Dictionary<string, object>();
-
         public LTSQLTableNameMapping ObjectPrefix { get; set; }
 
         public QuerySequence Root { get; set; }
@@ -34,15 +31,18 @@ namespace MNet.LTSQL.v1
         }
 
 
-        private Dictionary<string, string> _p2t;
         private HashSet<string> _objPrefix;
+        private Dictionary<string, string> _p2t;
 
 
+        public bool Contain(string objPrefix)
+        {
+            return this._objPrefix.Contains(objPrefix);
+        }
         public bool IsObjectPrefix(string objPrefix)
         {
             return this._objPrefix.Contains(objPrefix) && this.GetTableName(objPrefix) == null;
         }
-
         public string GetTableName(string accessPath)
         {
             return this._p2t.TryGetValue(accessPath, out string t) ? t : null;

@@ -1,6 +1,6 @@
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class ConditionToken : LTSQLToken
+    public class ConditionToken : SQLValueToken
     {
         // = 、 > , < , >= , <= , <> , IN , LIKE , IS NULL , IS NOT NULL , BETWEEN
         public AliasToken CoditionType { get; set; }

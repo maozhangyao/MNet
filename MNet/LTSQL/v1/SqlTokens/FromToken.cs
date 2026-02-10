@@ -11,30 +11,4 @@ namespace MNet.LTSQL.v1.SqlTokens
             return "FROM ";
         }
     }
-
-    public class FromJoinToken : FromToken
-    {
-        public string JoinType { get; set; }
-
-        public AliasTable Source2 { get; set; }
-        //连接条件
-        public WhereToken JoinOn { get; set; }
-
-        public override string ToSql()
-        {
-            return $"{JoinType} JOIN ";
-        }
-    }
-
-
-    public class AliasTable : LTSQLToken
-    {
-        public LTSQLToken Query { get; set; }
-        public AliasToken Alias { get; set; }
-
-        public override string ToSql()
-        {
-            return "AliasTable";
-        }
-    }
 }

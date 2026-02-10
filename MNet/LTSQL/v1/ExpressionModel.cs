@@ -68,6 +68,7 @@ namespace MNet.LTSQL.v1
     }
     public class FromJoinUnit : FromUnit
     {
+        //左侧数据
         public FromUnit From { get; set; }
 
         // 连接的左侧key选择

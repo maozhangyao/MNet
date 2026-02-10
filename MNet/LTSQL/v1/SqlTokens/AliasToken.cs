@@ -5,7 +5,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// <summary>
     /// 命名对象
     /// </summary>
-    public class AliasToken : LTSQLToken
+    public class AliasToken : SQLValueToken
     {
         public AliasToken()
         { }
@@ -14,11 +14,9 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.Alias = alias;
         }
 
-
-        //
-        public Type Type { get; set; }
         public string Alias { get; set; }
-
+        //关键字转义，如mysql中使用反引号包裹对象名，sqlserver 中使用中括号包裹对象名
+        public bool KeyWorld { get; set; } = true;
 
         public override string ToSql()
         {
