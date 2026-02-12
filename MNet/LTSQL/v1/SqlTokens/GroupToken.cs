@@ -6,9 +6,17 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         public List<LTSQLToken> GroupByItems { get; set; }
 
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return "Group";
+            context.SQLBuilder.Append("GROUP BY ");
+            bool comma = false;
+            foreach (LTSQLToken item in GroupByItems)
+            {
+                if (comma)
+                    context.SQLBuilder.Append(',');
+                comma = true;
+                item.ToSql(context);
+            }
         }
     }
 

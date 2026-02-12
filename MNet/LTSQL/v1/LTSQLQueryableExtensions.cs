@@ -26,6 +26,7 @@ namespace MNet.LTSQL.v1
         {
             QuerySequence query = new QuerySequence();
             query.From = new FromUnit();
+            query.Type = typeof(T);
             query.From.Source = new SimpleSequence(typeof(T));
 
             var ltsql = new LTSQLObject<T>();
@@ -52,16 +53,16 @@ namespace MNet.LTSQL.v1
             AddOrder(query, keyExpr, false);
             return new LTSQLObject<T>(query);
         }
+        public static ILTSQLOrderedQueryable<T> OrderByDescending<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
+        {
+            var query = src.Query;
+            AddOrder(query, keyExpr, true);
+            return new LTSQLObject<T>(query);
+        }
         public static ILTSQLOrderedQueryable<T> ThenBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
             AddOrder(query, keyExpr, false);
-            return new LTSQLObject<T>(query);
-        }
-        public static ILTSQLOrderedQueryable<T> OrderByDescending<T, TKey>(this ILTSQLOrderedQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
-        {
-            var query = src.Query;
-            AddOrder(query, keyExpr, true);
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenByDescending<T, TKey>(this ILTSQLOrderedQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
@@ -70,6 +71,7 @@ namespace MNet.LTSQL.v1
             AddOrder(query, keyExpr, true);
             return new LTSQLObject<T>(query);
         }
+
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
@@ -84,12 +86,16 @@ namespace MNet.LTSQL.v1
             if (query.Select == null)
                 query.Select = new SelectUnit();
 
+            
             query.Select.SelectKey = expr;
             query.Select.NewType = typeof(TResult);
 
             return new LTSQLObject<TResult>(new QuerySequence()
             {
-                From = new FromUnit() { Source = query }
+                Type = typeof(TResult),
+                From = new FromUnit() { 
+                    Source = query 
+                }
             });
         }
         //join
@@ -100,19 +106,17 @@ namespace MNet.LTSQL.v1
             Expression<Func<TInner, TKey>> innerKeyExpr,
             Expression<Func<TOuter, TInner, TResult>> joinExpr)
         {
-            FromUnit outerFrom = null;
-            
-            QuerySequence complex = outer.Query;
-            if (complex.IsSimpleSelect())
+            FromUnit from = null;
+            if (outer.Query.IsSimpleSelect())
             {
-                //连续join 合并
-                outerFrom = complex.From;
+                //连续 join 时需要合并 from 子句
+                from = outer.Query.From;
             }
             else
             {
-                //内联查询 join
-                outerFrom = new FromUnit();
-                outerFrom.Source = complex;
+                //join 子查询
+                from = new FromUnit();
+                from.Source = outer.Query;
             }
 
             //需要检验参数命名是否相同
@@ -121,7 +125,7 @@ namespace MNet.LTSQL.v1
                 Type = typeof(TResult),
                 From = new FromJoinUnit()
                 {
-                    From = outerFrom,
+                    From = from,
                     Source = inner.Query,
                     Source1Key = outerKeyExpr,
                     Source2Key = innerKeyExpr,

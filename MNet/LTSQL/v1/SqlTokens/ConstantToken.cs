@@ -16,9 +16,11 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
 
         public string Value { get; set; }
-        public override string ToSql()
+
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return this.Value;
+            context.SQLBuilder.Append(context);
+            //return this.Value;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace MNet.LTSQL.v1
     //复杂查询结构数据源
     public class QuerySequence : Sequence
     {
-        //from 结构： 
+        //from 结构：
         //1. from
         //2. from join
         public FromUnit From { get; set; }
@@ -38,7 +38,7 @@ namespace MNet.LTSQL.v1
         public SelectUnit Select { get; set; }
         public int? Skip { get; set; }
         public int? Take { get; set; }
-
+        public bool Distinct { get; set; }
 
         internal bool IsSimpleSelect()
         {
@@ -75,6 +75,8 @@ namespace MNet.LTSQL.v1
         public Expression Source1Key { get; set; }
         // 连接的右侧key选择(即当前类)
         public Expression Source2Key { get; set; }
+        //Source1Key 和 Source2Key 做合并后得到的联接条件
+        public Expression JoinOn { get; set; }
         // 两个对象连接成一个对象： (t1, t2) => new { t1, t2 }
         public Expression JoinExpr { get; set; }
     }

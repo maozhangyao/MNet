@@ -1,12 +1,14 @@
 using MNet.LTSQL.v1.SqlTokens;
 using MNet.Utils;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 
 namespace MNet.LTSQL.v1
@@ -118,36 +120,37 @@ namespace MNet.LTSQL.v1
 
             //分配表名
             Dictionary<string, string> param2table = new Dictionary<string, string>();
-            HashSet<string> objPrefixs = new HashSet<string>();
+            HashSet<string> objPrefixs = new HashSet<string>() { root };
+            
             
             //涉及联表
             if (complex.From is FromJoinUnit join)
             {
-                this.AssignFromJoinAlias(join, param2table, objPrefixs, root);
+                ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinExpr).Body.Type, root);
+                this.AssignFromJoinAlias(join, param2table, objPrefixs, root, joinObj, joinObj);
             }
             //单表
             else
             {
-                param2table[root] = root;
                 complex.From.Source.Alias = root;
+                param2table.Add(root, root);
             }
 
 
-            //统一参数名
+            //统一根参数名
             ExpressionModifier exprModifier = new ExpressionModifier();
             ParameterExpression newParameter = Expression.Parameter(complex.Type, root);
 
             if (complex.Where != null && complex.Where.Conditions.IsNotEmpty())
             {
+                //where 多条件合并
                 LambdaExpression merge = null;
                 foreach (Expression expr in complex.Where.Conditions)
                 {
                     LambdaExpression lambda = expr as LambdaExpression;
                     ParameterExpression paramter = lambda.Parameters[0];
-
                     LambdaExpression newExpr = exprModifier.VisitParameter(expr, p => object.ReferenceEquals(paramter, p) ? newParameter : p) as LambdaExpression;
 
-                    //多条件合并
                     merge = merge == null ? newExpr : Expression.Lambda(Expression.And(merge.Body, newExpr.Body), newParameter);
                 }
                 complex.Where.Conditions.Clear();
@@ -167,10 +170,12 @@ namespace MNet.LTSQL.v1
                 List<KeyValuePair<Expression, bool>> list = new List<KeyValuePair<Expression, bool>>();
                 foreach (var orderItem in complex.Order.OrderKeys)
                 {
-                    ParameterExpression _old = (orderItem.Key as LambdaExpression).Parameters[0];
+                    ParameterExpression _old = (orderItem.Key as LambdaExpression).Parameters[0]; 
                     Expression newExpr = exprModifier.VisitParameter(orderItem.Key, p => object.ReferenceEquals(p, _old) ? newParameter : p);
-                    list.Add(new KeyValuePair<Expression, bool>(newExpr, true));
+                    list.Add(new KeyValuePair<Expression, bool>(newExpr, orderItem.Value));
                 }
+
+                complex.Order.OrderKeys = list;
             }
 
             //投影
@@ -183,12 +188,18 @@ namespace MNet.LTSQL.v1
             //
             this._context.ObjectPrefix = new LTSQLTableNameMapping(param2table, objPrefixs);
         }
-        private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, HashSet<string> prefixs, string prefix)
+        private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, HashSet<string> prefixs, string prefix, Expression obj, ParameterExpression root)
         {
             if (from is FromJoinUnit join)
             {
-                string p1 = (join.Source1Key as LambdaExpression).Parameters[0].Name;
-                string p2 = (join.Source2Key as LambdaExpression).Parameters[0].Name;
+                LambdaExpression lamb1 = join.Source1Key as LambdaExpression;
+                LambdaExpression lamb2 = join.Source2Key as LambdaExpression;
+
+                Expression access1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(lamb1.Parameters[0].Name)[0]);
+                Expression access2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(lamb2.Parameters[0].Name)[0]);
+
+                string p1 = lamb1.Parameters[0].Name;
+                string p2 = lamb2.Parameters[0].Name;
                 if (!string.IsNullOrEmpty(prefix))
                 {
                     p1 = $"{prefix}.{p1}";
@@ -197,10 +208,16 @@ namespace MNet.LTSQL.v1
 
                 prefixs.Add(p1);
                 prefixs.Add(p2);
+                //叶结点
                 param2table[p2] = this._context.TableNameGenerator.Next();
 
-                join.Source.Alias = param2table[p2];
-                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1);
+                ExpressionModifier modifier = new ExpressionModifier();
+                Expression joinKeyValue1 = modifier.VisitParameter(lamb1.Body, p => object.ReferenceEquals(p, lamb1.Parameters[0]) ? access1 : p);
+                Expression joinKeyValue2 = modifier.VisitParameter(lamb2.Body, p => object.ReferenceEquals(p, lamb2.Parameters[0]) ? access2 : p);
+
+                join.Source.Alias = param2table[p2]; //生成表命名
+                join.JoinOn = Expression.Lambda(Expression.Equal(joinKeyValue1, joinKeyValue2), root); //生成联表条件
+                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1, access1, root);
             }
             else
             {
@@ -228,68 +245,184 @@ namespace MNet.LTSQL.v1
         }
 
 
-        
+
         //处理 from 子句
-        private FromToken TranslateFrom(FromUnit from)
+        private FromToken TranslateFrom(FromUnit from, ref List<SelectItemToken> fields)
         {
             FromToken fromToken = null;
             FromToken leftToken = null;
             LTSQLToken query = null;
 
-            if (from.Source is QuerySequence)
-            {
-                query = new SequenceTranslater()
-                       .Translate((QuerySequence)from.Source, this._scope.NewScope());
-            }
-            else if (from.Source is SimpleSequence simple)
-            {
-                query = new AliasToken(simple.Type.Name) { ValueType = simple.Type };
-            }
-            else
-            {
-                throw new Exception($"不支持的查询结构:{from.Source.GetType().FullName}");
-            }
-
             //联表
             if (from is FromJoinUnit join)
             {
-                //联接条件
+                leftToken = this.TranslateFrom(join.From, ref fields);
 
-                //Expression joinOn = Expression.MakeBinary(ExpressionType.Equal, join.Source1Key, join.Source2Key);
-                //this.Visit(joinOn);
-
+                //联接条件   TODO 解决参数与表名对应问题           
+                this.Visit((join.JoinOn as LambdaExpression).Body);
                 LTSQLToken where = this.PopToken();
-
-                leftToken = this.TranslateFrom(join.From);
                 fromToken = new FromJoinToken
                 {
-                    JoinType = "LEFT",
+                    JoinType = "LEFT JOIN", //目前固定死，就是左连接
                     From = leftToken,
-                    Source = new AliasTable(join.Source.Alias, query),
-                    JoinOn = new WhereToken() { Condition = where },
-                    //ValueType = join.JoinExpr.Type
+                    JoinOn = where,
+                    SourceType = join.Source.Type
                 };
             }
             //单表
             else
             {
                 fromToken = new FromToken();
-                //fromToken.ValueType = from.Source.Type;
-                fromToken.Source = new AliasTable(from.Source.Alias, query);
+                fromToken.SourceType = from.Source.Type;
             }
 
+
+            //嵌套子查询
+            if (from.Source is QuerySequence)
+            {
+                query = new SequenceTranslater()
+                       .Translate((QuerySequence)from.Source, this._scope.NewScope());
+
+                //解析字段
+                if (query is SqlQueryToken sqlquery)
+                {
+                    foreach (var selecdtFields in sqlquery.DefaultFields)
+                    {
+                        var fieldAccess = new ObjectAccessToken(new AliasToken(from.Source.Alias), selecdtFields.FieldAlias);
+                        fields.Add(new SelectItemToken(fieldAccess, selecdtFields.FieldAlias));
+                    }
+                }
+                query = new SQLScopeToken(query);
+            }
+            //单表访问
+            else if (from.Source is SimpleSequence simple)
+            {
+                query = new AliasToken(simple.Type.Name) { ValueType = simple.Type };
+
+                //解析字段
+                foreach (PropertyInfo prop in simple.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                {
+                    var fieldAccess = new ObjectAccessToken(new AliasToken(simple.Alias), prop.Name);
+                    fields.Add(new SelectItemToken(fieldAccess, prop.Name));
+                }
+                foreach (FieldInfo prop in simple.Type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+                {
+                    var fieldAccess = new ObjectAccessToken(new AliasToken(simple.Alias), prop.Name);
+                    fields.Add(new SelectItemToken(fieldAccess, prop.Name));
+                }
+            }
+            else
+            {
+                throw new Exception($"不支持的查询结构:{from.Source.GetType().FullName}");
+            }
+
+
+            fromToken.Source = new AliasTable(from.Source.Alias, query);
             return fromToken;
         }
+        private WhereToken TranslateWhere(WhereUnit where)
+        {
+            if (where.Conditions.IsEmpty())
+                return null;
 
+            this.Visit((where.Conditions[0] as LambdaExpression).Body);
+
+            LTSQLToken token = this.PopToken();
+            return new WhereToken(token);
+        }
+        private GroupToken TranslateGroup(GroupUnit group)
+        {
+            this.Visit((group.GroupKeys as LambdaExpression).Body);
+
+            GroupToken groupToken = new GroupToken();
+            groupToken.GroupByItems = new List<LTSQLToken>();
+
+            LTSQLToken token = this.PopToken();
+            if (token is TupleToken tuple)
+            {
+                groupToken.GroupByItems.AddRange(tuple.Props);
+            }
+            else
+            {
+                groupToken.GroupByItems.Add(token);
+            }
+
+            return groupToken;
+        }
+        private OrderToken TranslateOrder(OrderUnit order)
+        {
+            if (order.OrderKeys.IsEmpty())
+                return null;
+
+            OrderToken orderToken = new OrderToken();
+            orderToken.OrderByItems = new List<OrderByItemToken>();
+            foreach (var orderKey in order.OrderKeys)
+            {
+                this.Visit((orderKey.Key as LambdaExpression).Body);
+                LTSQLToken token = this.PopToken();
+                orderToken.OrderByItems.Add(new OrderByItemToken() { IsAsc = !orderKey.Value, Item = token });
+            }
+
+            return orderToken;
+        }
+        private SelectToken TranslateSelect(SelectUnit select)
+        {
+            this.Visit((select.SelectKey as LambdaExpression).Body);
+            LTSQLToken token = this.PopToken();
+
+            SelectToken selectToken = new SelectToken();
+            selectToken.Fields = new List<SelectItemToken>();
+            if (token is TupleToken tuple)
+            {
+                selectToken.Fields.AddRange(tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2)));
+            }
+            else
+            {
+                selectToken.Fields.Add(new SelectItemToken(token, null));
+            }
+
+            return selectToken;
+        }
 
         //开始翻译
-        private void TranslateCore()
+        private SqlQueryToken TranslateCore()
         {
             //分配表名
             this.AssignTableAlias();
 
-            SqlQueryToken queryToken = new SqlQueryToken();
+            QuerySequence query = this._context.Root;
 
+            SqlQueryToken queryToken = new SqlQueryToken();
+            queryToken.DefaultFields = new List<SelectItemToken>();
+
+
+            List<SelectItemToken> fields = queryToken.DefaultFields;
+            //from
+            queryToken.From = this.TranslateFrom(query.From, ref fields);
+            //where
+            if (query.Where != null && query.Where.Conditions.IsNotEmpty())
+                queryToken.Where = TranslateWhere(query.Where);
+            //group by
+            if(query.Group?.GroupKeys != null)
+                queryToken.Group = this.TranslateGroup(query.Group);
+            //order by
+            if (query.Order?.OrderKeys.IsNotEmpty() ?? false)
+                queryToken.Order = this.TranslateOrder(query.Order);
+            //select
+            if (query.Select?.SelectKey != null)
+            {
+                queryToken.Select = this.TranslateSelect(query.Select);
+            }
+            else
+            {
+                queryToken.Select = new SelectToken
+                {
+                    Fields = fields
+                };
+            }
+
+
+            return queryToken;
         }
 
 
@@ -300,23 +433,25 @@ namespace MNet.LTSQL.v1
             if (this.IsObjectPrefix(objprefix))
             {
                 //忽略掉join 过程中的 属性前缀链
-                this.PushToken(new AliasToken()
+                this.PushToken(new PrefixPropToken(objprefix)
                 {
-                    ValueType = node.Type,
-                    Alias = objprefix
+                    ValueType = node.Type
                 });
             }
             else
             {
-                string tableName = this.GetTableName(objprefix);
                 TranslateContext ctx = this.NewTranslateContext();
                 ctx.TranslateExpr = node;
-                ctx.MemberOnwerType = node.Type;
+                ctx.ExpressionValueType = node.Type;
 
                 //外部转换优先
                 if (!this.OnTranslateExpression(ctx))
                 {
                     //默认转换
+                    string tableName = this.GetTableName(objprefix);
+                    if (tableName == null)
+                        throw new Exception($"参数({objprefix})未找到表名:{node}");
+
                     this.PushToken(new AliasToken(tableName)
                     {
                         ValueType = node.Type
@@ -331,7 +466,7 @@ namespace MNet.LTSQL.v1
         {
             var transCtx = this.NewTranslateContext();
             transCtx.TranslateExpr = node;
-            transCtx.MemberOnwerType = node.Type;
+            transCtx.ExpressionValueType = node.Type;
 
             if (this.OnTranslateExpression(transCtx))
             {
@@ -360,7 +495,7 @@ namespace MNet.LTSQL.v1
                 //外部对表达式树翻译
                 var transCtx1 = this.NewTranslateContext();
                 transCtx1.TranslateExpr = node;
-                transCtx1.MemberOnwerType = node.Expression?.Type ?? node.Member.ReflectedType;
+                transCtx1.ExpressionValueType = node.Type;
                 if (this.OnTranslateExpression(transCtx1))
                     return expr;
 
@@ -369,6 +504,7 @@ namespace MNet.LTSQL.v1
                 transCtx2.TranslateExpr = node;
                 transCtx2.TranslateMember = node.Member;
                 transCtx2.MemberOnwerType = node.Member.ReflectedType;
+                transCtx2.ExpressionValueType = node.Type;
                 if (this.OnTranslateMember(transCtx2))
                     return expr;
 
@@ -386,13 +522,13 @@ namespace MNet.LTSQL.v1
 
 
             //表名转换
-            if (token is AliasToken alias && this.IsObjectPrefix(alias.Alias))
+            if (token is PrefixPropToken prefix)
             {
-                string accessPath = $"{alias.Alias}.{memberName}";
+                string accessPath = $"{prefix.ObjPrefix}.{memberName}";
                 //忽略掉 join 过程中的 属性前缀链
                 if (this.IsObjectPrefix(accessPath))
                 {
-                    this.PushToken(new AliasToken(accessPath) { ValueType = node.Type });
+                    this.PushToken(new PrefixPropToken(accessPath) { ValueType = node.Type });
                 }
                 // join 过程中的 属性前缀链 转化成表名
                 else
@@ -400,7 +536,7 @@ namespace MNet.LTSQL.v1
                     //外部对表达式树翻译
                     var transCtx1 = this.NewTranslateContext();
                     transCtx1.TranslateExpr = node;
-                    transCtx1.MemberOnwerType = node.Expression?.Type ?? node.Member.ReflectedType;
+                    transCtx1.ExpressionValueType = node.Type;
                     if (this.OnTranslateExpression(transCtx1))
                         return expr;
 
@@ -414,7 +550,7 @@ namespace MNet.LTSQL.v1
                 //外部对表达式树翻译
                 var transCtx1 = this.NewTranslateContext();
                 transCtx1.TranslateExpr = node;
-                transCtx1.MemberOnwerType = node.Expression?.Type ?? node.Member.ReflectedType;
+                transCtx1.ExpressionValueType = node.Type;
                 if (this.OnTranslateExpression(transCtx1))
                     return expr;
 
@@ -431,6 +567,7 @@ namespace MNet.LTSQL.v1
                     transCtx2.MemberOwner = obj;
                     transCtx2.MemberOnwerType = node.Expression.Type;
                     transCtx2.TranslateMember = node.Member;
+                    transCtx2.ExpressionValueType = node.Type;
                     if (!this.OnTranslateMember(transCtx2))
                     {
                         //对象访问
@@ -444,10 +581,11 @@ namespace MNet.LTSQL.v1
                     transCtx2.TranslateExpr = node;
                     transCtx2.MemberOnwerType = node.Expression.Type;
                     transCtx2.TranslateMember = node.Member;
+                    transCtx2.ExpressionValueType = node.Type;
                     if (!this.OnTranslateMember(transCtx2))
                     {
                         //对象访问
-                        this.PushToken(new ObjectAccessToken(token, new AliasToken(memberName)) { ValueType = node.Type });
+                        this.PushToken(new ObjectAccessToken(token, memberName) { ValueType = node.Type });
                     }
                 }
             }
@@ -461,7 +599,7 @@ namespace MNet.LTSQL.v1
             //外部表达式树翻译
             var transCtx1 = this.NewTranslateContext();
             transCtx1.TranslateExpr = node;
-            transCtx1.MemberOnwerType = node.Method.ReflectedType;
+            transCtx1.ExpressionValueType = node.Type;
             if (this.OnTranslateExpression(transCtx1))
                 return expr;
 
@@ -479,6 +617,7 @@ namespace MNet.LTSQL.v1
                 transCtx2.TranslateExpr = node;
                 transCtx2.TranslateMember = node.Method;
                 transCtx2.MemberOnwerType = node.Method.ReflectedType;
+                transCtx2.ExpressionValueType = node.Type;
                 if (this.OnTranslateMember(transCtx2))
                     return expr;
 
@@ -497,6 +636,7 @@ namespace MNet.LTSQL.v1
 
                 val = node.Method.Invoke(null, parameters.Select(p => ((SqlParameterToken)p).Value).ToArray());
                 token = new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Method.ReturnType };
+                this.PushToken(token);
                 return expr;
             }
 
@@ -510,6 +650,7 @@ namespace MNet.LTSQL.v1
             transCtx3.TranslateMember = node.Method;
             transCtx3.MemberOwner = objToken is SqlParameterToken ? ((SqlParameterToken)objToken).Value : null;
             transCtx3.MemberOnwerType = node.Object.Type;
+            transCtx3.ExpressionValueType = node.Type;
             if (this.OnTranslateMember(transCtx3))
                 return expr;
 
@@ -538,6 +679,12 @@ namespace MNet.LTSQL.v1
 
             return expr;
         }
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            //访问到lambda表达式，表示某些函数求值，其入参为lambda函数
+            this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node) { ValueType = node.Type });
+            return node;
+        }
         //new 表达式
         protected override Expression VisitNew(NewExpression node)
         {
@@ -551,8 +698,42 @@ namespace MNet.LTSQL.v1
         {
             return base.VisitMemberMemberBinding(node);
         }
+        protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
+        {
+            base.VisitMemberAssignment(node);
+            return node; 
+        }
+        //初始化实例
+        protected override Expression VisitMemberInit(MemberInitExpression node)
+        {
+            Expression expr = base.VisitMemberInit(node);
 
+            var transCtx = this.NewTranslateContext();
+            transCtx.TranslateExpr = node;
+            transCtx.ExpressionValueType = node.Type;
+            if (this.OnTranslateExpression(transCtx))
+                return expr;
 
+            if (node.Bindings.Count > 0)
+            {
+                LTSQLToken[] bindProps = this.PopAsParamters(node.Bindings.Count);
+
+                TupleToken tuple = new TupleToken();
+                tuple.ValueType = node.Type;
+                for(int i = 0; i < node.Bindings.Count; i++)
+                {
+                    tuple.Add(bindProps[i], node.Bindings[i].Member.Name);
+                }
+
+                this.PushToken(tuple);
+            }
+            else
+            {
+                //空属性对象
+                this.PushToken(new TupleToken() { ValueType = node.Type });
+            }
+            return expr;
+        }
         //二元表达式
         protected override Expression VisitBinary(BinaryExpression node)
         {
@@ -560,35 +741,84 @@ namespace MNet.LTSQL.v1
 
             var transCtx = this.NewTranslateContext();
             transCtx.TranslateExpr = node;
-            transCtx.MemberOnwerType = node.Type;
+            transCtx.ExpressionValueType = node.Type;
 
             if (this.OnTranslateExpression(transCtx))
                 return expr;
 
+            LTSQLToken right = this.PopToken();
+            LTSQLToken left = this.PopToken();
+            if (!(right is ValueToken && left is ValueToken))
+                throw new Exception($"二元表达式左右两边的子节点无法正常表示:{node}");
+
+            ValueToken vall = left as ValueToken;
+            ValueToken valr = right as ValueToken;
+            if (vall.ValueType != valr.ValueType)
+                throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
+
+            if(node.NodeType == ExpressionType.Equal)
+            {
+                // join 的联表条件，可能会导致产元组条件
+                if(vall is TupleToken tupl && valr is TupleToken tupr)
+                {
+                    if(tupl.Props.Length != tupr.Props.Length)
+                        throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
+                    
+                    //元组中的各个属性做相等操作，用AND操作连接
+                    ConditionToken cur = null;
+                    for(int i = 0; i < tupl.Props.Length; i++)
+                    {
+                        ConditionToken equals = new ConditionToken(tupl.Props[i], tupr.Props[i], "=");
+                        cur = cur == null ? equals : new ConditionToken(cur, equals, "AND");
+                    }
+
+                    this.PushToken(cur);
+                    return expr;
+                }
+            }
+
+            SQLValueToken sqll = vall as SQLValueToken;
+            SQLValueToken sqlr = valr as SQLValueToken;
+            if (sqll == null || sqlr == null)
+                throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
+
+            ConditionToken condition = null;
             switch (node.NodeType)
             {
                 case ExpressionType.Add:
+                    //c# 中的 字符串支持 "+" 号拼接操作，但在此处不做SQL字符串拼接函数的翻译操作，如果需要指定字符串拼接应该用 string.concat 函数操作
+                    condition = new ConditionToken(sqll, sqlr, "+");
                     break;
                 case ExpressionType.Equal:
+                    condition = new ConditionToken(sqll, sqlr, "=");
                     break;
                 case ExpressionType.GreaterThanOrEqual:
+                    condition = new ConditionToken(sqll, sqlr, ">=");
                     break;
                 case ExpressionType.LessThanOrEqual:
+                    condition = new ConditionToken(sqll, sqlr, "<=");
                     break;
                 case ExpressionType.LessThan:
+                    condition = new ConditionToken(sqll, sqlr, "<");
                     break;
                 case ExpressionType.GreaterThan:
+                    condition = new ConditionToken(sqll, sqlr, ">");
                     break;
                 case ExpressionType.AndAlso:
+                    condition = new ConditionToken(sqll, sqlr, "AND");
                     break;
                 case ExpressionType.OrElse:
+                    condition = new ConditionToken(sqll, sqlr, "OR");
                     break;
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
 
+            this.PushToken(new SQLScopeToken(condition));
             return expr;
         }
+
+
 
 
         public LTSQLToken Translate(QuerySequence query, LTSQLOptions options)
@@ -610,13 +840,12 @@ namespace MNet.LTSQL.v1
 
             this._scope = scope;
             this._context = scope.Context;
-            this._context.Root = query;
+            this._context.Root = query; 
 
             this._flags = new Stack<bool>();
             this._tokens = new Stack<LTSQLToken>();
 
-            this.TranslateCore();
-            return null;
+            return this.TranslateCore();
         }
     }
 }

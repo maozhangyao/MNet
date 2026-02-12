@@ -4,9 +4,12 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         public LTSQLToken Item { get; set; }
         public bool IsAsc { get; set; } = true;
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return "OrderByItem";
+            this.Item.ToSql(context);
+            context.SQLBuilder.Append(' ');
+            if (!this.IsAsc)
+                context.SQLBuilder.Append("desc");
         }
     }
 }

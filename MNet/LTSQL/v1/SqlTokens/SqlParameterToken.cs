@@ -1,3 +1,5 @@
+using System;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     //sql 参数
@@ -16,9 +18,18 @@ namespace MNet.LTSQL.v1.SqlTokens
         public object Value { get; set; }
         //参数名
         public string ParameterName { get; set; }
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return this.ParameterName;
+            if (context?.Options?.UseSqlParameter ?? true)
+            {
+                if (!this.ParameterName.StartsWith("@"))
+                    context.SQLBuilder.Append('@');
+                context.SQLBuilder.Append(this.ParameterName);
+            }
+            else
+            {
+                throw new Exception("对象实例转换为sql字面量暂未支持");
+            }
         }
     }
 }

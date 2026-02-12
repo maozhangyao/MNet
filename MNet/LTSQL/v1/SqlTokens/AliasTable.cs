@@ -13,9 +13,11 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Query { get; set; }
         public string Alias { get; set; }
 
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return "AliasTable";
+            this.Query.ToSql(context);
+            context.SQLBuilder.Append(' ');
+            context.SQLBuilder.Append(this.Alias);
         }
     }
 }

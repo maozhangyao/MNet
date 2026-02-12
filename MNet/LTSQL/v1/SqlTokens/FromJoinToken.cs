@@ -6,11 +6,20 @@ namespace MNet.LTSQL.v1.SqlTokens
         //from
         public FromToken From { get; set; }
         //连接条件
-        public WhereToken JoinOn { get; set; }
+        public LTSQLToken JoinOn { get; set; }
 
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return $"{JoinType} JOIN ";
+            this.From.ToSql(context);
+
+            context.SQLBuilder.AppendLine();
+            context.SQLBuilder.Append(JoinType);
+            context.SQLBuilder.Append(' ');
+
+            this.Source.ToSql(context);
+            context.SQLBuilder.Append(" ON ");
+
+            this.JoinOn.ToSql(context);
         }
     }
 }

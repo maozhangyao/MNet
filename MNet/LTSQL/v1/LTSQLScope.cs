@@ -15,7 +15,12 @@ namespace MNet.LTSQL.v1
             return new LTSQLScope()
             {
                 Parent = this,
-                Context = new LTSQLContext()
+                Context = new LTSQLContext() { 
+                    Options = this.Context?.Options,
+                    TableNameGenerator = this.Context?.TableNameGenerator,
+                    ParameterNameGenerator = this.Context?.ParameterNameGenerator,
+                    LTSQLTranslater = this.Context?.LTSQLTranslater,
+                }
             };
         }
     }

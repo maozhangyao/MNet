@@ -12,6 +12,4 @@ namespace MNet.LTSQL.v1
         public bool UseSqlParameter { get; set; }
         public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
     }
-
-    
 }

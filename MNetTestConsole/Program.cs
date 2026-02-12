@@ -1,37 +1,63 @@
 using MNet.LTSQL.v1;
-using MNet.SqlExpression;
+using MNet.LTSQL.v1.SqlTokens;
+using System.Diagnostics.Metrics;
 using System.Linq.Expressions;
+using System.Text;
 
-//C_Enum_t c = new C_Enum_t();
-//var query1 = from e in c.AsLTSQL()
-//             join e2 in c.AsLTSQL() on new { n = e.EnumValue } equals new { n = "" }
-//             join e3 in c.AsLTSQL() on e.EnumCode equals e3.EnumCode
-//             where c.AsLTSQL().Where(p => p.EnumCode == e.EnumCode).Any() && e.Parent == e2.Parent
-//             select new { Code = e.EnumCode };
+//c_persion_t c = new c_persion_t();
+//var query1 = from mine in c.AsLTSQL()
+//             join mother in c.AsLTSQL() on new { n = mine.Id } equals new { n = mother.Id }
+//             join father in c.AsLTSQL() on mine.Id equals father.Id
+//             where mine.Age > 18
+//             orderby mine.Age
+//           //select new { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
+//             select new info { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
 
 
 //var query2 = from e in c.AsLTSQL()
-//             where e.EnumCode == 1
+//             where e.Id == 1
 //             select e;
 
-//new SequenceTranslater().Translate(query1.Query, null);
+//LTSQLToken token = new SequenceTranslater().Translate(query1.Query, null);
 
-LambdaExpression expr = () => new C_Enum_t() { EnumCode = 1 };
-MemberInitExpression body = expr.Body as MemberInitExpression;
+//StringBuilder bulider = new StringBuilder();
+//token.ToSql(new LTSQLTokenContext
+//{
+//    SQLBuilder = bulider,
+//    Options = new LTSQLOptions
+//    {
+//        DbType = DbType.MySQL,
+//        UseSqlParameter = true
+//    }
+//});
 
-Console.WriteLine(expr);
+//Console.WriteLine(bulider);
+
+
+LambdaExpression lambda = () => new { Self = "", Mather = "mother.SelfName", Father = "" };
+//NewExpression _new = lambda.Body as NewExpression;
+
+NewExpression _new = Expression.New(typeof(info).GetConstructor(new Type[0]));
+
+Console.WriteLine(_new);
 
 
 
 return 0;
 
 
-
-
-public class C_Enum_t
+public class c_persion_t
 {
-    public int EnumCode { get; set; }
-    public string Display { get; set; }
-    public string EnumValue { get; set; }
-    public C_Enum_t Parent { get; set; }
+    public int Id { get; set; }
+    public int Age { get; set; }
+    public string SelfName { get; set; }
+    public int FatherId { get; set; }
+    public int MotherId { get; set; }
 }
+public class info 
+{
+    public string Self { get; set; }
+    public string Mather { get; set; }
+    public string Father { get; set; }
+}
+

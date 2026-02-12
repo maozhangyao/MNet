@@ -1,16 +1,22 @@
+using System.Runtime.InteropServices;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class WhereToken : LTSQLToken
     {
         public WhereToken()
+        { }
+        public WhereToken(LTSQLToken condition)
         {
+            this.Condition = condition;
         }
 
         public LTSQLToken Condition { get; set; }
 
-        public override string ToSql()
+        public override void ToSql(LTSQLTokenContext context)
         {
-            return "Where";
+            context.SQLBuilder.Append("WHERE ");
+            this.Condition.ToSql(context);
         }
     }
 }

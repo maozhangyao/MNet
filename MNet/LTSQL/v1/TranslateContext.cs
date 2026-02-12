@@ -30,7 +30,7 @@ namespace MNet.LTSQL.v1
         //对于调用静态成员，该属性为nul
         public object? MemberOwner { get; set; }
         public Type MemberOnwerType { get; set; }
-        
+        public Type ExpressionValueType { get; set; }
 
         public LTSQLToken PopToken()
         {
