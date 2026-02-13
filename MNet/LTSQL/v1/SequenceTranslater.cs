@@ -394,6 +394,7 @@ namespace MNet.LTSQL.v1
             QuerySequence query = this._context.Root;
 
             SqlQueryToken queryToken = new SqlQueryToken();
+            queryToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.Type);
             queryToken.DefaultFields = new List<SelectItemToken>();
 
 
@@ -422,7 +423,7 @@ namespace MNet.LTSQL.v1
                 };
             }
 
-
+            
             return queryToken;
         }
 
@@ -787,7 +788,7 @@ namespace MNet.LTSQL.v1
                         cur = cur == null ? equals : new ConditionToken(cur, equals, "AND");
                     }
 
-                    this.PushToken(cur);
+                    this.PushToken(new SQLScopeToken(cur));
                     return expr;
                 }
             }

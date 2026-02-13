@@ -56,8 +56,26 @@ namespace MNet.LTSQL.v1
             //拆包：属于简单查询，但对于from子句是内联查询，则直接返回内联查询
             if (!this.IsSimpleSelect())
                 return this;
+            if (this.From is FromJoinUnit)
+                return this;
 
-            return this.IsSimpleSelect() && this.From.Source is QuerySequence complex ? complex : this;
+            if (this.From.Source is QuerySequence q)
+                return q.UnWrap();
+            
+            return this;
+        }
+        internal Sequence Reduce()
+        {
+            //去掉空壳，返回最底的查询
+            if (!this.IsSimpleSelect())
+                return this;
+            if (this.From is FromJoinUnit)
+                return this;
+
+            if(this.From.Source is QuerySequence q)
+                return q.Reduce();
+
+            return this.From.Source;
         }
     }
 

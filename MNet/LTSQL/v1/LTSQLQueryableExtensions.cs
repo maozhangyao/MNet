@@ -126,7 +126,7 @@ namespace MNet.LTSQL.v1
                 From = new FromJoinUnit()
                 {
                     From = from,
-                    Source = inner.Query,
+                    Source = inner.Query.Reduce(),
                     Source1Key = outerKeyExpr,
                     Source2Key = innerKeyExpr,
                     JoinExpr = joinExpr

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class SqlQueryToken　: LTSQLToken
+    public class SqlQueryToken　: SQLValueToken
     {
         public List<SelectItemToken> DefaultFields { get; set; }
 
