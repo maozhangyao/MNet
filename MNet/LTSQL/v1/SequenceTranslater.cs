@@ -208,16 +208,17 @@ namespace MNet.LTSQL.v1
 
                 prefixs.Add(p1);
                 prefixs.Add(p2);
-                //叶结点
-                param2table[p2] = this._context.TableNameGenerator.Next();
+
+                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1, access1, root);
 
                 ExpressionModifier modifier = new ExpressionModifier();
                 Expression joinKeyValue1 = modifier.VisitParameter(lamb1.Body, p => object.ReferenceEquals(p, lamb1.Parameters[0]) ? access1 : p);
                 Expression joinKeyValue2 = modifier.VisitParameter(lamb2.Body, p => object.ReferenceEquals(p, lamb2.Parameters[0]) ? access2 : p);
 
+                //叶结点
+                param2table[p2] = this._context.TableNameGenerator.Next(); 
                 join.Source.Alias = param2table[p2]; //生成表命名
                 join.JoinOn = Expression.Lambda(Expression.Equal(joinKeyValue1, joinKeyValue2), root); //生成联表条件
-                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1, access1, root);
             }
             else
             {
@@ -688,7 +689,26 @@ namespace MNet.LTSQL.v1
         //new 表达式
         protected override Expression VisitNew(NewExpression node)
         {
-            return base.VisitNew(node);
+            Expression expr = base.VisitNew(node);
+            
+            var transCtx = this.NewTranslateContext();
+            transCtx.TranslateExpr = node;
+            transCtx.ExpressionValueType = node.Type;
+            if (this.OnTranslateExpression(transCtx))
+                return expr;
+
+            TupleToken tuple = new TupleToken();
+            LTSQLToken[] paras = this.PopAsParamters(node.Arguments.Count);
+            if (node.Members.IsNotEmpty())
+            {
+                for (int i = 0; i < node.Members.Count; i++)
+                {
+                    tuple.Add(paras[i], node.Members[i].Name);
+                }
+            }
+
+            this.PushToken(tuple);
+            return expr;
         }
         protected override MemberBinding VisitMemberBinding(MemberBinding node)
         {
@@ -706,7 +726,7 @@ namespace MNet.LTSQL.v1
         //初始化实例
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
-            Expression expr = base.VisitMemberInit(node);
+            Expression expr = base.VisitMemberInit(node); 
 
             var transCtx = this.NewTranslateContext();
             transCtx.TranslateExpr = node;
@@ -717,8 +737,8 @@ namespace MNet.LTSQL.v1
             if (node.Bindings.Count > 0)
             {
                 LTSQLToken[] bindProps = this.PopAsParamters(node.Bindings.Count);
+                TupleToken tuple = this.PopToken() as TupleToken;
 
-                TupleToken tuple = new TupleToken();
                 tuple.ValueType = node.Type;
                 for(int i = 0; i < node.Bindings.Count; i++)
                 {
@@ -726,11 +746,6 @@ namespace MNet.LTSQL.v1
                 }
 
                 this.PushToken(tuple);
-            }
-            else
-            {
-                //空属性对象
-                this.PushToken(new TupleToken() { ValueType = node.Type });
             }
             return expr;
         }
