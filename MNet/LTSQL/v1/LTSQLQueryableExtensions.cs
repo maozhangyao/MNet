@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -46,6 +47,7 @@ namespace MNet.LTSQL.v1
             query.Where.Conditions.Add(expr);
             return src;
         }
+        
         //order
         public static ILTSQLOrderedQueryable<T> OrderBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
@@ -76,16 +78,30 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
+            if (query.Group == null)
+                query.Group = new GroupUnit();
+
             query.Group.GroupKeys = keyExpr;
+            query.Group.ElementExpr = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
             return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
+        public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
+        {
+            var query = src.Query;
+            if (query.Group == null)
+                query.Group = new GroupUnit();
+
+            query.Group.GroupKeys = keyExpr;
+            query.Group.ElementExpr = elementExpr;
+            return new LTSQLObject<IGrouping<TKey, TElement>>(query);
+        }
+
         //select
         public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
             var query = src.Query;
             if (query.Select == null)
                 query.Select = new SelectUnit();
-
             
             query.Select.SelectKey = expr;
             query.Select.NewType = typeof(TResult);

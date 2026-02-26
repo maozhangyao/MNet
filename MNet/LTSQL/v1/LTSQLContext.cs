@@ -1,3 +1,4 @@
+using MNet.LTSQL.v1.SqlTokens;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1
@@ -12,11 +13,15 @@ namespace MNet.LTSQL.v1
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
 
+        public QuerySequence Root { get; set; }
         public LTSQLTableNameMapping ObjectPrefix { get; set; }
 
-        public QuerySequence Root { get; set; }
+        
 
-
+        //是否存在分组子句
+        public bool GroupFlag { get; set; }
+        public LTSQLToken GroupKey { get; set; }
+        public LTSQLToken GroupElement { get; set; }
     }
 
 

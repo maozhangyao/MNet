@@ -22,11 +22,11 @@ namespace MNet.LTSQL.v1
 
         private LTSQLScope _scope;
         private LTSQLContext _context;
-        //是否需要常量求值
-        private Stack<bool> _flags;
         //生成的SQL令牌栈
         private Stack<LTSQLToken> _tokens;
+        //复用对象，用于扩展翻译上下文，避免频繁创建对象
         private TranslateContext _templateContext;
+        private List<(Expression, LTSQLToken)> _tokenInsteadList;
 
 
         private void PushToken(LTSQLToken token)
@@ -106,8 +106,27 @@ namespace MNet.LTSQL.v1
 
             return map.GetTableName(objPrefix);
         }
+        private void UnUseSpecialToken(Expression expr)
+        {
+            if (this._tokenInsteadList == null)
+                return;
+            this._tokenInsteadList.RemoveAll(p => object.ReferenceEquals(p.Item1, expr));
+        }
+        private LTSQLToken GetSpecialTokenInstead(Expression expr)
+        {
+            if (this._tokenInsteadList == null)
+                return null;
+
+            return this._tokenInsteadList.FirstOrDefault(p => object.ReferenceEquals(p.Item1, expr)).Item2;
+        }
+        private void UseSpecialTokenInstead(Expression expr, LTSQLToken token)
+        {
+            this._tokenInsteadList ??= new List<(Expression, LTSQLToken)>();
+            this._tokenInsteadList.Add((expr, token));
+        }
 
         
+
 
         //递归分配表名
         private void AssignTableAlias()
@@ -116,6 +135,7 @@ namespace MNet.LTSQL.v1
             if (complex == null)
                 return;
 
+            bool bGroupFlag = false;
             string root = "p" + this._context.TableNameGenerator.Next();
 
             //分配表名
@@ -139,7 +159,8 @@ namespace MNet.LTSQL.v1
 
             //统一根参数名
             ExpressionModifier exprModifier = new ExpressionModifier();
-            ParameterExpression newParameter = Expression.Parameter(complex.Type, root);
+            Type unifyParameterType = complex.Type;
+            ParameterExpression newParameter = Expression.Parameter(unifyParameterType, root);
 
             if (complex.Where != null && complex.Where.Conditions.IsNotEmpty())
             {
@@ -158,11 +179,20 @@ namespace MNet.LTSQL.v1
             }
 
             //分组
-            if(complex?.Group?.GroupKeys != null)
+            if (complex?.Group?.GroupKeys != null)
             {
+                bGroupFlag = true;
                 ParameterExpression _old = (complex.Group.GroupKeys as LambdaExpression).Parameters[0];
                 complex.Group.GroupKeys = exprModifier.VisitParameter(complex.Group.GroupKeys, p => object.ReferenceEquals(_old, p) ? newParameter : p);
+                if (complex.Group.ElementExpr != null)
+                {
+                    _old = (complex.Group.ElementExpr as LambdaExpression).Parameters[0];
+                    complex.Group.ElementExpr = exprModifier.VisitParameter(complex.Group.ElementExpr, p => object.ReferenceEquals(_old, p) ? newParameter : p);
+                }
             }
+
+            // having
+
 
             //排序
             if (complex?.Order?.OrderKeys?.IsNotEmpty() ?? false)
@@ -170,7 +200,7 @@ namespace MNet.LTSQL.v1
                 List<KeyValuePair<Expression, bool>> list = new List<KeyValuePair<Expression, bool>>();
                 foreach (var orderItem in complex.Order.OrderKeys)
                 {
-                    ParameterExpression _old = (orderItem.Key as LambdaExpression).Parameters[0]; 
+                    ParameterExpression _old = (orderItem.Key as LambdaExpression).Parameters[0];
                     Expression newExpr = exprModifier.VisitParameter(orderItem.Key, p => object.ReferenceEquals(p, _old) ? newParameter : p);
                     list.Add(new KeyValuePair<Expression, bool>(newExpr, orderItem.Value));
                 }
@@ -178,14 +208,15 @@ namespace MNet.LTSQL.v1
                 complex.Order.OrderKeys = list;
             }
 
-            //投影
-            if (complex.Select?.SelectKey != null)
+            //投影（仅在不存在分组的情况下才有替换参数的意义）
+            if (complex.Select?.SelectKey != null && !bGroupFlag)
             {
                 ParameterExpression _old = (complex.Select.SelectKey as LambdaExpression).Parameters[0];
                 complex.Select.SelectKey = exprModifier.VisitParameter(complex.Select.SelectKey, p => object.ReferenceEquals(_old, p) ? newParameter : p);
             }
 
             //
+            this._context.GroupFlag = bGroupFlag;
             this._context.ObjectPrefix = new LTSQLTableNameMapping(param2table, objPrefixs);
         }
         private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, HashSet<string> prefixs, string prefix, Expression obj, ParameterExpression root)
@@ -333,19 +364,20 @@ namespace MNet.LTSQL.v1
         }
         private GroupToken TranslateGroup(GroupUnit group)
         {
-            this.Visit((group.GroupKeys as LambdaExpression).Body);
-
             GroupToken groupToken = new GroupToken();
-            groupToken.GroupByItems = new List<LTSQLToken>();
 
-            LTSQLToken token = this.PopToken();
-            if (token is TupleToken tuple)
+            //分组依据翻译
+            if (group.GroupKeys != null)
             {
-                groupToken.GroupByItems.AddRange(tuple.Props);
+                this.Visit((group.GroupKeys as LambdaExpression).Body);
+                groupToken.GroupKey = this.PopToken();
             }
-            else
+            
+            //分组元素翻译
+            if (group.ElementExpr != null)
             {
-                groupToken.GroupByItems.Add(token);
+                this.Visit((group.ElementExpr as LambdaExpression).Body);
+                groupToken.GroupElement = this.PopToken();
             }
 
             return groupToken;
@@ -368,21 +400,48 @@ namespace MNet.LTSQL.v1
         }
         private SelectToken TranslateSelect(SelectUnit select)
         {
-            this.Visit((select.SelectKey as LambdaExpression).Body);
-            LTSQLToken token = this.PopToken();
+            bool bflag = false;
+            LambdaExpression selectExpr = select.SelectKey as LambdaExpression;
+            ParameterExpression parameter = selectExpr.Parameters[0];
 
-            SelectToken selectToken = new SelectToken();
-            selectToken.Fields = new List<SelectItemToken>();
-            if (token is TupleToken tuple)
+            if (this._context.GroupFlag)
             {
-                selectToken.Fields.AddRange(tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2)));
-            }
-            else
-            {
-                selectToken.Fields.Add(new SelectItemToken(token, null));
+                //构造分组对象，将分组键和分组元素作为属性，供后续的表达式访问，便于判断聚合函数处理的时机
+                GroupObjToken groupToken = new GroupObjToken();
+                groupToken.GroupKey = this._context.GroupKey;
+                groupToken.Element = this._context.GroupElement;
+                groupToken.ValueType = parameter.Type;
+                this.UseSpecialTokenInstead(parameter, groupToken);
+                bflag = true;
             }
 
-            return selectToken;
+            try
+            {
+                this.Visit(selectExpr.Body);
+
+                LTSQLToken token = this.PopToken();
+                SelectToken selectToken = new SelectToken();
+                selectToken.Fields = new List<SelectItemToken>();
+                if (token is TupleToken tuple)
+                {
+                    selectToken.Fields.AddRange(tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2)));
+                }
+                else
+                {
+                    selectToken.Fields.Add(new SelectItemToken(token, null));
+                }
+
+                return selectToken;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            finally
+            {
+                if (bflag)
+                    this.UnUseSpecialToken(parameter);
+            }
         }
 
         //开始翻译
@@ -405,11 +464,19 @@ namespace MNet.LTSQL.v1
             if (query.Where != null && query.Where.Conditions.IsNotEmpty())
                 queryToken.Where = TranslateWhere(query.Where);
             //group by
-            if(query.Group?.GroupKeys != null)
+            if (query.Group?.GroupKeys != null)
+            {
                 queryToken.Group = this.TranslateGroup(query.Group);
+                this._context.GroupKey = queryToken.Group.GroupKey;
+                this._context.GroupElement = queryToken.Group.GroupElement;
+            }
+
             //order by
             if (query.Order?.OrderKeys.IsNotEmpty() ?? false)
+            {
                 queryToken.Order = this.TranslateOrder(query.Order);
+            }
+
             //select
             if (query.Select?.SelectKey != null)
             {
@@ -431,6 +498,14 @@ namespace MNet.LTSQL.v1
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
         {
+            //内部token替换
+            LTSQLToken tokenInstead = this.GetSpecialTokenInstead(node);
+            if (tokenInstead != null)
+            {
+                this.PushToken(tokenInstead);
+                return node;
+            }
+
             string objprefix = node.Name;
             if (this.IsObjectPrefix(objprefix))
             {
@@ -504,8 +579,8 @@ namespace MNet.LTSQL.v1
                 //外部对成员调用翻译
                 var transCtx2 = this.NewTranslateContext();
                 transCtx2.TranslateExpr = node;
-                transCtx2.TranslateMember = node.Member;
-                transCtx2.MemberOnwerType = node.Member.ReflectedType;
+                transCtx2.Member = node.Member;
+                transCtx2.OwnerType = node.Member.ReflectedType;
                 transCtx2.ExpressionValueType = node.Type;
                 if (this.OnTranslateMember(transCtx2))
                     return expr;
@@ -518,13 +593,12 @@ namespace MNet.LTSQL.v1
 
             /*非静态成员*/
             string memberName = node.Member.Name;
-            LTSQLToken token = this.PopToken();
-            if (token == null)
+            LTSQLToken objToken = this.PopToken();
+            if (objToken == null)
                 throw new Exception($"表达式解析结果为null:{node}");
 
-
             //表名转换
-            if (token is PrefixPropToken prefix)
+            if (objToken is PrefixPropToken prefix)
             {
                 string accessPath = $"{prefix.ObjPrefix}.{memberName}";
                 //忽略掉 join 过程中的 属性前缀链
@@ -557,7 +631,7 @@ namespace MNet.LTSQL.v1
                     return expr;
 
                 //对常量求值
-                if (token is SqlParameterToken p)
+                if (objToken is SqlParameterToken p)
                 {
                     object obj = p.Value;
                     if (obj == null)
@@ -566,9 +640,10 @@ namespace MNet.LTSQL.v1
 
                     var transCtx2 = this.NewTranslateContext();
                     transCtx2.TranslateExpr = node;
-                    transCtx2.MemberOwner = obj;
-                    transCtx2.MemberOnwerType = node.Expression.Type;
-                    transCtx2.TranslateMember = node.Member;
+                    transCtx2.Owner = obj;
+                    transCtx2.OwnerToken = objToken;
+                    transCtx2.OwnerType = node.Expression.Type;
+                    transCtx2.Member = node.Member;
                     transCtx2.ExpressionValueType = node.Type;
                     if (!this.OnTranslateMember(transCtx2))
                     {
@@ -581,14 +656,32 @@ namespace MNet.LTSQL.v1
                 {
                     var transCtx2 = this.NewTranslateContext();
                     transCtx2.TranslateExpr = node;
-                    transCtx2.MemberOnwerType = node.Expression.Type;
-                    transCtx2.TranslateMember = node.Member;
+                    transCtx2.OwnerToken = objToken;
+                    transCtx2.OwnerType = node.Expression.Type;
+                    transCtx2.Member = node.Member;
                     transCtx2.ExpressionValueType = node.Type;
-                    if (!this.OnTranslateMember(transCtx2))
+                    if (this.OnTranslateMember(transCtx2))
+                        return expr;
+
+                    if (objToken is GroupObjToken groupToken && memberName == nameof(IGrouping<object, object>.Key))
+                    {
+                        //IGrouping.Key 的方位转换为分组依据
+                        this.PushToken(groupToken.GroupKey);
+                    }
+                    else if(objToken is TupleToken tuple)
+                    {
+                        LTSQLToken prop = tuple.GetProp(memberName);
+                        if (prop == null)
+                            throw new Exception($"没有找到对应属性的解析结果, 表达式解析失败: {node}");
+
+                        //对于元组的访问，转换为对应属性的token
+                        this.PushToken(prop);
+                    }
+                    else
                     {
                         //对象访问
-                        this.PushToken(new ObjectAccessToken(token, memberName) { ValueType = node.Type });
-                    }
+                        this.PushToken(new ObjectAccessToken(objToken, memberName) { ValueType = node.Type });
+                    }   
                 }
             }
             
@@ -611,14 +704,18 @@ namespace MNet.LTSQL.v1
             LTSQLToken objToken = null;
             LTSQLToken[] parameters = null;
 
+            //参数列表
+            parameters = this.PopAsParamters(node.Arguments.Count);
+
             //静态方法的调用
             if (node.Object == null)
             {
                 //外部成员翻译
                 var transCtx2 = this.NewTranslateContext();
                 transCtx2.TranslateExpr = node;
-                transCtx2.TranslateMember = node.Method;
-                transCtx2.MemberOnwerType = node.Method.ReflectedType;
+                transCtx2.Member = node.Method;
+                transCtx2.OwnerType = node.Method.ReflectedType;
+                transCtx2.MethodParameterTokenList = parameters;
                 transCtx2.ExpressionValueType = node.Type;
                 if (this.OnTranslateMember(transCtx2))
                     return expr;
@@ -632,7 +729,6 @@ namespace MNet.LTSQL.v1
                     return expr;
                 }
 
-                parameters = this.PopAsParamters(node.Arguments.Count);
                 if (!parameters.All(p => p is SqlParameterToken))
                     throw new Exception($"静态方法引用动态参数无法值：{node}");
 
@@ -645,19 +741,21 @@ namespace MNet.LTSQL.v1
 
             /* 实力方法调用*/
             MethodInfo method = node.Method;
+            //实例对象
             objToken = this.PopToken();
 
             var transCtx3 = this.NewTranslateContext();
             transCtx3.TranslateExpr = node;
-            transCtx3.TranslateMember = node.Method;
-            transCtx3.MemberOwner = objToken is SqlParameterToken ? ((SqlParameterToken)objToken).Value : null;
-            transCtx3.MemberOnwerType = node.Object.Type;
+            transCtx3.Member = node.Method;
+            transCtx3.Owner = objToken is SqlParameterToken ? ((SqlParameterToken)objToken).Value : null;
+            transCtx3.OwnerToken = objToken;
+            transCtx3.OwnerType = node.Object.Type;
+            transCtx3.MethodParameterTokenList = parameters;
             transCtx3.ExpressionValueType = node.Type;
             if (this.OnTranslateMember(transCtx3))
                 return expr;
 
             //实例对象求值
-            parameters = this.PopAsParamters(node.Arguments.Count);
             if (objToken is SqlParameterToken inst)
             {
                 if (parameters.IsNotEmpty() && !parameters.All(p => p is SqlParameterToken))
@@ -675,7 +773,7 @@ namespace MNet.LTSQL.v1
             token = new FunctionToken(node.Method.Name)
             {
                 ValueType = node.Method.ReturnType,
-                Parameters = parameters.ToList()
+                Parameters = parameters
             };
             this.PushToken(token);
 
@@ -683,6 +781,17 @@ namespace MNet.LTSQL.v1
         }
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
+            LTSQLToken token = this.PeekToken();
+            if (token is GroupObjToken groupToken)
+            {
+                //表示开始对分组对象的聚合函数作翻译，需要解析lambda表达式作为聚合函数的参数
+                ParameterExpression parameter = node.Parameters[0];
+                this.UseSpecialTokenInstead(parameter, this._context.GroupElement);
+                this.Visit(node.Body);
+                this.UnUseSpecialToken(parameter);
+                return node;
+            }
+
             //访问到lambda表达式，表示某些函数求值，其入参为lambda函数
             this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node) { ValueType = node.Type });
             return node;
@@ -846,7 +955,7 @@ namespace MNet.LTSQL.v1
                     Options = options,
                     TableNameGenerator = new NameGenerator(i => $"t{i}"),
                     ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
-                    LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, new LTSQLTokenTranslaterSelector())
+                    LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
                 }
             });
         }
@@ -857,8 +966,6 @@ namespace MNet.LTSQL.v1
             this._scope = scope;
             this._context = scope.Context;
             this._context.Root = query; 
-
-            this._flags = new Stack<bool>();
             this._tokens = new Stack<LTSQLToken>();
 
             return this.TranslateCore();

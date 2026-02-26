@@ -3,23 +3,32 @@ using MNet.LTSQL.v1.SqlTokens;
 using System.Reflection;
 using System.Text;
 
+/*
+ 1. group by 处理 已解决
+ 2. 子查询编译支持
+ */
+
 c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL()
-             join mother in c.AsLTSQL() on new { n = mine.MotherId } equals new { n = mother.Id }
+             join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where mine.Age > 18
-             orderby mine.Age
-             //select new { 
-             //    Self = mine.SelfName,
-             //    mine.Age, Mather = mother.SelfName,
-             //    Father = father.SelfName, JoinName = string.Concat("mather: ", mother.SelfName, "father", father.SelfName) 
-             //};
-             select new info { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
-
+             where mine.Age > 0
+             group mine by new { Name = mine.SelfName, Age = mine.Age } into g
+             select new
+             {
+                 Name = g.Key.Name,
+                 SumAge = g.Sum(x => x.Age)
+             };
+//select new info { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
 
 var query2 = from e in c.AsLTSQL()
              where e.Id == 1
-             select e;
+             group e by e.SelfName into g
+             select new
+             {
+                 No = g.Key,
+                 Cn = g.Sum(p => p.Id)
+             };
 
 LTSQLOptions options = new LTSQLOptions
 {

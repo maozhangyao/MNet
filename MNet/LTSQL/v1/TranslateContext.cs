@@ -19,18 +19,29 @@ namespace MNet.LTSQL.v1
         }
 
 
+
         internal Stack<LTSQLToken> Tokens;
         public LTSQLOptions Options { get; set; }
         public NameGenerator ParameterNameGenerator { get; set; }
-        
 
-        public Expression TranslateExpr { get; set; }
-        public LTSQLToken ResultToken { get; set; }
-        public MemberInfo TranslateMember { get; set; }
-        //对于调用静态成员，该属性为nul
-        public object? MemberOwner { get; set; }
-        public Type MemberOnwerType { get; set; }
+
+        //表达式所求的值的类型
         public Type ExpressionValueType { get; set; }
+        public Expression TranslateExpr { get; set; }
+
+
+        //成员(字段/属性/方法)
+        public MemberInfo Member { get; set; }
+        //成员所在的实例，对于调用静态成员，该属性为nul
+        public object? Owner { get; set; }
+        //成员所在的实例的类型
+        public Type OwnerType { get; set; }
+        //成员所在的实例对应的token结果
+        public LTSQLToken OwnerToken { get; set; }
+        //调用成员所需的参数token列表
+        public LTSQLToken[] MethodParameterTokenList { get; set; }
+        public LTSQLToken ResultToken { get; set; }
+
 
         public LTSQLToken PopToken()
         {
@@ -66,10 +77,14 @@ namespace MNet.LTSQL.v1
             this.Tokens = null;
             this.Options = null;
             this.ParameterNameGenerator = null;
+
             this.TranslateExpr = null;
+            this.Member = null;
+            this.Owner = null;
+            this.OwnerType = null;
+            this.OwnerToken = null;
+            this.MethodParameterTokenList = null;
             this.ResultToken = null;
-            this.TranslateMember = null;
-            this.MemberOwner = null;
         }
     }
 }

@@ -22,6 +22,13 @@ namespace MNet.LTSQL.v1.SqlTokens
         public IEnumerable<(LTSQLToken, string)> Items => this._props ?? new List<(LTSQLToken, string)>(0);
 
 
+        public LTSQLToken GetProp(string prop)
+        {
+            if (this._props == null)
+                return null;
+
+            return this._props.FirstOrDefault(p => p.Item2 == prop).Item1;
+        }
         public void Add(LTSQLToken token, string name)
         {
             this._props ??= new List<(LTSQLToken, string)>();

@@ -1,8 +1,11 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using MNet.LTSQL.v1.SqlTokens;
 using System.Reflection;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
+using MNet.Utils;
 
 namespace MNet.LTSQL.v1
 {
@@ -11,6 +14,12 @@ namespace MNet.LTSQL.v1
     /// </summary>
     public class LTSQLTokenTranslaterSelector
     {
+        static LTSQLTokenTranslaterSelector()
+        {
+            InitDefault();
+        }
+
+
         public LTSQLTokenTranslaterSelector()
         {
             this._memberTranslaters = new List<Action<TranslateContext>>();
@@ -21,6 +30,10 @@ namespace MNet.LTSQL.v1
         private List<Action<TranslateContext>> _memberTranslaters;
         private List<Action<TranslateContext>> _expressionTranslaters;
 
+
+        public static readonly LTSQLTokenTranslaterSelector Default = new LTSQLTokenTranslaterSelector();
+
+        
         //对类型成员进行转换(优先级低)
         public virtual LTSQLTokenTranslaterSelector UseMemberTranslate(Action<TranslateContext> translate)
         {
@@ -63,31 +76,86 @@ namespace MNet.LTSQL.v1
                     return;
             }
         }
-    }
 
-    internal class CombineTranslaterSelector : LTSQLTokenTranslaterSelector
-    {
-        public CombineTranslaterSelector(LTSQLTokenTranslaterSelector high, LTSQLTokenTranslaterSelector low)
+
+        private static void InitDefault()
         {
-            this._low = low;
-            this._high = high;
-        }
+            LTSQLTokenTranslaterSelector defaultTranslater = Default;
 
-        private LTSQLTokenTranslaterSelector _low;
-        private LTSQLTokenTranslaterSelector _high;
+            // 聚合函数 SUM
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo sumMethod = ctx.Member as MethodInfo;
+                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Sum))
+                    return;
+                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    return;
+                if (ctx.MethodParameterTokenList.IsEmpty())
+                    return;
+
+                // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
+                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
+                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                if (groupObj != null)
+                    ctx.ResultToken = new FunctionToken("SUM", parameters);
+            });
 
 
-        public override void TranslateMember(TranslateContext context)
-        {
-            this._high?.TranslateMember(context);
-            if (context.ResultToken == null)
-                this._low?.TranslateMember(context);
-        }
-        public override void TranslateExpression(TranslateContext context)
-        {
-            this._high?.TranslateExpression(context);
-            if (context.ResultToken == null)
-                this._low?.TranslateExpression(context);
+            // 聚合函数 MAX
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo sumMethod = ctx.Member as MethodInfo;
+                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Max))
+                    return;
+                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    return;
+                if (ctx.MethodParameterTokenList.IsEmpty())
+                    return;
+
+                // MAX 是扩展方法，所以该方法的第一个参数表示实例对象
+                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
+                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                if (groupObj != null)
+                    ctx.ResultToken = new FunctionToken("MAX", parameters);
+            });
+
+
+            // 聚合函数 MIN
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo sumMethod = ctx.Member as MethodInfo;
+                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Min))
+                    return;
+                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    return;
+                if (ctx.MethodParameterTokenList.IsEmpty())
+                    return;
+
+                // MIN 是扩展方法，所以该方法的第一个参数表示实例对象
+                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
+                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                if (groupObj != null)
+                    ctx.ResultToken = new FunctionToken("MIN", parameters);
+            });
+
+
+            // 聚合函数 COUNT
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo sumMethod = ctx.Member as MethodInfo;
+                if (sumMethod == null || ctx.Owner != null || (ctx.Member.Name != nameof(Enumerable.Count) && ctx.Member.Name != nameof(Enumerable.LongCount)))
+                    return;
+                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    return;
+                if (ctx.MethodParameterTokenList.IsEmpty())
+                    return;
+
+                // COUNT 是扩展方法，所以该方法的第一个参数表示实例对象
+                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
+                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                if (groupObj != null)
+                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new LTSQLToken[] { new ConstantToken("*") } : parameters));
+            });
         }
     }
 }

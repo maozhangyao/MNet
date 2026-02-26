@@ -108,6 +108,7 @@ namespace MNet.LTSQL.v1
     public class GroupUnit
     {
         public Expression GroupKeys { get; set; }
+        public Expression ElementExpr { get; set; }
     }
     public class HavingUnit : WhereUnit
     { }
