@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text;
 
@@ -14,6 +15,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         public OrderToken Order { get; set; }
         public SelectToken Select { get; set; }
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return (new LTSQLToken[] { this.From, this.Where, this.Group, this.Order, this.Select }).Where(p => p != null);
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Select.ToSql(context);

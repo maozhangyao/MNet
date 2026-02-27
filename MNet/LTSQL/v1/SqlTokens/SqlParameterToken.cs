@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
@@ -18,6 +19,12 @@ namespace MNet.LTSQL.v1.SqlTokens
         public object Value { get; set; }
         //参数名
         public string ParameterName { get; set; }
+
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return Array.Empty<LTSQLToken>();
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             if (context?.Options?.UseSqlParameter ?? true)

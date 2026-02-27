@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class ConditionToken : SQLValueToken
@@ -20,6 +23,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Left { get; set; }
         public LTSQLToken Right { get; set; }
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Left, this.Right };
+        }
 
         public override void ToSql(LTSQLTokenContext context)
         {

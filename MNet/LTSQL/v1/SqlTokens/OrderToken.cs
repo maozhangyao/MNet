@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
@@ -5,6 +6,13 @@ namespace MNet.LTSQL.v1.SqlTokens
     public class OrderToken : LTSQLToken
     {
         public List<OrderByItemToken> OrderByItems { get; set; }
+
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return this.OrderByItems?.ToArray();
+        }
+
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append("ORDER BY ");

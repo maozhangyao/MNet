@@ -1,0 +1,137 @@
+using MNet.LTSQL.v1.SqlTokens;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace MNet.LTSQL.v1
+{
+    public class LTSQLTokenVisitor
+    {
+        public LTSQLTokenVisitor()
+        {
+            _visitor = token => token.VisitChildren(this);
+        }
+        private LTSQLTokenVisitor(Func<LTSQLToken, LTSQLToken> visitor)
+        {
+            _visitor = visitor;
+        }
+
+
+        private Func<LTSQLToken, LTSQLToken> _visitor;
+
+
+        public LTSQLToken Visit(LTSQLToken token)
+        {
+            return token.Visit(this);
+        }
+
+        /// <summary>
+        /// 遍历token及其子token，并对每个token调用visitor方法。如果visitor方法返回非null值，则使用该值替换当前token，并不再继续访问其子token。
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="visitor"></param>
+        /// <returns></returns>
+        public static LTSQLToken Visit(LTSQLToken token, Func<LTSQLToken, LTSQLToken> visitor)
+        {
+            LTSQLTokenVisitor v = new LTSQLTokenVisitor();
+            v._visitor = t =>
+            {
+                return visitor(t) ?? t.VisitChildren(v);
+            };
+
+            return token.Visit(v);
+        }
+        /// <summary>
+        /// 遍历token及其子token
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="visitor">(当前token，继续访问子token的委托)</param>
+        /// <returns></returns>
+        public static LTSQLToken Visit(LTSQLToken token, Func<LTSQLToken, Func<LTSQLToken, LTSQLToken>, LTSQLToken> visitor)
+        {
+            LTSQLTokenVisitor v = new LTSQLTokenVisitor();
+            v._visitor = t =>
+            {
+                return visitor(t, t2 => t2.VisitChildren(v));
+            };
+
+            return token.Visit(v);
+        }
+
+
+        public virtual LTSQLToken VisitToken(LTSQLToken token)
+        {
+            return _visitor(token);
+        }
+        public virtual LTSQLToken VisitSqlParameterToken(SqlParameterToken token)
+        {
+            return _visitor(token);
+        }
+
+        public virtual LTSQLToken VisitAliasTableToken(AliasTable token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitAliasToken(AliasToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitConditionToken(ConditionToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitConstantToken(ConstantToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitFromJoinToken(FromJoinToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitFromToken(FromToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitFunctionToken(FunctionToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitGroupToken(GroupToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitObjectAccessToken(ObjectAccessToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitOrderByItemToken(OrderByItemToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitOrderToken(OrderToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSelectToken(SelectToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSelectItemToken(SelectItemToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSqlQueryToken(SqlQueryToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSQLScopeToken(SQLScopeToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitWhereToken(WhereToken token)
+        {
+            return this._visitor(token);
+        }
+    }
+}
+ 

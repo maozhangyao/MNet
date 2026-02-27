@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class AliasTable : LTSQLToken
@@ -13,11 +16,21 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Query { get; set; }
         public string Alias { get; set; }
 
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Query };
+        }
+
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Query.ToSql(context);
             context.SQLBuilder.Append(' ');
             context.SQLBuilder.Append(this.Alias);
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return null;
         }
     }
 }

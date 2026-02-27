@@ -20,6 +20,11 @@ namespace MNet.LTSQL.v1.SqlTokens
             get => this.GroupKey == null ? null : this.GroupKey is TupleToken tuple ? tuple.Props.ToList() : new List<LTSQLToken> { this.GroupKey };
         }
 
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return this.GroupByItems.ToArray();
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append("GROUP BY ");
@@ -33,6 +38,4 @@ namespace MNet.LTSQL.v1.SqlTokens
             }
         }
     }
-
-
 }

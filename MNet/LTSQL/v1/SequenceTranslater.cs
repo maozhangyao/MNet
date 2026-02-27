@@ -275,7 +275,23 @@ namespace MNet.LTSQL.v1
 
             return ctx.ResultToken != null;
         }
+        private IEnumerable<LTSQLToken> GetTokenEnumerable(LTSQLToken token)
+        {
+            Queue<LTSQLToken> queue = new Queue<LTSQLToken>();
+            queue.Enqueue(token);
+            while(queue.Count > 0)
+            {
+                LTSQLToken cur = queue.Dequeue();
+                IEnumerable<LTSQLToken> children = cur.GetChildren();
+                if (children.IsNotEmpty())
+                {
+                    foreach (LTSQLToken child in children)
+                        queue.Enqueue(child);
+                }
 
+                yield return cur;
+            }
+        }
 
 
         //处理 from 子句
@@ -443,7 +459,6 @@ namespace MNet.LTSQL.v1
                     this.UnUseSpecialToken(parameter);
             }
         }
-
         //开始翻译
         private SqlQueryToken TranslateCore()
         {
@@ -490,7 +505,13 @@ namespace MNet.LTSQL.v1
                 };
             }
 
-            
+            //foreach (LTSQLToken token in this.GetTokenEnumerable(queryToken))
+            //{
+            //    //子查询 或者 内联查询，需要进一步解析
+            //    if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable ltsqlObj)
+            //        new SequenceTranslater().Translate(ltsqlObj.Query, this._scope.NewScope());
+            //}
+
             return queryToken;
         }
 

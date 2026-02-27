@@ -1,9 +1,18 @@
+using System;
+using System.Collections.Generic;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class OrderByItemToken : LTSQLToken
     {
         public LTSQLToken Item { get; set; }
         public bool IsAsc { get; set; } = true;
+
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Item };
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Item.ToSql(context);

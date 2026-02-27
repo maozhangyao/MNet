@@ -1,4 +1,5 @@
-using System.Runtime.InteropServices;
+using System;
+using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
@@ -13,6 +14,11 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public LTSQLToken Condition { get; set; }
 
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Condition };
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append("WHERE ");

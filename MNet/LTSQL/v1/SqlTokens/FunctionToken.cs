@@ -21,6 +21,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken[] Parameters { get; set; }
 
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return this.Parameters;
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append(this.FunctionName);

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Net.Mime;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
@@ -14,6 +13,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         public List<SelectItemToken> Fields { get; set; }
 
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return this.Fields.ToArray();
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append("SELECT ");
@@ -50,6 +53,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Field { get; set; }
         public string FieldAlias { get; set; }
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Field };
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Field.ToSql(context);

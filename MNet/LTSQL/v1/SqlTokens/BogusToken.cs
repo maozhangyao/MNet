@@ -9,6 +9,11 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class BogusToken : ValueToken
     {
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return Array.Empty<LTSQLToken>();
+        }
+
         public sealed override void ToSql(LTSQLTokenContext context)
         {
             throw new NotImplementedException("bogus token 无法直接转成sql.");

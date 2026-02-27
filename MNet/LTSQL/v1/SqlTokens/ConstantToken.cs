@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
@@ -17,6 +18,10 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public string Value { get; set; }
 
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return Array.Empty<LTSQLToken>();
+        }
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append(this.Value);

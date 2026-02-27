@@ -20,6 +20,12 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public LTSQLToken Inner { get; }
 
+
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Inner };
+        }
+
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append('(');
