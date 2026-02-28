@@ -64,7 +64,7 @@ namespace MNet.LTSQL.v1
         }
         public virtual LTSQLToken VisitSqlParameterToken(SqlParameterToken token)
         {
-            return _visitor(token);
+            return this._visitor(token);
         }
         public virtual LTSQLToken VisitAliasTableToken(AliasTable token)
         {
@@ -127,6 +127,10 @@ namespace MNet.LTSQL.v1
             return this._visitor(token);
         }
         public virtual LTSQLToken VisitWhereToken(WhereToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitTokenItemListToken(TokenItemListToken token)
         {
             return this._visitor(token);
         }

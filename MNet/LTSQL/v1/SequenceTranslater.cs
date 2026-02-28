@@ -393,7 +393,6 @@ namespace MNet.LTSQL.v1
             if (order.OrderKeys.IsEmpty())
                 return null;
 
-            //orderToken.OrderByItems = new List<OrderByItemToken>();
             var items = new List<OrderByItemToken>(); 
             foreach (var orderKey in order.OrderKeys)
             {
@@ -403,7 +402,7 @@ namespace MNet.LTSQL.v1
             }
 
             OrderToken orderToken = new OrderToken();
-            orderToken.OrderByItems = items.ToArray();
+            orderToken.OrderBy = new TokenItemListToken(items);
             return orderToken;
         }
         private SelectToken TranslateSelect(SelectUnit select)
@@ -439,7 +438,7 @@ namespace MNet.LTSQL.v1
                     fields.Add(new SelectItemToken(token, null));
                 }
 
-                selectToken.Fields = fields.ToArray();
+                selectToken.Field = new TokenItemListToken(fields);
                 return selectToken;
             }
             catch (Exception ex)
@@ -497,7 +496,7 @@ namespace MNet.LTSQL.v1
             {
                 queryToken.Select = new SelectToken
                 {
-                    Fields = fields.ToArray()
+                    Field = new TokenItemListToken(fields)
                 };
             }
 
@@ -512,7 +511,7 @@ namespace MNet.LTSQL.v1
                 {
                     LTSQLToken subQueryToken = new SequenceTranslater()
                        .Translate(subquery.Query, this._scope.NewScope());
-                    return subQueryToken;
+                    return new SQLScopeToken(subQueryToken);
                 }
                 return t;
             });

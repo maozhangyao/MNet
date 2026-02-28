@@ -5,6 +5,12 @@ using MNet.LTSQL.v1.SqlTokens;
 /*
  1. group by 处理 已解决
  2. 子查询编译支持
+ 3. IN 操作的支持
+    3.1 list token 的表达
+ 4. NOT IN 操作的支持
+
+    TokenItemListToken
+a,b,c,d,e
  */
 
 c_persion_t c = new c_persion_t();

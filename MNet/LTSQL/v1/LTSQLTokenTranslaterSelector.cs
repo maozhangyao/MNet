@@ -78,6 +78,7 @@ namespace MNet.LTSQL.v1
         }
 
 
+        //内置的函数翻译支持
         private static void InitDefault()
         {
             LTSQLTokenTranslaterSelector defaultTranslater = Default;
@@ -155,6 +156,13 @@ namespace MNet.LTSQL.v1
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
                     ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new LTSQLToken[] { new ConstantToken("*") } : parameters));
+            });
+
+
+            // 字符串 Length 函数
+            defaultTranslater.UseMemberTranslate(ctx => {
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
+                    ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken });
             });
         }
     }

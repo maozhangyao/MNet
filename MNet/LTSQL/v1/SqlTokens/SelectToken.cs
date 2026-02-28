@@ -11,12 +11,12 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         // 是否 select * 
         public bool AllFields { get; set; }
-        public LTSQLToken[] Fields { get; set; }
+        public LTSQLToken Field { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return this.Fields.ToArray();
+            return new[] { this.Field};
         }
         public override void ToSql(LTSQLTokenContext context)
         {
@@ -28,15 +28,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             }
             else
             {
-                bool comma = false;
-                foreach (SelectItemToken item in this.Fields) 
-                {
-                    if (comma)
-                        context.SQLBuilder.Append(", ");
-
-                    comma = true;
-                    item.ToSql(context);
-                }
+                this.Field.ToSql(context);
             }
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -45,18 +37,11 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            if (this.Fields != null)
-            {
-                for (int i = 0; i < this.Fields.Length; i++)
-                {
-                    LTSQLToken item = this.Fields[i];
-                    this.Fields[i] = item.Visit(visitor);
-                }
-            }
-
+            this.Field = this.Field.Visit(visitor);
             return this;
         }
     }
+
 
     public class SelectItemToken : LTSQLToken
     {
