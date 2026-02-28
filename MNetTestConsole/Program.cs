@@ -1,7 +1,6 @@
+using System.Text;
 using MNet.LTSQL.v1;
 using MNet.LTSQL.v1.SqlTokens;
-using System.Reflection;
-using System.Text;
 
 /*
  1. group by 处理 已解决
@@ -43,9 +42,12 @@ token.ToSql(new LTSQLTokenContext
     SQLBuilder = builder,
     Options = options
 });
+
+Console.WriteLine("sql1:");
 Console.WriteLine(builder);
 
 return 0;
+
 
 public class c_persion_t
 {

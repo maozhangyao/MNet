@@ -21,16 +21,21 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Query };
         }
-
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Query.ToSql(context);
             context.SQLBuilder.Append(' ');
             context.SQLBuilder.Append(this.Alias);
         }
+
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return null;
+            return visitor.VisitAliasTableToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Query = this.Query.Visit(visitor);
+            return this;
         }
     }
 }

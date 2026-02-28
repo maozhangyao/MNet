@@ -18,6 +18,7 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public string Value { get; set; }
 
+
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return Array.Empty<LTSQLToken>();
@@ -25,7 +26,15 @@ namespace MNet.LTSQL.v1.SqlTokens
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append(this.Value);
-            //return this.Value;
+        }
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitConstantToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            return this;
         }
     }
 }

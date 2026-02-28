@@ -24,5 +24,14 @@ namespace MNet.LTSQL.v1.SqlTokens
             context.SQLBuilder.Append("WHERE ");
             this.Condition.ToSql(context);
         }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitWhereToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Condition = this.Condition.Visit(visitor);
+            return this;
+        }
     }
 }

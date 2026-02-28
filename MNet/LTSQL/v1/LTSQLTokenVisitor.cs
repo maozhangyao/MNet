@@ -20,11 +20,6 @@ namespace MNet.LTSQL.v1
         private Func<LTSQLToken, LTSQLToken> _visitor;
 
 
-        public LTSQLToken Visit(LTSQLToken token)
-        {
-            return token.Visit(this);
-        }
-
         /// <summary>
         /// 遍历token及其子token，并对每个token调用visitor方法。如果visitor方法返回非null值，则使用该值替换当前token，并不再继续访问其子token。
         /// </summary>
@@ -59,6 +54,10 @@ namespace MNet.LTSQL.v1
         }
 
 
+        public LTSQLToken Visit(LTSQLToken token)
+        {
+            return token.Visit(this);
+        }
         public virtual LTSQLToken VisitToken(LTSQLToken token)
         {
             return _visitor(token);
@@ -67,7 +66,6 @@ namespace MNet.LTSQL.v1
         {
             return _visitor(token);
         }
-
         public virtual LTSQLToken VisitAliasTableToken(AliasTable token)
         {
             return this._visitor(token);

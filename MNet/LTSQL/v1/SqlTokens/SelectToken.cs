@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
@@ -10,7 +11,7 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         // 是否 select * 
         public bool AllFields { get; set; }
-        public List<SelectItemToken> Fields { get; set; }
+        public LTSQLToken[] Fields { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
@@ -38,6 +39,23 @@ namespace MNet.LTSQL.v1.SqlTokens
                 }
             }
         }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSelectToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            if (this.Fields != null)
+            {
+                for (int i = 0; i < this.Fields.Length; i++)
+                {
+                    LTSQLToken item = this.Fields[i];
+                    this.Fields[i] = item.Visit(visitor);
+                }
+            }
+
+            return this;
+        }
     }
 
     public class SelectItemToken : LTSQLToken
@@ -53,6 +71,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Field { get; set; }
         public string FieldAlias { get; set; }
 
+
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return new[] { this.Field };
@@ -62,6 +81,15 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.Field.ToSql(context);
             context.SQLBuilder.Append(' ');
             context.SQLBuilder.Append(this.FieldAlias);
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSelectItemToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Field = this.Field.Visit(visitor);
+            return this;
         }
     }
 }

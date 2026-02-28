@@ -19,6 +19,8 @@ namespace MNet.LTSQL.v1.SqlTokens
         //表字段
         public string Field { get; set; }
 
+
+
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return new[] { this.Owner };
@@ -28,6 +30,16 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.Owner.ToSql(context);
             context.SQLBuilder.Append('.');
             context.SQLBuilder.Append(this.Field);
+        }
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitObjectAccessToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Owner = this.Owner.Visit(visitor);
+            return this;
         }
     }
 }

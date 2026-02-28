@@ -9,11 +9,11 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         public List<SelectItemToken> DefaultFields { get; set; }
 
-        public FromToken From { get; set; }
-        public WhereToken Where { get; set; }
-        public GroupToken Group { get; set; }
-        public OrderToken Order { get; set; }
-        public SelectToken Select { get; set; }
+        public LTSQLToken From { get; set; }
+        public LTSQLToken Where { get; set; }
+        public LTSQLToken Group { get; set; }
+        public LTSQLToken Order { get; set; }
+        public LTSQLToken Select { get; set; }
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
@@ -40,6 +40,19 @@ namespace MNet.LTSQL.v1.SqlTokens
                 context.SQLBuilder.AppendLine();
                 this.Order.ToSql(context);
             }
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSqlQueryToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.From = this.From?.Visit(visitor);
+            this.Where = this.Where?.Visit(visitor);
+            this.Group = this.Group?.Visit(visitor);
+            this.Order = this.Order?.Visit(visitor);
+            this.Select = this.Select?.Visit(visitor);
+            return this;
         }
     }
 }

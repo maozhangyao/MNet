@@ -275,23 +275,6 @@ namespace MNet.LTSQL.v1
 
             return ctx.ResultToken != null;
         }
-        private IEnumerable<LTSQLToken> GetTokenEnumerable(LTSQLToken token)
-        {
-            Queue<LTSQLToken> queue = new Queue<LTSQLToken>();
-            queue.Enqueue(token);
-            while(queue.Count > 0)
-            {
-                LTSQLToken cur = queue.Dequeue();
-                IEnumerable<LTSQLToken> children = cur.GetChildren();
-                if (children.IsNotEmpty())
-                {
-                    foreach (LTSQLToken child in children)
-                        queue.Enqueue(child);
-                }
-
-                yield return cur;
-            }
-        }
 
 
         //处理 from 子句
@@ -378,23 +361,30 @@ namespace MNet.LTSQL.v1
             LTSQLToken token = this.PopToken();
             return new WhereToken(token);
         }
-        private GroupToken TranslateGroup(GroupUnit group)
+        private GroupToken TranslateGroup(GroupUnit group, out LTSQLToken groupKey, out LTSQLToken groupEle)
         {
-            GroupToken groupToken = new GroupToken();
+            groupKey = null;
+            groupEle = null;
 
             //分组依据翻译
             if (group.GroupKeys != null)
             {
                 this.Visit((group.GroupKeys as LambdaExpression).Body);
-                groupToken.GroupKey = this.PopToken();
+                groupKey = this.PopToken();
             }
             
             //分组元素翻译
             if (group.ElementExpr != null)
             {
                 this.Visit((group.ElementExpr as LambdaExpression).Body);
-                groupToken.GroupElement = this.PopToken();
+                groupEle = this.PopToken();
             }
+            
+            GroupToken groupToken = new GroupToken();
+            if (groupKey is TupleToken tuple)
+                groupToken.GroupByItems = tuple.Props.ToArray();
+            else
+                groupToken.GroupByItems = new[] { groupKey };
 
             return groupToken;
         }
@@ -403,15 +393,17 @@ namespace MNet.LTSQL.v1
             if (order.OrderKeys.IsEmpty())
                 return null;
 
-            OrderToken orderToken = new OrderToken();
-            orderToken.OrderByItems = new List<OrderByItemToken>();
+            //orderToken.OrderByItems = new List<OrderByItemToken>();
+            var items = new List<OrderByItemToken>(); 
             foreach (var orderKey in order.OrderKeys)
             {
                 this.Visit((orderKey.Key as LambdaExpression).Body);
                 LTSQLToken token = this.PopToken();
-                orderToken.OrderByItems.Add(new OrderByItemToken() { IsAsc = !orderKey.Value, Item = token });
+                items.Add(new OrderByItemToken() { IsAsc = !orderKey.Value, Item = token });
             }
 
+            OrderToken orderToken = new OrderToken();
+            orderToken.OrderByItems = items.ToArray();
             return orderToken;
         }
         private SelectToken TranslateSelect(SelectUnit select)
@@ -437,16 +429,17 @@ namespace MNet.LTSQL.v1
 
                 LTSQLToken token = this.PopToken();
                 SelectToken selectToken = new SelectToken();
-                selectToken.Fields = new List<SelectItemToken>();
+                List<SelectItemToken> fields = new List<SelectItemToken>();
                 if (token is TupleToken tuple)
                 {
-                    selectToken.Fields.AddRange(tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2)));
+                    fields.AddRange(tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2)));
                 }
                 else
                 {
-                    selectToken.Fields.Add(new SelectItemToken(token, null));
+                    fields.Add(new SelectItemToken(token, null));
                 }
 
+                selectToken.Fields = fields.ToArray();
                 return selectToken;
             }
             catch (Exception ex)
@@ -481,9 +474,12 @@ namespace MNet.LTSQL.v1
             //group by
             if (query.Group?.GroupKeys != null)
             {
-                queryToken.Group = this.TranslateGroup(query.Group);
-                this._context.GroupKey = queryToken.Group.GroupKey;
-                this._context.GroupElement = queryToken.Group.GroupElement;
+                LTSQLToken groupKey = null;
+                LTSQLToken groupEle = null;
+                queryToken.Group = this.TranslateGroup(query.Group, out groupKey, out groupEle);
+
+                this._context.GroupKey = groupKey;
+                this._context.GroupElement = groupEle;
             }
 
             //order by
@@ -501,16 +497,25 @@ namespace MNet.LTSQL.v1
             {
                 queryToken.Select = new SelectToken
                 {
-                    Fields = fields
+                    Fields = fields.ToArray()
                 };
             }
 
-            //foreach (LTSQLToken token in this.GetTokenEnumerable(queryToken))
-            //{
-            //    //子查询 或者 内联查询，需要进一步解析
-            //    if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable ltsqlObj)
-            //        new SequenceTranslater().Translate(ltsqlObj.Query, this._scope.NewScope());
-            //}
+
+            //内联查询翻译
+            LTSQLTokenVisitor.Visit(queryToken, (t, nxt) =>
+            {
+                t = nxt(t);
+
+                //如果存在内联查询，需要进一步翻译
+                if (t is SqlParameterToken p && p.Value is ILTSQLObjectQueryable subquery)
+                {
+                    LTSQLToken subQueryToken = new SequenceTranslater()
+                       .Translate(subquery.Query, this._scope.NewScope());
+                    return subQueryToken;
+                }
+                return t;
+            });
 
             return queryToken;
         }

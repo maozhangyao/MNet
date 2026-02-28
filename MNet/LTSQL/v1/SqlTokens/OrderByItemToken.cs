@@ -20,5 +20,14 @@ namespace MNet.LTSQL.v1.SqlTokens
             if (!this.IsAsc)
                 context.SQLBuilder.Append("desc");
         }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitOrderByItemToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Item = this.Item.Visit(visitor);
+            return this;
+        }
     }
 }

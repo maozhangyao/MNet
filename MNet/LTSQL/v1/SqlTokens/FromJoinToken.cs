@@ -7,15 +7,16 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         public string JoinType { get; set; }
         //from
-        public FromToken From { get; set; }
+        //from join
+        public LTSQLToken From { get; set; }
         //连接条件
         public LTSQLToken JoinOn { get; set; }
+
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return new[] { this.From, this.JoinOn, this.Source };
         }
-
         public override void ToSql(LTSQLTokenContext context)
         {
             this.From.ToSql(context);
@@ -28,6 +29,17 @@ namespace MNet.LTSQL.v1.SqlTokens
             context.SQLBuilder.Append(" ON ");
 
             this.JoinOn.ToSql(context);
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitFromJoinToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Source = this.Source.Visit(visitor);
+            this.From = this.From.Visit(visitor);
+            this.JoinOn = this.JoinOn.Visit(visitor);
+            return this;
         }
     }
 }

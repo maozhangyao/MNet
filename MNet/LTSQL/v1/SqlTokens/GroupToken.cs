@@ -9,16 +9,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         /// <summary>
         /// 分组依据
         /// </summary>
-        public LTSQLToken GroupKey { get; set; }
-        /// <summary>
-        /// 分组元素
-        /// </summary>
-        public LTSQLToken GroupElement { get; set; }
-
-        public List<LTSQLToken> GroupByItems
-        {
-            get => this.GroupKey == null ? null : this.GroupKey is TupleToken tuple ? tuple.Props.ToList() : new List<LTSQLToken> { this.GroupKey };
-        }
+        public LTSQLToken[] GroupByItems { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
@@ -36,6 +27,22 @@ namespace MNet.LTSQL.v1.SqlTokens
                 comma = true;
                 item.ToSql(context);
             }
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitGroupToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            if (this.GroupByItems != null)
+            {
+                for (int i = 0; i < this.GroupByItems.Length; i++)
+                {
+                    LTSQLToken item = this.GroupByItems[i];
+                    this.GroupByItems[i] = item.Visit(visitor);
+                }
+            }
+            return this;
         }
     }
 }

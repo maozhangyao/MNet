@@ -27,7 +27,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Left, this.Right };
         }
-
         public override void ToSql(LTSQLTokenContext context)
         {
             this.Left.ToSql(context);
@@ -35,6 +34,17 @@ namespace MNet.LTSQL.v1.SqlTokens
             context.SQLBuilder.Append(ConditionType);
             context.SQLBuilder.Append(' ');
             this.Right.ToSql(context);
+        }
+        
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitConditionToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Left = this.Left.Visit(visitor);
+            this.Right = this.Right.Visit(visitor);
+            return this;
         }
     }
 }

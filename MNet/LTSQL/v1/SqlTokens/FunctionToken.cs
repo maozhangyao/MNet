@@ -41,5 +41,23 @@ namespace MNet.LTSQL.v1.SqlTokens
 
             context.SQLBuilder.Append(')');
         }
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitFunctionToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            if(this.Parameters != null)
+            {
+                for(int i = 0; i < this.Parameters.Length; i++)
+                {
+                    LTSQLToken param = this.Parameters[i];
+                    this.Parameters[i] = param.Visit(visitor);
+                    
+                }
+            }
+            return this;
+        }
     }
 }

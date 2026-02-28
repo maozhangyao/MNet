@@ -18,7 +18,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.ValueType = valueType;
         }
 
-        public LTSQLToken Inner { get; }
+        public LTSQLToken Inner { get; private set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
@@ -31,6 +31,15 @@ namespace MNet.LTSQL.v1.SqlTokens
             context.SQLBuilder.Append('(');
             this.Inner.ToSql(context);
             context.SQLBuilder.Append(')');
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSQLScopeToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            this.Inner = this.Inner.Visit(visitor);
+            return this;
         }
     }
 }

@@ -1,11 +1,13 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class OrderToken : LTSQLToken
     {
-        public List<OrderByItemToken> OrderByItems { get; set; }
+        public LTSQLToken[] OrderByItems { get; set; }
+
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
@@ -27,6 +29,22 @@ namespace MNet.LTSQL.v1.SqlTokens
                 order.ToSql(context);
             }
             //return "Order";
+        }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitOrderToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            if(this.OrderByItems != null)
+            {
+                for (int i = 0; i < this.OrderByItems.Length; i++)
+                {
+                    LTSQLToken item = this.OrderByItems[i];
+                    this.OrderByItems[i] = item.Visit(visitor);
+                }
+            }
+            return this;
         }
     }
 }

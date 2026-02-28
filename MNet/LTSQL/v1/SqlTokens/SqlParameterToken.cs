@@ -38,5 +38,13 @@ namespace MNet.LTSQL.v1.SqlTokens
                 throw new Exception("对象实例转换为sql字面量暂未支持");
             }
         }
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSqlParameterToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            return this;
+        }
     }
 }
