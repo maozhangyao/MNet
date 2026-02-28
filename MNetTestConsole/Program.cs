@@ -13,17 +13,21 @@ using MNet.LTSQL.v1.SqlTokens;
 a,b,c,d,e
  */
 
+List<int> id1s = new List<int> { 1, 2, 3, 4 };
+IEnumerable<int> id2s = id1s;
+
 c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL()
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where mine.Age > 0
+             where mine.Age > 0 && id1s.Contains(mine.Id)
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
              select new
              {
                  Name = g.Key.Name,
                  SumAge = g.Sum(x => x.Age)
              };
+
 //select new info { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
 
 var query2 = from e in c.AsLTSQL()
@@ -52,7 +56,10 @@ token.ToSql(new LTSQLTokenContext
 Console.WriteLine("sql1:");
 Console.WriteLine(builder);
 
+
 return 0;
+
+
 
 
 public class c_persion_t

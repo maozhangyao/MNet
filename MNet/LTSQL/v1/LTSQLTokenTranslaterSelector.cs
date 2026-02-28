@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using MNet.LTSQL.v1.SqlTokens;
 using System.Reflection;
@@ -158,6 +159,36 @@ namespace MNet.LTSQL.v1
                     ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new LTSQLToken[] { new ConstantToken("*") } : parameters));
             });
 
+
+            // IN 操作
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if (typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType) && ctx.Member.Name == nameof(Enumerable.Contains))
+                {
+                    // A Container B
+                    // B IN A
+                   
+                    LTSQLToken left = null;
+                    LTSQLToken right = ctx.OwnerToken;
+
+                    //Contains 方法分为 List.Contains 和 Enumerable.Contains 两种情况，前者是实例方法，后者是扩展方法
+                    if (ctx.OwnerToken == null)
+                    {
+                        if (ctx.MethodParameterTokenList.Length != 2)
+                            return; //无法将该Container方法翻译为 IN 操作，直接走默认流程
+
+                        right = ctx.MethodParameterTokenList[0];
+
+                    }
+                    else
+                    {
+                        //right = new TokenItemListToken(ctx.MethodParameterTokenList);
+                    }
+
+                    ctx.ResultToken = new ConditionToken(left, new SQLScopeToken(right), "IN");
+                }
+            });
+            
 
             // 字符串 Length 函数
             defaultTranslater.UseMemberTranslate(ctx => {
