@@ -163,11 +163,14 @@ namespace MNet.LTSQL.v1
             // IN 操作
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                if (typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType) && ctx.Member.Name == nameof(Enumerable.Contains))
+                if ((typeof(Enumerable) == ctx.OwnerType 
+                    || typeof(LTSQLQueryableExtensions) == ctx.OwnerType 
+                    || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType)) 
+                    && (ctx.Member.Name == nameof(Enumerable.Contains)))
                 {
                     // A Container B
                     // B IN A
-                   
+
                     LTSQLToken left = null;
                     LTSQLToken right = ctx.OwnerToken;
 
@@ -178,17 +181,71 @@ namespace MNet.LTSQL.v1
                             return; //无法将该Container方法翻译为 IN 操作，直接走默认流程
 
                         right = ctx.MethodParameterTokenList[0];
-
+                        left = ctx.MethodParameterTokenList[1];
                     }
                     else
                     {
-                        //right = new TokenItemListToken(ctx.MethodParameterTokenList);
+                        left = ctx.MethodParameterTokenList[0];
                     }
 
-                    ctx.ResultToken = new ConditionToken(left, new SQLScopeToken(right), "IN");
+                    //拆包
+                    if (right is SqlParameterToken p)
+                    {
+                        if (p.Value is ILTSQLObjectQueryable query) 
+                        {
+                            // do nothing
+                            right = p;
+                        }
+                        else if (p.Value is IEnumerable list)
+                        {
+                            //list 拆包
+                            List<SqlParameterToken> paras = new List<SqlParameterToken>();
+                            foreach (object item in list)
+                                paras.Add(ctx.TokenSqlParameter(item));
+
+                            right = new SQLScopeToken(new TokenItemListToken(paras));
+                        }
+                    }
+
+                    ctx.ResultToken = new ConditionToken(left, right, ConditionToken.OPT_IN);
                 }
             });
-            
+
+
+            // EXISTS 操作
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if ((typeof(Enumerable) == ctx.OwnerType
+                    || typeof(LTSQLQueryableExtensions) == ctx.OwnerType
+                    || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType))
+                    && (ctx.Member.Name == nameof(Enumerable.Any))
+                    && ctx.MethodParameterTokenList.IsNotEmpty()
+                    && ctx.MethodParameterTokenList.Length == 1
+                    )
+                {
+                    LTSQLToken inner = ctx.MethodParameterTokenList[0];
+                    SqlParameterToken p = inner as SqlParameterToken;
+
+                    //拆包
+                    if (p != null && p.Value is ILTSQLObjectQueryable query)
+                    {
+                        // do nothing
+                        inner = p;
+                    }
+                    else if (p != null && p.Value is IEnumerable list)
+                    {
+                        //list 拆包
+                        List<SqlParameterToken> paras = new List<SqlParameterToken>();
+                        foreach (object item in list)
+                            paras.Add(ctx.TokenSqlParameter(item));
+
+                        inner = new SQLScopeToken(new TokenItemListToken(paras));
+                    }
+
+                    ctx.ResultToken = new ConditionToken(null, inner, ConditionToken.OPT_EXISTS);
+                }
+            });
+
 
             // 字符串 Length 函数
             defaultTranslater.UseMemberTranslate(ctx => {

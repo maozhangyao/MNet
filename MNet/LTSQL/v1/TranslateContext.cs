@@ -69,6 +69,7 @@ namespace MNet.LTSQL.v1
             return new SqlParameterToken()
             {
                 Value = value,
+                ValueType = value.GetType(),
                 ParameterName = this.ParameterNameGenerator.Next()
             };
         }

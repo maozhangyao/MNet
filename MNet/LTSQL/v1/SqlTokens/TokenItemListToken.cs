@@ -53,7 +53,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return base.Visit(visitor);
+            return visitor.VisitTokenItemListToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {

@@ -1,6 +1,8 @@
-using System.Text;
 using MNet.LTSQL.v1;
 using MNet.LTSQL.v1.SqlTokens;
+using MNetTestConsole.Utils;
+using System.Linq.Expressions;
+using System.Text;
 
 /*
  1. group by 处理 已解决
@@ -8,9 +10,9 @@ using MNet.LTSQL.v1.SqlTokens;
  3. IN 操作的支持
     3.1 list token 的表达
  4. NOT IN 操作的支持
+    TokenItemListToken => a,b,c,d,e
 
-    TokenItemListToken
-a,b,c,d,e
+ 5. 如何编译，可能会影响到 list 拆包 
  */
 
 List<int> id1s = new List<int> { 1, 2, 3, 4 };
@@ -20,7 +22,7 @@ c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL()
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where mine.Age > 0 && id1s.Contains(mine.Id)
+             where (mine.Age > 0) && c.AsLTSQL().Any()
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
              select new
              {
@@ -28,7 +30,6 @@ var query1 = from mine in c.AsLTSQL()
                  SumAge = g.Sum(x => x.Age)
              };
 
-//select new info { Self = mine.SelfName, Mather = mother.SelfName, Father = father.SelfName };
 
 var query2 = from e in c.AsLTSQL()
              where e.Id == 1
@@ -38,6 +39,7 @@ var query2 = from e in c.AsLTSQL()
                  No = g.Key,
                  Cn = g.Sum(p => p.Id)
              };
+
 
 LTSQLOptions options = new LTSQLOptions
 {
@@ -53,8 +55,8 @@ token.ToSql(new LTSQLTokenContext
     Options = options
 });
 
-Console.WriteLine("sql1:");
-Console.WriteLine(builder);
+
+ConsoleHelper.WriteLineWithYellow(builder);
 
 
 return 0;
@@ -70,11 +72,3 @@ public class c_persion_t
     public int FatherId { get; set; }
     public int MotherId { get; set; }
 }
-public class info 
-{
-    public string Self { get; set; }
-    public int? Age { get; set; }
-    public string Mather { get; set; }
-    public string Father { get; set; }
-}
-

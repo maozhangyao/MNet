@@ -21,7 +21,7 @@ namespace MNet.LTSQL.v1
 
 
         /// <summary>
-        /// 遍历token及其子token，并对每个token调用visitor方法。如果visitor方法返回非null值，则使用该值替换当前token，并不再继续访问其子token。
+        /// 遍历token及其子token，并对每个token调用visitor方法, 遍历顺序：先子后父。如果visitor方法返回非null值，则使用该值替换当前token。
         /// </summary>
         /// <param name="token"></param>
         /// <param name="visitor"></param>
@@ -31,7 +31,8 @@ namespace MNet.LTSQL.v1
             LTSQLTokenVisitor v = new LTSQLTokenVisitor();
             v._visitor = t =>
             {
-                return visitor(t) ?? t.VisitChildren(v);
+                var _new = t.VisitChildren(v);
+                return visitor(t) ?? _new;
             };
 
             return token.Visit(v);

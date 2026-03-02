@@ -25,7 +25,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Inner };
         }
-
         public override void ToSql(LTSQLTokenContext context)
         {
             context.SQLBuilder.Append('(');

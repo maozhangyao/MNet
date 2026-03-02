@@ -272,7 +272,7 @@ namespace MNet.LTSQL.v1
             this._context.LTSQLTranslater.TranslateMember(ctx);
             if (ctx.ResultToken != null)
                 this.PushToken(ctx.ResultToken);
-
+            
             return ctx.ResultToken != null;
         }
 
@@ -935,30 +935,30 @@ namespace MNet.LTSQL.v1
             ConditionToken condition = null;
             switch (node.NodeType)
             {
-                case ExpressionType.Add:
-                    //c# 中的 字符串支持 "+" 号拼接操作，但在此处不做SQL字符串拼接函数的翻译操作，如果需要指定字符串拼接应该用 string.concat 函数操作
-                    condition = new ConditionToken(sqll, sqlr, "+");
-                    break;
+                //case ExpressionType.Add:
+                //    //c# 中的 字符串支持 "+" 号拼接操作，但在此处不做SQL字符串拼接函数的翻译操作，如果需要指定字符串拼接应该用 string.concat 函数操作
+                //    condition = new ConditionToken(sqll, sqlr, "+");
+                //    break;
                 case ExpressionType.Equal:
-                    condition = new ConditionToken(sqll, sqlr, "=");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_EQUAL);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    condition = new ConditionToken(sqll, sqlr, ">=");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER_OR_EQUAL);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    condition = new ConditionToken(sqll, sqlr, "<=");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS_OR_EQUAL);
                     break;
                 case ExpressionType.LessThan:
-                    condition = new ConditionToken(sqll, sqlr, "<");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS);
                     break;
                 case ExpressionType.GreaterThan:
-                    condition = new ConditionToken(sqll, sqlr, ">");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER);
                     break;
                 case ExpressionType.AndAlso:
-                    condition = new ConditionToken(sqll, sqlr, "AND");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_AND);
                     break;
                 case ExpressionType.OrElse:
-                    condition = new ConditionToken(sqll, sqlr, "OR");
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_OR);
                     break;
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
@@ -967,7 +967,30 @@ namespace MNet.LTSQL.v1
             this.PushToken(new SQLScopeToken(condition));
             return expr;
         }
+        protected override Expression VisitUnary(UnaryExpression node)
+        {
+            // not int 支持
+            // not exists 支持
 
+            Expression expr = base.VisitUnary(node);
+
+            var transCtx = this.NewTranslateContext();
+            transCtx.TranslateExpr = node;
+            transCtx.ExpressionValueType = node.Type;
+            if (this.OnTranslateExpression(transCtx))
+                return expr;
+
+            LTSQLToken token = this.PopToken();
+            if (token is ConditionToken condition)
+                token = condition.Not();
+            //else if (token is SQLScopeToken scope && scope.Inner is ConditionToken condition1)
+            //{
+                
+            //}
+
+            this.PushToken(token);
+            return expr;
+        }
 
 
 
