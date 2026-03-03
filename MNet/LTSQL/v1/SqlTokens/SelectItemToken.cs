@@ -1,39 +1,34 @@
-using System;
-using System.Linq;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class SelectToken : LTSQLToken
+    public class SelectItemToken : LTSQLToken
     {
-        public SelectToken()
+        public SelectItemToken() 
         { }
+        public SelectItemToken(LTSQLToken field, string fieldAlias)
+        {
+            Field = field;
+            FieldAlias = fieldAlias;
+        }
 
-        // 是否 select * 
-        public bool AllFields { get; set; }
         public LTSQLToken Field { get; set; }
+        public string FieldAlias { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Field};
+            return new[] { this.Field };
         }
         public override void ToSql(LTSQLTokenContext context)
         {
-            context.SQLBuilder.Append("SELECT ");
-
-            if (this.AllFields)
-            {
-                context.SQLBuilder.Append("*");
-            }
-            else
-            {
-                this.Field.ToSql(context);
-            }
+            this.Field.ToSql(context);
+            context.SQLBuilder.Append(' ');
+            context.SQLBuilder.Append(this.FieldAlias);
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitSelectToken(this);
+            return visitor.VisitSelectItemToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {

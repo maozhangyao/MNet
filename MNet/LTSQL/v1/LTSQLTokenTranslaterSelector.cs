@@ -203,7 +203,7 @@ namespace MNet.LTSQL.v1
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = new SQLScopeToken(new TokenItemListToken(paras));
+                            right = new SqlScopeToken(new TokenItemListToken(paras));
                         }
                     }
 
@@ -239,7 +239,7 @@ namespace MNet.LTSQL.v1
                         foreach (object item in list)
                             paras.Add(ctx.TokenSqlParameter(item));
 
-                        inner = new SQLScopeToken(new TokenItemListToken(paras));
+                        inner = new SqlScopeToken(new TokenItemListToken(paras));
                     }
 
                     ctx.ResultToken = new ConditionToken(null, inner, ConditionToken.OPT_EXISTS);

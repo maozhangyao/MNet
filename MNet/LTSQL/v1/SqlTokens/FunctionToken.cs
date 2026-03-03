@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class FunctionToken : SQLValueToken
+    public class FunctionToken : SqlValueToken
     {
         public FunctionToken()
         { }

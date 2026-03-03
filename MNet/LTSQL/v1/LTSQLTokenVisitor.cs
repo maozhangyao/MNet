@@ -123,7 +123,7 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitSQLScopeToken(SQLScopeToken token)
+        public virtual LTSQLToken VisitSQLScopeToken(SqlScopeToken token)
         {
             return this._visitor(token);
         }

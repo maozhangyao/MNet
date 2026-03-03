@@ -323,7 +323,7 @@ namespace MNet.LTSQL.v1
                         fields.Add(new SelectItemToken(fieldAccess, selecdtFields.FieldAlias));
                     }
                 }
-                query = new SQLScopeToken(query);
+                query = new SqlScopeToken(query);
             }
             //单表访问
             else if (from.Source is SimpleSequence simple)
@@ -511,7 +511,7 @@ namespace MNet.LTSQL.v1
                 {
                     LTSQLToken subQueryToken = new SequenceTranslater()
                        .Translate(subquery.Query, this._scope.NewScope());
-                    return new SQLScopeToken(subQueryToken);
+                    return new SqlScopeToken(subQueryToken);
                 }
                 return t;
             });
@@ -922,13 +922,13 @@ namespace MNet.LTSQL.v1
                         cur = cur == null ? equals : new ConditionToken(cur, equals, "AND");
                     }
 
-                    this.PushToken(new SQLScopeToken(cur));
+                    this.PushToken(new SqlScopeToken(cur));
                     return expr;
                 }
             }
 
-            SQLValueToken sqll = vall as SQLValueToken;
-            SQLValueToken sqlr = valr as SQLValueToken;
+            SqlValueToken sqll = vall as SqlValueToken;
+            SqlValueToken sqlr = valr as SqlValueToken;
             if (sqll == null || sqlr == null)
                 throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
@@ -964,7 +964,7 @@ namespace MNet.LTSQL.v1
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
 
-            this.PushToken(new SQLScopeToken(condition));
+            this.PushToken(new SqlScopeToken(condition));
             return expr;
         }
         protected override Expression VisitUnary(UnaryExpression node)

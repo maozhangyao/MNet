@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     //sql 参数
-    public class SqlParameterToken : SQLValueToken
+    public class SqlParameterToken : SqlValueToken
     {
         public SqlParameterToken() 
         { }

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class ConditionToken : SQLValueToken
+    public class ConditionToken : SqlValueToken
     {
         // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     // sql 对象的访问
-    public class ObjectAccessToken : SQLValueToken
+    public class ObjectAccessToken : SqlValueToken
     {
         public ObjectAccessToken() { }
         public ObjectAccessToken(LTSQLToken owner, string filed) 

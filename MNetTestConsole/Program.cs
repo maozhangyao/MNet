@@ -12,8 +12,10 @@ using System.Text;
  4. NOT IN 操作的支持
     TokenItemListToken => a,b,c,d,e
 
- 5. 如何编译，可能会影响到 list 拆包 
+ 5. 如何编译，可能会影响到 list 拆包
+
  */
+
 
 List<int> id1s = new List<int> { 1, 2, 3, 4 };
 IEnumerable<int> id2s = id1s;
@@ -26,8 +28,8 @@ var query1 = from mine in c.AsLTSQL()
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
              select new
              {
-                 Name = g.Key.Name,
-                 SumAge = g.Sum(x => x.Age)
+                 NO = g.Key.Name,
+                 SA = g.Sum(x => x.Age)
              };
 
 
@@ -44,21 +46,30 @@ var query2 = from e in c.AsLTSQL()
 LTSQLOptions options = new LTSQLOptions
 {
     DbType = DbType.MySQL,
-    UseSqlParameter = true
+    UseSqlParameter = true, //是否参数化
 };
 
+//token 化
 LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+
+
+//生成的sql语句
 StringBuilder builder = new StringBuilder();
-token.ToSql(new LTSQLTokenContext
+//如果参数化，则SQL语句依赖的 sql 参数
+Dictionary<string, object> sqlParamemters = new Dictionary<string, object>();
+
+
+//sql化
+ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
+sqlBuilder.Build(token, new SqlBuilderContext
 {
-    SQLBuilder = builder,
-    Options = options
+    UseParameter = options.UseSqlParameter,
+    DbType = options.DbType,
+    Sql = builder,
+    SqlParameters = sqlParamemters
 });
 
-
 ConsoleHelper.WriteLineWithYellow(builder);
-
-
 return 0;
 
 

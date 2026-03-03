@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     //一个 sql 硬编码的值
-    public class ConstantToken : SQLValueToken
+    public class ConstantToken : SqlValueToken
     {
         public ConstantToken(string val)
         {
