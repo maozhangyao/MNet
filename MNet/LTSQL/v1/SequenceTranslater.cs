@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 
 namespace MNet.LTSQL.v1
@@ -29,13 +31,17 @@ namespace MNet.LTSQL.v1
         private List<(Expression, LTSQLToken)> _tokenInsteadList;
 
 
-        private void PushToken(LTSQLToken token)
-        {
-            this._tokens.Push(token);
-        }
         private LTSQLToken PopToken()
         {
             return this._tokens.Count > 0 ? this._tokens.Pop() : null;
+        }
+        private LTSQLToken PeekToken()
+        {
+            return this._tokens.Peek();
+        }
+        private void PushToken(LTSQLToken token)
+        {
+            this._tokens.Push(token);
         }
         private LTSQLToken[] PopAsParamters(int cnt)
         {
@@ -48,10 +54,6 @@ namespace MNet.LTSQL.v1
 
             return args.ToArray();
         }
-        private LTSQLToken PeekToken()
-        {
-            return this._tokens.Peek();
-        }
         private TranslateContext NewTranslateContext()
         {
             this._templateContext ??= new TranslateContext(this._tokens);
@@ -63,6 +65,16 @@ namespace MNet.LTSQL.v1
 
             return this._templateContext;
         }
+        private TranslateContext NewTranslateContext(Expression expr, Type exprType)
+        {
+            TranslateContext ctx = this.NewTranslateContext();
+            ctx.TranslateExpr = expr;
+            ctx.ExpressionValueType = exprType;
+
+            return ctx;
+        }
+
+
         private object PropOrFieldValue(MemberInfo member, object? inst)
         {
             if (member is PropertyInfo prop)
@@ -72,39 +84,20 @@ namespace MNet.LTSQL.v1
             else
                 throw new Exception($"非字段或者属性无法求值：{member.Name}");
         }
-        private bool IsObjectPrefix(string objPrefix)
+        private TableAliasMapping GetRootTableAliasMapping(string parameterName)
         {
             LTSQLContext context = this._context;
             LTSQLScope scope = this._scope;
-            var map = this._context.ObjectPrefix;
-            while (!map.Contain(objPrefix))
+            while (context.TableAliasMapping.PropName != parameterName)
             {
                 if (scope.Parent == null || scope.Parent.Context == null)
-                    throw new Exception($"无法找到对应的实体类映射:{objPrefix}");
+                    throw new Exception($"参数名({parameterName})无法找到对应的上下文作用域, 无法解析表命名");
 
                 scope = scope.Parent;
                 context = scope.Context;
-                map = context.ObjectPrefix;
             }
 
-            return map.IsObjectPrefix(objPrefix);
-        }
-        private string GetTableName(string objPrefix)
-        {
-            LTSQLContext context = this._context;
-            LTSQLScope scope = this._scope;
-            var map = this._context.ObjectPrefix;
-            while (!map.Contain(objPrefix))
-            {
-                if (scope.Parent == null || scope.Parent.Context == null)
-                    throw new Exception($"无法找到对应的实体类映射:{objPrefix}");
-
-                scope = scope.Parent;
-                context = scope.Context;
-                map = context.ObjectPrefix;
-            }
-
-            return map.GetTableName(objPrefix);
+            return context.TableAliasMapping;
         }
         private void UnUseSpecialToken(Expression expr)
         {
@@ -141,19 +134,22 @@ namespace MNet.LTSQL.v1
             //分配表名
             Dictionary<string, string> param2table = new Dictionary<string, string>();
             HashSet<string> objPrefixs = new HashSet<string>() { root };
-            
-            
+
+            TableAliasMapping mapping = null;
+
             //涉及联表
             if (complex.From is FromJoinUnit join)
             {
+                mapping = new TableAliasMapping(root);
+
                 ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinExpr).Body.Type, root);
-                this.AssignFromJoinAlias(join, param2table, objPrefixs, root, joinObj, joinObj);
+                this.AssignFromJoinAlias(mapping, join, joinObj, joinObj);
             }
             //单表
             else
             {
                 complex.From.Source.Alias = root;
-                param2table.Add(root, root);
+                mapping = new TableAliasMapping(root, root);
             }
 
 
@@ -217,46 +213,53 @@ namespace MNet.LTSQL.v1
 
             //
             this._context.GroupFlag = bGroupFlag;
-            this._context.ObjectPrefix = new LTSQLTableNameMapping(param2table, objPrefixs);
+            this._context.TableAliasMapping = mapping;
         }
-        private void AssignFromJoinAlias(FromUnit from, Dictionary<string, string> param2table, HashSet<string> prefixs, string prefix, Expression obj, ParameterExpression root)
+        private void AssignFromJoinAlias(TableAliasMapping mapping, FromUnit from, Expression obj, ParameterExpression root)
         {
             if (from is FromJoinUnit join)
             {
-                LambdaExpression lamb1 = join.Source1Key as LambdaExpression;
-                LambdaExpression lamb2 = join.Source2Key as LambdaExpression;
+                //构造 join
+                LambdaExpression getJoinKey1 = join.Source1Key as LambdaExpression;
+                LambdaExpression getJoinKey2 = join.Source2Key as LambdaExpression;
 
-                Expression access1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(lamb1.Parameters[0].Name)[0]);
-                Expression access2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(lamb2.Parameters[0].Name)[0]);
-
-                string p1 = lamb1.Parameters[0].Name;
-                string p2 = lamb2.Parameters[0].Name;
-                if (!string.IsNullOrEmpty(prefix))
-                {
-                    p1 = $"{prefix}.{p1}";
-                    p2 = $"{prefix}.{p2}";
-                }
-
-                prefixs.Add(p1);
-                prefixs.Add(p2);
-
-                this.AssignFromJoinAlias(join.From, param2table, prefixs, p1, access1, root);
+                Expression accessJoinKey1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey1.Parameters[0].Name)[0]);
+                Expression accessJoinKey2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey2.Parameters[0].Name)[0]);
 
                 ExpressionModifier modifier = new ExpressionModifier();
-                Expression joinKeyValue1 = modifier.VisitParameter(lamb1.Body, p => object.ReferenceEquals(p, lamb1.Parameters[0]) ? access1 : p);
-                Expression joinKeyValue2 = modifier.VisitParameter(lamb2.Body, p => object.ReferenceEquals(p, lamb2.Parameters[0]) ? access2 : p);
+                Expression joinKey1 = modifier.VisitParameter(getJoinKey1.Body, p => object.ReferenceEquals(p, getJoinKey1.Parameters[0]) ? accessJoinKey1 : p);
+                Expression joinKey2 = modifier.VisitParameter(getJoinKey2.Body, p => object.ReferenceEquals(p, getJoinKey2.Parameters[0]) ? accessJoinKey2 : p);
+                Expression joinEqual = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), root);
 
-                //叶结点
-                param2table[p2] = this._context.TableNameGenerator.Next(); 
-                join.Source.Alias = param2table[p2]; //生成表命名
-                join.JoinOn = Expression.Lambda(Expression.Equal(joinKeyValue1, joinKeyValue2), root); //生成联表条件
+
+                string p1 = getJoinKey1.Parameters[0].Name;
+                string p2 = getJoinKey2.Parameters[0].Name;
+                TableAliasMapping mapping1 = new TableAliasMapping(p1);
+                
+                //next
+                this.AssignFromJoinAlias(mapping1, join.From, accessJoinKey1, root);
+                
+                string alias = this._context.TableNameGenerator.Next();
+                TableAliasMapping mapping2 = new TableAliasMapping(alias, p2);
+
+                mapping.Props.Add(mapping1);
+                mapping.Props.Add(mapping2);
+
+                join.JoinOn = joinEqual;
+                join.Source.Alias = alias;
             }
             else
             {
-                param2table[prefix] = this._context.TableNameGenerator.Next();
-                from.Source.Alias = param2table[prefix];
+                //
+                string alias = this._context.TableNameGenerator.Next();
+
+                mapping.Alias = alias;
+                from.Source.Alias = alias;
             }
         }
+
+
+
         // 调用外部翻译扩展
         private bool OnTranslateExpression(TranslateContext ctx)
         {
@@ -265,6 +268,11 @@ namespace MNet.LTSQL.v1
                 this.PushToken(ctx.ResultToken);
 
             return ctx.ResultToken != null;
+        }
+        private bool OnTranslateExpression(Expression expr, Type exprType = null)
+        {
+            TranslateContext ctx = this.NewTranslateContext(expr, exprType ?? expr.Type);
+            return this.OnTranslateExpression(ctx);
         }
         // 调用外部翻译扩展
         private bool OnTranslateMember(TranslateContext ctx)
@@ -275,6 +283,18 @@ namespace MNet.LTSQL.v1
             
             return ctx.ResultToken != null;
         }
+        private bool OnTranslateMember(MemberInfo member, object owner, Type ownerType, Expression expr, Type exprType = null, LTSQLToken ownerToken = null, LTSQLToken[] memberCallParameters = null)
+        {
+            TranslateContext ctx = this.NewTranslateContext(expr, exprType ?? expr.Type);
+            ctx.Member = member;
+            ctx.Owner = owner;
+            ctx.OwnerType = ownerType;
+            ctx.OwnerToken = ownerToken;
+            ctx.MethodParameterTokenList = memberCallParameters;
+
+            return this.OnTranslateMember(ctx);
+        }
+
 
 
         //处理 from 子句
@@ -520,6 +540,7 @@ namespace MNet.LTSQL.v1
         }
 
 
+
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
         {
@@ -531,29 +552,24 @@ namespace MNet.LTSQL.v1
                 return node;
             }
 
-            string objprefix = node.Name;
-            if (this.IsObjectPrefix(objprefix))
+            //确定参数范围
+            TableAliasMapping mapping = this.GetRootTableAliasMapping(node.Name);
+            if(mapping.Alias == null)
             {
                 //忽略掉join 过程中的 属性前缀链
-                this.PushToken(new PrefixPropToken(objprefix)
+                this.PushToken(new PrefixPropToken(node.Name)
                 {
-                    ValueType = node.Type
+                    ValueType = node.Type,
+                    AliasMapping = mapping
                 });
             }
             else
             {
-                TranslateContext ctx = this.NewTranslateContext();
-                ctx.TranslateExpr = node;
-                ctx.ExpressionValueType = node.Type;
-
                 //外部转换优先
-                if (!this.OnTranslateExpression(ctx))
+                if (!this.OnTranslateExpression(node, node.Type))
                 {
                     //默认转换
-                    string tableName = this.GetTableName(objprefix);
-                    if (tableName == null)
-                        throw new Exception($"参数({objprefix})未找到表名:{node}");
-
+                    string tableName = mapping.Alias;
                     this.PushToken(new AliasToken(tableName)
                     {
                         ValueType = node.Type
@@ -566,11 +582,7 @@ namespace MNet.LTSQL.v1
         //常量
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            var transCtx = this.NewTranslateContext();
-            transCtx.TranslateExpr = node;
-            transCtx.ExpressionValueType = node.Type;
-
-            if (this.OnTranslateExpression(transCtx))
+            if (this.OnTranslateExpression(node, node.Type))
             {
                 return node;
             }
@@ -595,19 +607,11 @@ namespace MNet.LTSQL.v1
             if (node.Expression == null)
             {
                 //外部对表达式树翻译
-                var transCtx1 = this.NewTranslateContext();
-                transCtx1.TranslateExpr = node;
-                transCtx1.ExpressionValueType = node.Type;
-                if (this.OnTranslateExpression(transCtx1))
+                if (this.OnTranslateExpression(node, node.Type))
                     return expr;
 
                 //外部对成员调用翻译
-                var transCtx2 = this.NewTranslateContext();
-                transCtx2.TranslateExpr = node;
-                transCtx2.Member = node.Member;
-                transCtx2.OwnerType = node.Member.ReflectedType;
-                transCtx2.ExpressionValueType = node.Type;
-                if (this.OnTranslateMember(transCtx2))
+                if (this.OnTranslateMember(node.Member, null, node.Member.ReflectedType, node, node.Type, null, null))
                     return expr;
 
                 object val = this.PropOrFieldValue(node.Member, null);
@@ -625,67 +629,47 @@ namespace MNet.LTSQL.v1
             //表名转换
             if (objToken is PrefixPropToken prefix)
             {
-                string accessPath = $"{prefix.ObjPrefix}.{memberName}";
+                TableAliasMapping mapping = prefix.AliasMapping.GetProp(memberName);
                 //忽略掉 join 过程中的 属性前缀链
-                if (this.IsObjectPrefix(accessPath))
+                if (string.IsNullOrEmpty(mapping.Alias))
                 {
-                    this.PushToken(new PrefixPropToken(accessPath) { ValueType = node.Type });
+                    this.PushToken(new PrefixPropToken($"{prefix.ObjPrefix}.{memberName}") { ValueType = node.Type, AliasMapping = mapping });
                 }
                 // join 过程中的 属性前缀链 转化成表名
                 else
                 {
                     //外部对表达式树翻译
-                    var transCtx1 = this.NewTranslateContext();
-                    transCtx1.TranslateExpr = node;
-                    transCtx1.ExpressionValueType = node.Type;
-                    if (this.OnTranslateExpression(transCtx1))
+                    if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    string tableName = this.GetTableName(accessPath);
-                    this.PushToken(new AliasToken(tableName) { ValueType = node.Type });
+                    this.PushToken(new AliasToken(mapping.Alias) { ValueType = node.Type });
                 }
             }
             //字段访问
             else
             {
                 //外部对表达式树翻译
-                var transCtx1 = this.NewTranslateContext();
-                transCtx1.TranslateExpr = node;
-                transCtx1.ExpressionValueType = node.Type;
-                if (this.OnTranslateExpression(transCtx1))
+                if (this.OnTranslateExpression(node, node.Type))
                     return expr;
 
-                //对常量求值
+                //对常量(静态对象)求值
                 if (objToken is SqlParameterToken p)
                 {
                     object obj = p.Value;
                     if (obj == null)
                         throw new Exception($"表达式不能依赖null对象求值：{obj}");
 
-
-                    var transCtx2 = this.NewTranslateContext();
-                    transCtx2.TranslateExpr = node;
-                    transCtx2.Owner = obj;
-                    transCtx2.OwnerToken = objToken;
-                    transCtx2.OwnerType = node.Expression.Type;
-                    transCtx2.Member = node.Member;
-                    transCtx2.ExpressionValueType = node.Type;
-                    if (!this.OnTranslateMember(transCtx2))
+                    if (!this.OnTranslateMember(node.Member, obj, node.Expression.Type, node, node.Type, objToken, null))
                     {
                         //对象访问
                         object val = this.PropOrFieldValue(node.Member, obj);
                         this.PushToken(new SqlParameterToken(p.ParameterName, val) { ValueType = node.Type });
                     }
                 }
+                //非常量(表)
                 else
                 {
-                    var transCtx2 = this.NewTranslateContext();
-                    transCtx2.TranslateExpr = node;
-                    transCtx2.OwnerToken = objToken;
-                    transCtx2.OwnerType = node.Expression.Type;
-                    transCtx2.Member = node.Member;
-                    transCtx2.ExpressionValueType = node.Type;
-                    if (this.OnTranslateMember(transCtx2))
+                    if (this.OnTranslateMember(node.Member, null, node.Expression.Type, node, node.Type, objToken, null))
                         return expr;
 
                     if (objToken is GroupObjToken groupToken && memberName == nameof(IGrouping<object, object>.Key))
@@ -717,12 +701,8 @@ namespace MNet.LTSQL.v1
         {
             Expression expr = base.VisitMethodCall(node);
             //外部表达式树翻译
-            var transCtx1 = this.NewTranslateContext();
-            transCtx1.TranslateExpr = node;
-            transCtx1.ExpressionValueType = node.Type;
-            if (this.OnTranslateExpression(transCtx1))
+            if (this.OnTranslateExpression(node, node.Type))
                 return expr;
-
 
             object val = null;
             LTSQLToken token = null;
@@ -736,13 +716,7 @@ namespace MNet.LTSQL.v1
             if (node.Object == null)
             {
                 //外部成员翻译
-                var transCtx2 = this.NewTranslateContext();
-                transCtx2.TranslateExpr = node;
-                transCtx2.Member = node.Method;
-                transCtx2.OwnerType = node.Method.ReflectedType;
-                transCtx2.MethodParameterTokenList = parameters;
-                transCtx2.ExpressionValueType = node.Type;
-                if (this.OnTranslateMember(transCtx2))
+                if (this.OnTranslateMember(node.Method, null, node.Method.ReflectedType, node, node.Type, null, parameters))
                     return expr;
 
                 //参数个数为0的静态方法，直接调用求值
@@ -755,7 +729,7 @@ namespace MNet.LTSQL.v1
                 }
 
                 if (!parameters.All(p => p is SqlParameterToken))
-                    throw new Exception($"静态方法引用动态参数无法值：{node}");
+                    throw new Exception($"静态方法引用动态参数值，无法继续转换：{node}");
 
                 val = node.Method.Invoke(null, parameters.Select(p => ((SqlParameterToken)p).Value).ToArray());
                 token = new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Method.ReturnType };
@@ -768,16 +742,7 @@ namespace MNet.LTSQL.v1
             MethodInfo method = node.Method;
             //实例对象
             objToken = this.PopToken();
-
-            var transCtx3 = this.NewTranslateContext();
-            transCtx3.TranslateExpr = node;
-            transCtx3.Member = node.Method;
-            transCtx3.Owner = objToken is SqlParameterToken ? ((SqlParameterToken)objToken).Value : null;
-            transCtx3.OwnerToken = objToken;
-            transCtx3.OwnerType = node.Object.Type;
-            transCtx3.MethodParameterTokenList = parameters;
-            transCtx3.ExpressionValueType = node.Type;
-            if (this.OnTranslateMember(transCtx3))
+            if (this.OnTranslateMember(node.Method, objToken is SqlParameterToken p ? p.Value : null, node.Object.Type, node, node.Type, objToken, parameters))
                 return expr;
 
             //实例对象求值
@@ -806,6 +771,9 @@ namespace MNet.LTSQL.v1
         }
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
+            //if (this.OnTranslateExpression(node, node.Type))
+            //    return node;
+
             LTSQLToken token = this.PeekToken();
             if (token is GroupObjToken groupToken)
             {
@@ -825,11 +793,7 @@ namespace MNet.LTSQL.v1
         protected override Expression VisitNew(NewExpression node)
         {
             Expression expr = base.VisitNew(node);
-            
-            var transCtx = this.NewTranslateContext();
-            transCtx.TranslateExpr = node;
-            transCtx.ExpressionValueType = node.Type;
-            if (this.OnTranslateExpression(transCtx))
+            if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
             TupleToken tuple = new TupleToken();
@@ -845,28 +809,11 @@ namespace MNet.LTSQL.v1
             this.PushToken(tuple);
             return expr;
         }
-        protected override MemberBinding VisitMemberBinding(MemberBinding node)
-        {
-            return base.VisitMemberBinding(node);
-        }
-        protected override MemberMemberBinding VisitMemberMemberBinding(MemberMemberBinding node)
-        {
-            return base.VisitMemberMemberBinding(node);
-        }
-        protected override MemberAssignment VisitMemberAssignment(MemberAssignment node)
-        {
-            base.VisitMemberAssignment(node);
-            return node; 
-        }
         //初始化实例
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
             Expression expr = base.VisitMemberInit(node); 
-
-            var transCtx = this.NewTranslateContext();
-            transCtx.TranslateExpr = node;
-            transCtx.ExpressionValueType = node.Type;
-            if (this.OnTranslateExpression(transCtx))
+            if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
             if (node.Bindings.Count > 0)
@@ -888,12 +835,7 @@ namespace MNet.LTSQL.v1
         protected override Expression VisitBinary(BinaryExpression node)
         {
             Expression expr = base.VisitBinary(node);
-
-            var transCtx = this.NewTranslateContext();
-            transCtx.TranslateExpr = node;
-            transCtx.ExpressionValueType = node.Type;
-
-            if (this.OnTranslateExpression(transCtx))
+            if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
             LTSQLToken right = this.PopToken();
@@ -967,17 +909,14 @@ namespace MNet.LTSQL.v1
             this.PushToken(new SqlScopeToken(condition));
             return expr;
         }
+        //一元表达式：主要是取反操作，not exists 以及 not in 等
         protected override Expression VisitUnary(UnaryExpression node)
         {
             // not int 支持
             // not exists 支持
 
             Expression expr = base.VisitUnary(node);
-
-            var transCtx = this.NewTranslateContext();
-            transCtx.TranslateExpr = node;
-            transCtx.ExpressionValueType = node.Type;
-            if (this.OnTranslateExpression(transCtx))
+            if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
             LTSQLToken token = this.PopToken();
@@ -987,7 +926,6 @@ namespace MNet.LTSQL.v1
             //{
                 
             //}
-
             this.PushToken(token);
             return expr;
         }

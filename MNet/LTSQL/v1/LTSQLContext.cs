@@ -1,10 +1,12 @@
 using MNet.LTSQL.v1.SqlTokens;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1
 {
     public class LTSQLContext
     {
+        //选项
         public LTSQLOptions Options { get; set; }
         //表名生成器
         public NameGenerator TableNameGenerator { get; set; }
@@ -12,11 +14,10 @@ namespace MNet.LTSQL.v1
         public NameGenerator ParameterNameGenerator { get; set; }
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
-
         public QuerySequence Root { get; set; }
-        public LTSQLTableNameMapping ObjectPrefix { get; set; }
+        public TableAliasMapping TableAliasMapping { get; set; }
 
-        
+
 
         //是否存在分组子句
         public bool GroupFlag { get; set; }
@@ -24,33 +25,35 @@ namespace MNet.LTSQL.v1
         public LTSQLToken GroupElement { get; set; }
     }
 
-
-
-
-    public class LTSQLTableNameMapping
+    /// <summary>
+    /// 表命名映射
+    /// </summary>
+    public class TableAliasMapping
     {
-        public LTSQLTableNameMapping(Dictionary<string, string> p2t, HashSet<string> prefixs)
+        public TableAliasMapping() 
+        { }
+        public TableAliasMapping(string prop)
         {
-            this._p2t = p2t;
-            this._objPrefix = prefixs;
+            this.PropName = prop;
+            this.Props = new List<TableAliasMapping>(2);
+        }
+        public TableAliasMapping(string alias, string prop)
+        {
+            this.Alias = alias;
+            this.PropName = prop;
         }
 
 
-        private HashSet<string> _objPrefix;
-        private Dictionary<string, string> _p2t;
 
+        //表命名
+        public string Alias { get; set; }
+        //属性名
+        public string PropName { get; set; }
+        public List<TableAliasMapping> Props { get; set; }
 
-        public bool Contain(string objPrefix)
+        public TableAliasMapping GetProp(string prop)
         {
-            return this._objPrefix.Contains(objPrefix);
-        }
-        public bool IsObjectPrefix(string objPrefix)
-        {
-            return this._objPrefix.Contains(objPrefix) && this.GetTableName(objPrefix) == null;
-        }
-        public string GetTableName(string accessPath)
-        {
-            return this._p2t.TryGetValue(accessPath, out string t) ? t : null;
+            return this.Props?.FirstOrDefault(p => p.PropName == prop);
         }
     }
 }

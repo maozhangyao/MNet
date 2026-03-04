@@ -50,7 +50,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query2.Query, options);
 
 
 //生成的sql语句

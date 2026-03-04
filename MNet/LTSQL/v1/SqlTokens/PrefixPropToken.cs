@@ -17,5 +17,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
 
         public string ObjPrefix { get; set; }
+        public TableAliasMapping AliasMapping { get; set; }
     }
 }
