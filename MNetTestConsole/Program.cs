@@ -24,7 +24,7 @@ c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL()
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where (mine.Age > 0) && c.AsLTSQL().Any()
+             where (mine.Age > 0) && c.AsLTSQL().Select(p => p.Id).Any()
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
              select new
              {
@@ -46,11 +46,11 @@ var query2 = from e in c.AsLTSQL()
 LTSQLOptions options = new LTSQLOptions
 {
     DbType = DbType.MySQL,
-    UseSqlParameter = true, //是否参数化
+    UseSqlParameter = false, //是否参数化
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query2.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
 
 
 //生成的sql语句

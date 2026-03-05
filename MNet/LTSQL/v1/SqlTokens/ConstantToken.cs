@@ -23,11 +23,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return Array.Empty<LTSQLToken>();
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            context.SQLBuilder.Append(this.Value);
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConstantToken(this);

@@ -16,18 +16,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return this.GroupByItems.ToArray();
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            context.SQLBuilder.Append("GROUP BY ");
-            bool comma = false;
-            foreach (LTSQLToken item in GroupByItems)
-            {
-                if (comma)
-                    context.SQLBuilder.Append(", ");
-                comma = true;
-                item.ToSql(context);
-            }
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitGroupToken(this);

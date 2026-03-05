@@ -1,3 +1,4 @@
+using MNet.LTSQL.v1.SqlQueryStructs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,12 +14,9 @@ namespace MNet.LTSQL.v1
         private static void AddOrder(QuerySequence sequence, Expression expr, bool desc)
         {
             var query = sequence;
-            if (query.Order == null)
-            {
-                query.Order = new OrderUnit();
-                query.Order.OrderKeys = new List<KeyValuePair<Expression, bool>>(2);
-            }
-            query.Order.OrderKeys.Add(new KeyValuePair<Expression, bool>(expr, desc));
+            query.Step = QueryStep.OrderBy;
+            query.Orders ??= new List<OrderKey>();
+            query.Orders.Add(new OrderKey() { Key = expr, Asc = !desc });
         }
 
 
@@ -26,25 +24,25 @@ namespace MNet.LTSQL.v1
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class
         {
             QuerySequence query = new QuerySequence();
-            query.From = new FromUnit();
+            query.Step = QueryStep.From;
             query.Type = typeof(T);
-            query.From.Source = new SimpleSequence(typeof(T));
+            query.F = new FromPart();
+            query.F.Parent = null;
+            query.F.Seq = new SimpleSequence(typeof(T));
+
 
             var ltsql = new LTSQLObject<T>();
-            ltsql.Query = new QuerySequence();
+            ltsql.Query = query;
 
-            return new LTSQLObject<T>() { Query = query};
+            return ltsql;
         }
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
             QuerySequence query = src.Query;
-            if (query.Where == null)
-            {
-                query.Where = new WhereUnit();
-                query.Where.Conditions = new List<Expression>(4);
-            }
-            query.Where.Conditions.Add(expr);
+            query.Wheres ??= new List<Expression>();
+            query.Wheres.Add(expr);
+            query.Step = QueryStep.Where;
             return src;
         }
         
@@ -78,21 +76,17 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
-            if (query.Group == null)
-                query.Group = new GroupUnit();
-
-            query.Group.GroupKeys = keyExpr;
-            query.Group.ElementExpr = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
+            query.GroupKey = keyExpr;
+            query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
+            query.Step = QueryStep.GroupBy;
             return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
             var query = src.Query;
-            if (query.Group == null)
-                query.Group = new GroupUnit();
-
-            query.Group.GroupKeys = keyExpr;
-            query.Group.ElementExpr = elementExpr;
+            query.GroupKey = keyExpr;
+            query.GroupElement = elementExpr;
+            query.Step = QueryStep.GroupBy;
             return new LTSQLObject<IGrouping<TKey, TElement>>(query);
         }
 
@@ -100,17 +94,18 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
             var query = src.Query;
-            if (query.Select == null)
-                query.Select = new SelectUnit();
-            
-            query.Select.SelectKey = expr;
-            query.Select.NewType = typeof(TResult);
+            query.SelectKey = expr;
+            query.Step = QueryStep.Select;
+            query.NewType = typeof(TResult);
 
             return new LTSQLObject<TResult>(new QuerySequence()
             {
                 Type = typeof(TResult),
-                From = new FromUnit() { 
-                    Source = query 
+                Step = QueryStep.From,
+                F = new FromPart()
+                {
+                    Parent = null,
+                    Seq = query
                 }
             });
         }
@@ -122,31 +117,43 @@ namespace MNet.LTSQL.v1
             Expression<Func<TInner, TKey>> innerKeyExpr,
             Expression<Func<TOuter, TInner, TResult>> joinExpr)
         {
-            FromUnit from = null;
-            if (outer.Query.IsSimpleSelect())
+            QuerySequence qOuter = outer.Query;
+            QuerySequence qInner = inner.Query;
+            FromPart fromJoin = new FromPart();
+            if ((int)qOuter.Step > (int)QueryStep.Join)
             {
-                //连续 join 时需要合并 from 子句
-                from = outer.Query.From;
+                //直接作为子查询
+                fromJoin.Parent = new FromPart();
+                fromJoin.Parent.Seq = qOuter;
             }
             else
             {
-                //join 子查询
-                from = new FromUnit();
-                from.Source = outer.Query;
+                fromJoin.Parent = qOuter.F;
             }
 
-            //需要检验参数命名是否相同
+
+            if ((int)qInner.Step > (int)QueryStep.From)
+            {
+                //作为子查询
+                fromJoin.Seq = qInner;
+            }
+            else
+            {
+                fromJoin.Seq = qInner.F.Seq;
+            }
+
+            //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
+            fromJoin.JoinType = "LEFT JOIN";
+            fromJoin.JoinKey1 = outerKeyExpr;
+            fromJoin.JoinKey2 = outerKeyExpr;
+            //fromJoin.JoinKeyOn = joinExpr;
+            fromJoin.JoinObject = joinExpr;
+
             return new LTSQLObject<TResult>(new QuerySequence
             {
-                Type = typeof(TResult),
-                From = new FromJoinUnit()
-                {
-                    From = from,
-                    Source = inner.Query.Reduce(),
-                    Source1Key = outerKeyExpr,
-                    Source2Key = innerKeyExpr,
-                    JoinExpr = joinExpr
-                }
+                F = fromJoin,
+                Step = QueryStep.Join,
+                Type = typeof(TResult)
             });
         }
     }

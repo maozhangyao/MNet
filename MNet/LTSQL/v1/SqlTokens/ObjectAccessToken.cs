@@ -25,13 +25,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Owner };
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            this.Owner.ToSql(context);
-            context.SQLBuilder.Append('.');
-            context.SQLBuilder.Append(this.Field);
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitObjectAccessToken(this);

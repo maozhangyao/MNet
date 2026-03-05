@@ -7,8 +7,6 @@ namespace MNet.LTSQL.v1.SqlTokens
     public abstract class LTSQLToken
     {
         public abstract IEnumerable<LTSQLToken> GetChildren();
-        public abstract void ToSql(LTSQLTokenContext context);
-
         protected internal virtual LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitToken(this);

@@ -13,13 +13,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Item };
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            this.Item.ToSql(context);
-            context.SQLBuilder.Append(' ');
-            if (!this.IsAsc)
-                context.SQLBuilder.Append("desc");
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitOrderByItemToken(this);

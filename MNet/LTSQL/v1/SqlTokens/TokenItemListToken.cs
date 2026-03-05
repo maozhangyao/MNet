@@ -36,21 +36,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return this.Items.ToArray();
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            if (this.Items == null)
-                return;
-
-            for(int i = 0; i < this.Items.Length; i++)
-            {
-                if (i > 0)
-                    context.SQLBuilder.Append(this.Separator);
-
-                LTSQLToken item = this.Items[i];
-                item.ToSql(context);
-            }
-
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitTokenItemListToken(this);

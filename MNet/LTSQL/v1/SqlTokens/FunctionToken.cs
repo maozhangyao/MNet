@@ -25,22 +25,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return this.Parameters;
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            context.SQLBuilder.Append(this.FunctionName);
-            context.SQLBuilder.Append('(');
-
-            bool comma = false;
-            foreach(var param in Parameters)
-            {
-                if (comma)
-                    context.SQLBuilder.Append(',');
-                comma = true;
-                param.ToSql(context);
-            }
-
-            context.SQLBuilder.Append(')');
-        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

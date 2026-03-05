@@ -13,11 +13,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return Array.Empty<LTSQLToken>();
         }
-        public sealed override void ToSql(LTSQLTokenContext context)
-        {
-            throw new NotImplementedException("bogus token 无法直接转成sql.");
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return this;

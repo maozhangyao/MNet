@@ -25,19 +25,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return Array.Empty<LTSQLToken>();
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            if (context?.Options?.UseSqlParameter ?? true)
-            {
-                if (!this.ParameterName.StartsWith("@"))
-                    context.SQLBuilder.Append('@');
-                context.SQLBuilder.Append(this.ParameterName);
-            }
-            else
-            {
-                throw new Exception("对象实例转换为sql字面量暂未支持");
-            }
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSqlParameterToken(this);

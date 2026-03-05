@@ -43,7 +43,10 @@ namespace MNet.LTSQL.v1
             foreach (var item in this._builders)
             {
                 if (item.Item1 == type)
+                {
                     item.Item2(token, context, t => this.Next(t, context));
+                    return;
+                }
             }
         }
         //初始化默认的 sql 生成器
@@ -81,23 +84,24 @@ namespace MNet.LTSQL.v1
                 ctx.Sql.Append(t.Value);
 
             })
-            .UseTokenBuilder<FromJoinToken>((t, ctx, nxt) => {
-                nxt(t.From);
-                
-                ctx.Sql.AppendLine();
-                ctx.Sql.Append(t.JoinType);
-                ctx.Sql.Append(' ');
-
-                nxt(t.Source);
-                ctx.Sql.Append(" ON ");
-                
-                nxt(t.JoinOn);
-
-            })
             .UseTokenBuilder<FromToken>((t, ctx, nxt) => {
-                ctx.Sql.Append("FROM ");
-                nxt(t.Source);
+                if (t.JoinFrom != null)
+                {
+                    nxt(t.JoinFrom);
+                    ctx.Sql.AppendLine();
+                    ctx.Sql.Append(t.JoinType);
+                    ctx.Sql.Append(' ');
 
+                    nxt(t.Sequence);
+
+                    ctx.Sql.Append(" ON ");
+                    nxt(t.JoinKeys);
+                }
+                else
+                {
+                    ctx.Sql.Append("FROM ");
+                    nxt(t.Sequence);
+                }
             })
             .UseTokenBuilder<FunctionToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.FunctionName);
@@ -169,8 +173,8 @@ namespace MNet.LTSQL.v1
             .UseTokenBuilder<SelectItemToken>((t, ctx, nxt) => {
                 nxt(t.Field);
                 ctx.Sql.Append(' ');
-                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.FieldAlias, ctx));
-
+                if(!string.IsNullOrEmpty(t.FieldAlias))
+                    ctx.Sql.Append(ctx.SqlKeyWordEscap(t.FieldAlias, ctx));
             })
             .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) => {
                 //是否参数化

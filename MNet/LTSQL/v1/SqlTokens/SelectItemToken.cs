@@ -20,12 +20,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Field };
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            this.Field.ToSql(context);
-            context.SQLBuilder.Append(' ');
-            context.SQLBuilder.Append(this.FieldAlias);
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSelectItemToken(this);

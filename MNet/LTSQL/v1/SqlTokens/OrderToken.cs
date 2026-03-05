@@ -14,12 +14,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.OrderBy };
         }
-
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            context.SQLBuilder.Append("ORDER BY ");
-            this.OrderBy.ToSql(context);
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitOrderToken(this);

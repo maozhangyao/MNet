@@ -83,10 +83,6 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitFromJoinToken(FromJoinToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitFromToken(FromToken token)
         {
             return this._visitor(token);

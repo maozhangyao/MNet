@@ -48,29 +48,14 @@ namespace MNet.LTSQL.v1.SqlTokens
         public LTSQLToken Left { get; set; }
         public LTSQLToken Right { get; set; }
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new[] { this.Left, this.Right }.Where(p => p != null);
-        }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            this.Left?.ToSql(context);
-            context.SQLBuilder.Append(' ');
-            context.SQLBuilder.Append(ConditionType);
-            context.SQLBuilder.Append(' ');
-            this.Right?.ToSql(context);
-        }
-        public ConditionToken Not()
-        {
-            return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
-        }
+
         public static string Not(string opt)
         {
             if (opt == OPT_AND)
                 return OPT_OR;
             if (opt == OPT_OR)
                 return OPT_AND;
-            
+
             if (opt == OPT_EQUAL)
                 return OPT_NOT;
             if (opt == OPT_NOT)
@@ -113,8 +98,14 @@ namespace MNet.LTSQL.v1.SqlTokens
 
             return opt;
         }
-
-
+        public ConditionToken Not()
+        {
+            return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
+        }
+        public override IEnumerable<LTSQLToken> GetChildren()
+        {
+            return new[] { this.Left, this.Right }.Where(p => p != null);
+        }   
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConditionToken(this);

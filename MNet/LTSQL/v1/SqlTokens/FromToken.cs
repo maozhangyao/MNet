@@ -5,28 +5,27 @@ namespace MNet.LTSQL.v1.SqlTokens
 {
     public class FromToken : LTSQLToken
     {
-        public Type SourceType { get; set; }
-        //查询语句
-        public LTSQLToken Source { get; set; }
-
-
+        public Type FromType { get; set; }
+        public string JoinType { get; set; }
+        public LTSQLToken JoinFrom { get; set; }
+        public LTSQLToken JoinKeys { get; set; }
+        public LTSQLToken Sequence { get; set; }
+        
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Source };
+            if (this.JoinFrom != null)
+                return new[] { this.JoinFrom, this.Sequence, this.JoinKeys };
+            return new[] { this.Sequence };
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            context.SQLBuilder.Append("FROM ");
-            this.Source.ToSql(context);
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitFromToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Source = this.Source.Visit(visitor);
+            this.JoinFrom = this.JoinFrom?.Visit(visitor);
+            this.Sequence = this.Sequence.Visit(visitor);
+            this.JoinKeys = this.JoinKeys?.Visit(visitor);
             return this;
         }
     }

@@ -21,13 +21,6 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new[] { this.Query };
         }
-        public override void ToSql(LTSQLTokenContext context)
-        {
-            this.Query.ToSql(context);
-            context.SQLBuilder.Append(' ');
-            context.SQLBuilder.Append(this.Alias);
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitAliasTableToken(this);
