@@ -1,7 +1,6 @@
 using MNet.LTSQL.v1;
 using MNet.LTSQL.v1.SqlTokens;
 using MNetTestConsole.Utils;
-using System.Linq.Expressions;
 using System.Text;
 
 /*
@@ -27,7 +26,7 @@ List<int> id1s = new List<int> { 1, 2, 3, 4 };
 IEnumerable<int> id2s = id1s;
 
 c_persion_t c = new c_persion_t();
-var query1 = from mine in c.AsLTSQL()
+var query1 = from mine in c.AsLTSQL().Take(10)
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
              where (mine.Age > 0) && c.AsLTSQL().Select(p => p.Id).Any()

@@ -5,6 +5,8 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
     {
         From = 1,
         Join,
+        //基本的查询语句
+        Query,
         Where,
         GroupBy,
         OrderBy,

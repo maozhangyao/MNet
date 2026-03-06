@@ -27,12 +27,18 @@ namespace MNet.LTSQL.v1
 
             return seq;
         }
-        private static void AddOrder(QuerySequence sequence, Expression expr, bool desc)
+        private static QuerySequence TryNextStep(this QuerySequence seq, QueryStep step)
         {
-            sequence.TryNewTurn();
+            if (seq.Step < step)
+                seq.Step = step;
+            return seq;
+        }
+        private static void AddOrder(ref QuerySequence sequence, Expression expr, bool desc)
+        {
+            sequence = sequence.TryNewTurn();
+            sequence.TryNextStep(QueryStep.OrderBy);
 
             var query = sequence;
-            query.Step = QueryStep.OrderBy;
             query.Orders ??= new List<OrderKeyPart>();
             query.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
         }
@@ -58,12 +64,10 @@ namespace MNet.LTSQL.v1
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
-            src.Query.TryNewTurn();
-
-            QuerySequence query = src.Query;
+            QuerySequence query = src.Query.TryNewTurn();
+            query.TryNextStep(QueryStep.Where);
             query.Wheres ??= new List<Expression>();
             query.Wheres.Add(expr);
-            query.Step = QueryStep.Where;
             return src;
         }
         
@@ -71,34 +75,33 @@ namespace MNet.LTSQL.v1
         public static ILTSQLOrderedQueryable<T> OrderBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
-            AddOrder(query, keyExpr, false);
+            AddOrder(ref query, keyExpr, false);
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> OrderByDescending<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
-            AddOrder(query, keyExpr, true);
+            AddOrder(ref query, keyExpr, true);
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
-            AddOrder(query, keyExpr, false);
+            AddOrder(ref query, keyExpr, false);
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenByDescending<T, TKey>(this ILTSQLOrderedQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
-            AddOrder(query, keyExpr, true);
+            AddOrder(ref query, keyExpr, true);
             return new LTSQLObject<T>(query);
         }
 
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
-            src.Query.TryNewTurn();
-
-            var query = src.Query;
+            var query = src.Query.TryNewTurn();
+            query.TryNextStep(QueryStep.GroupBy);
             query.GroupKey = keyExpr;
             query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
             query.Step = QueryStep.GroupBy;
@@ -106,21 +109,17 @@ namespace MNet.LTSQL.v1
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
-            src.Query.TryNewTurn();
-
-            var query = src.Query;
+            var query = src.Query.TryNewTurn();
+            query.TryNextStep(QueryStep.GroupBy);
             query.GroupKey = keyExpr;
             query.GroupElement = elementExpr;
-            query.Step = QueryStep.GroupBy;
             return new LTSQLObject<IGrouping<TKey, TElement>>(query);
         }
 
         //select
         public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
-            src.Query.TryNewTurn();
-
-            var query = src.Query;
+            var query = src.Query.TryNewTurn();
             query.SelectKey = expr;
             query.Step = QueryStep.Select;
             query.NewType = typeof(TResult);
@@ -179,16 +178,19 @@ namespace MNet.LTSQL.v1
 
         public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
         {
+            src.Query.TryNextStep(QueryStep.Query);
             src.Query.Skip = skip;
             return src;
         }
         public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
         {
+            src.Query.TryNextStep(QueryStep.Query);
             src.Query.Take = take;
             return src;
         }
         public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
         {
+            src.Query.TryNextStep(QueryStep.Query);
             src.Query.Distinct = true;
             return src;
         }
