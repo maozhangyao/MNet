@@ -9,14 +9,19 @@ namespace MNet.LTSQL.v1.SqlTokens
         public SelectToken()
         { }
 
+
         // 是否 select * 
         public bool AllFields { get; set; }
-        public LTSQLToken Field { get; set; }
+        //distinct 子句
+        public bool Distinct { get; set; }
+        //top 子句（sql server 专属）
+        public int? MSSQLTopStatement { get; set; }
+        public LTSQLToken Fields { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Field};
+            return new[] { this.Fields};
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -24,7 +29,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Field = this.Field.Visit(visitor);
+            this.Fields = this.Fields.Visit(visitor);
             return this;
         }
     }

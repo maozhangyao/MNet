@@ -2,8 +2,13 @@ namespace MNet.LTSQL.v1
 {
     public enum DbType
     {
-        Sqllite,
         MySQL,
-        MSSQL
+        MSSQL,
+        /// <summary>
+        /// PostgreSQL
+        /// </summary>
+        PGSQL,
+        Oracle,
+        SQLLite
     }
 }

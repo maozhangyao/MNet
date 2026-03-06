@@ -6,6 +6,15 @@ namespace MNet.LTSQL.v1.SqlTokens
     //表示 sql 结构的一部分
     public abstract class LTSQLToken
     {
+        public LTSQLToken()
+        {
+            this.Metadata = new Dictionary<string, object>();
+        }
+
+        //跨节点传递数据
+        public Dictionary<string, object> Metadata { get; protected set; }
+
+
         public abstract IEnumerable<LTSQLToken> GetChildren();
         protected internal virtual LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

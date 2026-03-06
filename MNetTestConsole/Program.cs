@@ -5,15 +5,21 @@ using System.Linq.Expressions;
 using System.Text;
 
 /*
- 1. group by 处理 已解决
- 2. 子查询编译支持
- 3. IN 操作的支持
-    3.1 list token 的表达
- 4. NOT IN 操作的支持
-    TokenItemListToken => a,b,c,d,e
+TO DO
+ 1. having 的支持
+ 2. 分页的支持(Skip/Take扩展方法组合使用) [ok]
+    2.1 fetch next 子句实现的分页
+    2.2 limit 子句实现的分页
+ 3. 去重子句支持                          [ok]
+ 4. FirstOrDefault 支持
 
- 5. 如何编译，可能会影响到 list 拆包
+ 笛卡尔积
+ join into 句子 翻译
+ 对 is null / is not null 的支持
 
+ 5. 基础函数的支持
+    5.1 字符串相关函数的支持
+    5.2 日期函数的相关支持
  */
 
 
@@ -42,7 +48,6 @@ var query2 = from e in c.AsLTSQL()
                  Cn = g.Sum(p => p.Id)
              };
 
-
 LTSQLOptions options = new LTSQLOptions
 {
     DbType = DbType.MySQL,
@@ -50,8 +55,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
-
+LTSQLToken token = new SequenceTranslater().Translate(query1.Distinct().Take(10).Skip(1).Query, options);
 
 //生成的sql语句
 StringBuilder builder = new StringBuilder();

@@ -11,13 +11,32 @@ namespace MNet.LTSQL.v1
 {
     public static class LTSQLQueryableExtensions
     {
+        private static QuerySequence TryNewTurn(this QuerySequence seq)
+        {
+            if (seq.Step == QueryStep.Select)
+            {
+                return new QuerySequence()
+                {
+                    Type = seq.NewType,
+                    From = new FromPart()
+                    {
+                        Seq = seq
+                    }
+                };
+            }
+
+            return seq;
+        }
         private static void AddOrder(QuerySequence sequence, Expression expr, bool desc)
         {
+            sequence.TryNewTurn();
+
             var query = sequence;
             query.Step = QueryStep.OrderBy;
-            query.Orders ??= new List<OrderKey>();
-            query.Orders.Add(new OrderKey() { Key = expr, Asc = !desc });
+            query.Orders ??= new List<OrderKeyPart>();
+            query.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
         }
+
 
 
         //初始化查询对象，以支持LINQ语法
@@ -26,9 +45,9 @@ namespace MNet.LTSQL.v1
             QuerySequence query = new QuerySequence();
             query.Step = QueryStep.From;
             query.Type = typeof(T);
-            query.F = new FromPart();
-            query.F.Parent = null;
-            query.F.Seq = new SimpleSequence(typeof(T));
+            query.From = new FromPart();
+            query.From.Parent = null;
+            query.From.Seq = new SimpleSequence(typeof(T));
 
 
             var ltsql = new LTSQLObject<T>();
@@ -39,6 +58,8 @@ namespace MNet.LTSQL.v1
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
+            src.Query.TryNewTurn();
+
             QuerySequence query = src.Query;
             query.Wheres ??= new List<Expression>();
             query.Wheres.Add(expr);
@@ -75,6 +96,8 @@ namespace MNet.LTSQL.v1
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
+            src.Query.TryNewTurn();
+
             var query = src.Query;
             query.GroupKey = keyExpr;
             query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
@@ -83,6 +106,8 @@ namespace MNet.LTSQL.v1
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
+            src.Query.TryNewTurn();
+
             var query = src.Query;
             query.GroupKey = keyExpr;
             query.GroupElement = elementExpr;
@@ -93,21 +118,14 @@ namespace MNet.LTSQL.v1
         //select
         public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
+            src.Query.TryNewTurn();
+
             var query = src.Query;
             query.SelectKey = expr;
             query.Step = QueryStep.Select;
             query.NewType = typeof(TResult);
 
-            return new LTSQLObject<TResult>(new QuerySequence()
-            {
-                Type = typeof(TResult),
-                Step = QueryStep.From,
-                F = new FromPart()
-                {
-                    Parent = null,
-                    Seq = query
-                }
-            });
+            return new LTSQLObject<TResult>(query);
         }
         //join
         public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(
@@ -120,26 +138,27 @@ namespace MNet.LTSQL.v1
             QuerySequence qOuter = outer.Query;
             QuerySequence qInner = inner.Query;
             FromPart fromJoin = new FromPart();
-            if ((int)qOuter.Step > (int)QueryStep.Join)
+            if ((int)qOuter.Step <= (int)QueryStep.Join)
+            {
+                //连续的join
+                fromJoin.Parent = qOuter.From;
+            }
+            else
             {
                 //直接作为子查询
-                fromJoin.Parent = new FromPart();
-                fromJoin.Parent.Seq = qOuter;
+                fromJoin.Parent = new FromPart(qOuter);
+            }
+
+
+            if ((int)qInner.Step < (int)QueryStep.Join)
+            {
+                //join 一张表
+                fromJoin.Seq = qInner.From.Seq;
             }
             else
             {
-                fromJoin.Parent = qOuter.F;
-            }
-
-
-            if ((int)qInner.Step > (int)QueryStep.From)
-            {
-                //作为子查询
+                //join 子查询
                 fromJoin.Seq = qInner;
-            }
-            else
-            {
-                fromJoin.Seq = qInner.F.Seq;
             }
 
             //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
@@ -151,10 +170,27 @@ namespace MNet.LTSQL.v1
 
             return new LTSQLObject<TResult>(new QuerySequence
             {
-                F = fromJoin,
+                From = fromJoin,
                 Step = QueryStep.Join,
                 Type = typeof(TResult)
             });
+        }
+
+
+        public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
+        {
+            src.Query.Skip = skip;
+            return src;
+        }
+        public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
+        {
+            src.Query.Take = take;
+            return src;
+        }
+        public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            src.Query.Distinct = true;
+            return src;
         }
     }
 

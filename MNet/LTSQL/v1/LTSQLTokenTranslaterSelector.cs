@@ -15,12 +15,6 @@ namespace MNet.LTSQL.v1
     /// </summary>
     public class LTSQLTokenTranslaterSelector
     {
-        static LTSQLTokenTranslaterSelector()
-        {
-            InitDefault();
-        }
-
-
         public LTSQLTokenTranslaterSelector()
         {
             this._memberTranslaters = new List<Action<TranslateContext>>();
@@ -32,9 +26,9 @@ namespace MNet.LTSQL.v1
         private List<Action<TranslateContext>> _expressionTranslaters;
 
 
-        public static readonly LTSQLTokenTranslaterSelector Default = new LTSQLTokenTranslaterSelector();
+        public static readonly LTSQLTokenTranslaterSelector Default = GetDefaultTranslaterSelector();
 
-        
+
         //对类型成员进行转换(优先级低)
         public virtual LTSQLTokenTranslaterSelector UseMemberTranslate(Action<TranslateContext> translate)
         {
@@ -80,9 +74,9 @@ namespace MNet.LTSQL.v1
 
 
         //内置的函数翻译支持
-        private static void InitDefault()
+        private static LTSQLTokenTranslaterSelector GetDefaultTranslaterSelector()
         {
-            LTSQLTokenTranslaterSelector defaultTranslater = Default;
+            LTSQLTokenTranslaterSelector defaultTranslater = new LTSQLTokenTranslaterSelector();
 
             // 聚合函数 SUM
             defaultTranslater.UseMemberTranslate(ctx =>
@@ -250,8 +244,18 @@ namespace MNet.LTSQL.v1
             // 字符串 Length 函数
             defaultTranslater.UseMemberTranslate(ctx => {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
-                    ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken });
+                {
+                    if (ctx.Options?.DbType == DbType.MSSQL)
+                        ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken });
+                    else if (ctx.Options?.DbType == DbType.MySQL)
+                        ctx.ResultToken = new FunctionToken("CHAR_LENGTH", new[] { ctx.OwnerToken });
+                    else
+                        ctx.ResultToken = new FunctionToken("LENGTH", new[] { ctx.OwnerToken });
+                }
             });
+
+
+            return defaultTranslater;
         }
     }
 }

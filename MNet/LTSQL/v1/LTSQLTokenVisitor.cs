@@ -11,11 +11,6 @@ namespace MNet.LTSQL.v1
         {
             _visitor = token => token.VisitChildren(this);
         }
-        private LTSQLTokenVisitor(Func<LTSQLToken, LTSQLToken> visitor)
-        {
-            _visitor = visitor;
-        }
-
 
         private Func<LTSQLToken, LTSQLToken> _visitor;
 
@@ -119,11 +114,15 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitSQLScopeToken(SqlScopeToken token)
+        public virtual LTSQLToken VisitWhereToken(WhereToken token)
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitWhereToken(WhereToken token)
+        public virtual LTSQLToken VisitPageToken(PageToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSQLScopeToken(SqlScopeToken token)
         {
             return this._visitor(token);
         }
