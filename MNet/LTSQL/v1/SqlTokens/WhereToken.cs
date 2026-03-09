@@ -3,15 +3,21 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
+    /// <summary>
+    /// where 子句或者 having 子句
+    /// </summary>
     public class WhereToken : LTSQLToken
     {
         public WhereToken()
         { }
-        public WhereToken(LTSQLToken condition)
+        public WhereToken(string whereOrHaving, LTSQLToken condition)
         {
             this.Condition = condition;
+            this.WhereOrHaving = whereOrHaving ?? "WHERE";
         }
 
+
+        public string WhereOrHaving { get; set; }
         public LTSQLToken Condition { get; set; }
 
 

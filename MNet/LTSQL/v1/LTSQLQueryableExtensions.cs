@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Xml.Linq;
 
 namespace MNet.LTSQL.v1
 {
@@ -61,6 +62,41 @@ namespace MNet.LTSQL.v1
 
             return ltsql;
         }
+
+
+        public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
+        {
+            return WithSkip(src, skip) as ILTSQLObjectQueryable<T>;
+        }
+        public static ILTSQLObjectQueryable WithSkip(this ILTSQLObjectQueryable src, int skip)
+        {
+            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.Skip = skip;
+            return src;
+        }
+
+        public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
+        {
+            return WithTake(src, take) as ILTSQLObjectQueryable<T>;
+        }
+        public static ILTSQLObjectQueryable WithTake(this ILTSQLObjectQueryable src, int take)
+        {
+            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.Take = take;
+            return src;
+        }
+
+        public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return WithDistinct(src) as ILTSQLObjectQueryable<T>;
+        }
+        public static ILTSQLObjectQueryable WithDistinct(this ILTSQLObjectQueryable src)
+        {
+            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.Distinct = true;
+            return src;
+        }
+
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
@@ -70,7 +106,16 @@ namespace MNet.LTSQL.v1
             query.Wheres.Add(expr);
             return src;
         }
-        
+        //having
+        public static ILTSQLObjectQueryable<IGrouping<TKey, T>> Where<T, TKey>(this ILTSQLObjectQueryable<IGrouping<TKey, T>> src, Expression<Func<IGrouping<TKey, T>, bool>> expr)
+        {
+            QuerySequence query = src.Query.TryNewTurn();
+            query.TryNextStep(QueryStep.Having);
+            query.Havings ??= new List<Expression>();
+            query.Havings.Add(expr);
+            return src;
+        }
+
         //order
         public static ILTSQLOrderedQueryable<T> OrderBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
@@ -163,7 +208,7 @@ namespace MNet.LTSQL.v1
             //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
             fromJoin.JoinType = "LEFT JOIN";
             fromJoin.JoinKey1 = outerKeyExpr;
-            fromJoin.JoinKey2 = outerKeyExpr;
+            fromJoin.JoinKey2 = innerKeyExpr;
             //fromJoin.JoinKeyOn = joinExpr;
             fromJoin.JoinObject = joinExpr;
 
@@ -176,23 +221,25 @@ namespace MNet.LTSQL.v1
         }
 
 
-        public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
+        //占位函数
+        public static T FirstOrDefault<T>(this ILTSQLObjectQueryable<T> src)
         {
-            src.Query.TryNextStep(QueryStep.Query);
-            src.Query.Skip = skip;
-            return src;
+            src.Take(1);
+            return default(T);
         }
-        public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
+
+        //直接聚合函数
+        public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
-            src.Query.TryNextStep(QueryStep.Query);
-            src.Query.Take = take;
-            return src;
+            return null;
         }
-        public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
+        public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
         {
-            src.Query.TryNextStep(QueryStep.Query);
-            src.Query.Distinct = true;
-            return src;
+            return null;
+        }
+        public static ILTSQLObjectQueryable<long> WithLongCount()
+        {
+            return null;
         }
     }
 

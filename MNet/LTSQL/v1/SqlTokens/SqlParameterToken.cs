@@ -12,6 +12,13 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             this.Value = value;
             this.ParameterName = pName;
+            this.ValueType = value?.GetType();
+        }
+        public SqlParameterToken(string pName, object value, Type valueType)
+        {
+            this.Value = value;
+            this.ParameterName = pName;
+            this.ValueType = valueType;
         }
 
 

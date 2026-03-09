@@ -5,12 +5,12 @@ using System.Text;
 
 /*
 TO DO
- 1. having 的支持
+ 1. having 的支持                         [ok]
  2. 分页的支持(Skip/Take扩展方法组合使用) [ok]
-    2.1 fetch next 子句实现的分页
-    2.2 limit 子句实现的分页
+    2.1 fetch next 子句实现的分页         [ok]
+    2.2 limit 子句实现的分页              [ok]
  3. 去重子句支持                          [ok]
- 4. FirstOrDefault 支持
+ 4. FirstOrDefault 支持                   [ok]
 
  笛卡尔积
  join into 句子 翻译
@@ -29,8 +29,9 @@ c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL().Take(10)
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where (mine.Age > 0) && c.AsLTSQL().Select(p => p.Id).Any()
+             where (mine.Age > 0) && mother.Id == c.AsLTSQL().Select(p => p.Id).FirstOrDefault()
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
+             where true == true
              select new
              {
                  NO = g.Key.Name,
@@ -54,7 +55,8 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Distinct().Take(10).Skip(1).Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+
 
 //生成的sql语句
 StringBuilder builder = new StringBuilder();
@@ -66,8 +68,8 @@ Dictionary<string, object> sqlParamemters = new Dictionary<string, object>();
 ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
 sqlBuilder.Build(token, new SqlBuilderContext
 {
-    UseParameter = options.UseSqlParameter,
     DbType = options.DbType,
+    UseParameter = options.UseSqlParameter,
     Sql = builder,
     SqlParameters = sqlParamemters
 });

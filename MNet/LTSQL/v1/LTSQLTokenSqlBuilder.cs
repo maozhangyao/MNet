@@ -209,6 +209,11 @@ namespace MNet.LTSQL.v1
                     ctx.Sql.AppendLine();
                     nxt(t.Group);
                 }
+                if (t.Having != null)
+                {
+                    ctx.Sql.AppendLine();
+                    nxt(t.Having);
+                }
                 if (t.Order != null)
                 {
                     ctx.Sql.AppendLine();
@@ -243,7 +248,8 @@ namespace MNet.LTSQL.v1
 
             })
             .UseTokenBuilder<WhereToken>((t, ctx, nxt) => {
-                ctx.Sql.Append("WHERE ");
+                ctx.Sql.Append(t.WhereOrHaving);
+                ctx.Sql.Append(" ");
                 nxt(t.Condition);
 
             })

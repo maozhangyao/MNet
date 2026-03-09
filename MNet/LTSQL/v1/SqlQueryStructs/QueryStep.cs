@@ -9,6 +9,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         Query,
         Where,
         GroupBy,
+        Having,
         OrderBy,
         Page,
         Select

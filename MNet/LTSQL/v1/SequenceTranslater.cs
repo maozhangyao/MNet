@@ -4,6 +4,7 @@ using MNet.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -165,7 +166,7 @@ namespace MNet.LTSQL.v1
                     ParameterExpression paramter = lambda.Parameters[0];
                     LambdaExpression newExpr = exprModifier.VisitParameter(expr, p => object.ReferenceEquals(paramter, p) ? newRootParameter : p) as LambdaExpression;
 
-                    merge = merge == null ? newExpr : Expression.Lambda(Expression.And(merge.Body, newExpr.Body), newRootParameter);
+                    merge = merge == null ? newExpr : Expression.Lambda(Expression.AndAlso(merge.Body, newExpr.Body), newRootParameter);
                 }
 
                 query.Wheres.Clear();
@@ -186,7 +187,29 @@ namespace MNet.LTSQL.v1
             }
 
             // having
-            // TO DO
+            if (query.Havings.IsNotEmpty())
+            {
+                //多条件合并
+                LambdaExpression merge = null;
+                ParameterExpression newParameter = null;
+                foreach (Expression expr in query.Havings)
+                {
+                    LambdaExpression lambda = expr as LambdaExpression;
+                    if (merge == null)
+                    {
+                        merge = expr as LambdaExpression;
+                        newParameter = merge.Parameters[0];
+                        continue;
+                    }
+
+                    ParameterExpression _old = lambda.Parameters[0];
+                    LambdaExpression newExpr = exprModifier.VisitParameter(expr, p => object.ReferenceEquals(_old, p) ? newParameter : p) as LambdaExpression;
+                    merge = Expression.Lambda(Expression.AndAlso(merge.Body, newExpr.Body), newParameter);
+                }
+
+                query.Havings.Clear();
+                query.Havings.Add(merge);
+            }
 
             //排序
             if (query.Orders.IsNotEmpty())
@@ -362,7 +385,7 @@ namespace MNet.LTSQL.v1
                 return null;
 
             LTSQLToken token = this.TranslateLambda(wheres);
-            return new WhereToken(token);
+            return new WhereToken("WHERE", token);
         }
         private GroupToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle , out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
         {
@@ -389,6 +412,34 @@ namespace MNet.LTSQL.v1
                 groupToken.GroupByItems = new[] { groupKeyToken };
             
             return groupToken;
+        }
+        private WhereToken TranslateHaving(LambdaExpression havings)
+        {
+            if (havings == null)
+                return null;
+
+            ParameterExpression parameter = havings.Parameters[0];
+
+            //构造分组对象，将分组键和分组元素作为属性，供后续的表达式访问，便于判断聚合函数处理的时机
+            GroupObjToken groupToken = new GroupObjToken();
+            groupToken.GroupKey = this._context.GroupKey;
+            groupToken.Element = this._context.GroupElement;
+            groupToken.ValueType = parameter.Type;
+            this.UseSpecialTokenInstead(parameter, groupToken);
+
+            try
+            {
+                LTSQLToken token = this.TranslateLambda(havings);
+                return new WhereToken("HAVING", token);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            finally
+            {
+                this.UnUseSpecialToken(parameter);
+            }
         }
         private OrderToken TranslateOrder(List<OrderKeyPart> orders)
         {
@@ -477,6 +528,12 @@ namespace MNet.LTSQL.v1
                 this._context.GroupKey = groupKey;
                 this._context.GroupElement = groupEle;
             }
+
+            if (query.Havings.IsNotEmpty())
+            {
+                sqlToken.Having = this.TranslateHaving(query.Havings[0] as LambdaExpression);
+            }
+
 
             //order by
             if (query.Orders.IsNotEmpty())
@@ -586,7 +643,7 @@ namespace MNet.LTSQL.v1
             }
             else
             {
-                this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value) { ValueType = node.Type });
+                this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
             }
 
             return base.VisitConstant(node);

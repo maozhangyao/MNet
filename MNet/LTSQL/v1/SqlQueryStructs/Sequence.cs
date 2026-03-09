@@ -15,7 +15,10 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         public string Alias { get; set; }
         //an object type that mappting to table in a database
         public Type Type { get; set; }
+        //指定的table名称(优先级最高)
+        public string TableRename { get; set; }
     }
+    
     //单表数据源
     public class SimpleSequence : Sequence
     {
@@ -24,13 +27,11 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
             this.Type = mappingType;
         }
     }
+    
     //复杂查询结构数据源
     public class QuerySequence : Sequence
     {
         public QueryStep Step { get; set; }
-        //from 结构：
-        //1. from
-        //2. from join
         public FromPart From { get; set; }
 
         //where
@@ -40,7 +41,8 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         //group by
         public Expression GroupKey { get; set; }
         public Expression GroupElement { get; set; }
-        //public HavingUnit Having { get; set; }
+        //having
+        public List<Expression> Havings { get; set; }
         
         //order by
         public List<OrderKeyPart> Orders { get; set; }
@@ -49,7 +51,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         public Expression SelectKey { get; set; }
         public Type NewType { get; set; }
 
-        //
+        //去重、分页等
         public int? Skip { get; set; }
         public int? Take { get; set; }
         public bool Distinct { get; set; }

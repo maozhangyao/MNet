@@ -93,15 +93,15 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("SUM", parameters);
+                    ctx.ResultToken = new FunctionToken("SUM", parameters, sumMethod.ReturnType);
             });
 
 
             // 聚合函数 MAX
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                MethodInfo sumMethod = ctx.Member as MethodInfo;
-                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Max))
+                MethodInfo maxMethod = ctx.Member as MethodInfo;
+                if (maxMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Max))
                     return;
                 if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
                     return;
@@ -112,15 +112,15 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("MAX", parameters);
+                    ctx.ResultToken = new FunctionToken("MAX", parameters, maxMethod.ReturnType);
             });
 
 
             // 聚合函数 MIN
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                MethodInfo sumMethod = ctx.Member as MethodInfo;
-                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Min))
+                MethodInfo minMethod = ctx.Member as MethodInfo;
+                if (minMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Min))
                     return;
                 if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
                     return;
@@ -131,15 +131,15 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("MIN", parameters);
+                    ctx.ResultToken = new FunctionToken("MIN", parameters, minMethod.ReturnType);
             });
 
 
             // 聚合函数 COUNT
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                MethodInfo sumMethod = ctx.Member as MethodInfo;
-                if (sumMethod == null || ctx.Owner != null || (ctx.Member.Name != nameof(Enumerable.Count) && ctx.Member.Name != nameof(Enumerable.LongCount)))
+                MethodInfo cntMethod = ctx.Member as MethodInfo;
+                if (cntMethod == null || ctx.Owner != null || (ctx.Member.Name != nameof(Enumerable.Count) && ctx.Member.Name != nameof(Enumerable.LongCount)))
                     return;
                 if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
                     return;
@@ -150,7 +150,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new LTSQLToken[] { new ConstantToken("*") } : parameters));
+                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new [] { new ConstantToken("*") } : parameters), cntMethod.ReturnType);
             });
 
 
@@ -241,16 +241,35 @@ namespace MNet.LTSQL.v1
             });
 
 
+            // 对 FirstOrDefault 的支持(等同于Take(1)函数)
+            defaultTranslater.UseMemberTranslate(ctx => {
+                if (ctx.Member.Name == nameof(LTSQLQueryableExtensions.FirstOrDefault) && ctx.OwnerType == typeof(LTSQLQueryableExtensions))
+                {
+                    if (ctx.MethodParameterTokenList.IsEmpty() || ctx.MethodParameterTokenList.Length != 1)
+                        return;
+
+                    LTSQLToken token = ctx.MethodParameterTokenList[0];
+                    if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable query)
+                    {
+                        //调用 FirstOrDefault 之后需要调整参数
+                        MethodInfo method = ctx.Member as MethodInfo;
+                        method.Invoke(null, new[] { query }); //直接调用静态方法：LTSQLQueryableExtensions.FirstOrDefault, 其内部会做相关处理
+                        ctx.ResultToken = new SqlParameterToken(p.ParameterName, query, method.ReturnType);
+                    }
+                }
+            });            
+
+
             // 字符串 Length 函数
             defaultTranslater.UseMemberTranslate(ctx => {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
                 {
                     if (ctx.Options?.DbType == DbType.MSSQL)
-                        ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken });
+                        ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken }, typeof(int));
                     else if (ctx.Options?.DbType == DbType.MySQL)
-                        ctx.ResultToken = new FunctionToken("CHAR_LENGTH", new[] { ctx.OwnerToken });
+                        ctx.ResultToken = new FunctionToken("CHAR_LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                     else
-                        ctx.ResultToken = new FunctionToken("LENGTH", new[] { ctx.OwnerToken });
+                        ctx.ResultToken = new FunctionToken("LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                 }
             });
 

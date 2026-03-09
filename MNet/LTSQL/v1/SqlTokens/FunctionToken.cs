@@ -16,6 +16,12 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.FunctionName = funcName;
             this.Parameters = parameters;
         }
+        public FunctionToken(string funcName, LTSQLToken[] parameters, Type typeOfValue)
+        {
+            this.FunctionName = funcName;
+            this.Parameters = parameters;
+            this.ValueType = typeOfValue;
+        }
 
         public string FunctionName { get; set; }
         public LTSQLToken[] Parameters { get; set; }
