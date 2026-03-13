@@ -12,6 +12,7 @@ TO DO
  3. 去重子句支持                          [ok]
  4. FirstOrDefault 支持                   [ok]
 
+
  笛卡尔积
  join into 句子 翻译
  对 is null / is not null 的支持
@@ -31,7 +32,6 @@ var query1 = from mine in c.AsLTSQL().Take(10)
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
              where (mine.Age > 0) && mother.Id == c.AsLTSQL().Select(p => p.Id).FirstOrDefault()
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
-             where true == true
              select new
              {
                  NO = g.Key.Name,
@@ -55,7 +55,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.WithAny().Query, options);
 
 
 //生成的sql语句
