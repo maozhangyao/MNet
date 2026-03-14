@@ -6,7 +6,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
     {
         public FromPart() 
         { }
-        public FromPart(Sequence seq)
+        public FromPart(QueryPart seq)
         {
             this.Seq = seq;
         }
@@ -17,7 +17,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         
 
         public FromPart Parent { get; set; }
-        public Sequence Seq { get; set; }
+        public QueryPart Seq { get; set; }
 
         //join info
         //目前仅支持 left join

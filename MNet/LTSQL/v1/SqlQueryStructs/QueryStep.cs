@@ -11,7 +11,9 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         GroupBy,
         Having,
         OrderBy,
+        //分页
         Page,
+        //投影
         Select
     }
 }

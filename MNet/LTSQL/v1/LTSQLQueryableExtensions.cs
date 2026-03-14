@@ -12,13 +12,13 @@ namespace MNet.LTSQL.v1
 {
     public static class LTSQLQueryableExtensions
     {
-        private static QuerySequence TryNewTurn(this QuerySequence seq)
+        private static SqlQueryPart TryNewTurn(this SqlQueryPart seq)
         {
             if (seq.Step == QueryStep.Select)
             {
-                return new QuerySequence()
+                return new SqlQueryPart()
                 {
-                    Type = seq.NewType,
+                    MappingType = seq.NewType,
                     From = new FromPart()
                     {
                         Seq = seq
@@ -28,13 +28,13 @@ namespace MNet.LTSQL.v1
 
             return seq;
         }
-        private static QuerySequence TryNextStep(this QuerySequence seq, QueryStep step)
+        private static SqlQueryPart TryNextStep(this SqlQueryPart seq, QueryStep step)
         {
             if (seq.Step < step)
                 seq.Step = step;
             return seq;
         }
-        private static void AddOrder(ref QuerySequence sequence, Expression expr, bool desc)
+        private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
         {
             sequence = sequence.TryNewTurn();
             sequence.TryNextStep(QueryStep.OrderBy);
@@ -47,14 +47,17 @@ namespace MNet.LTSQL.v1
 
 
         //初始化查询对象，以支持LINQ语法
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName = null) where T : class
         {
-            QuerySequence query = new QuerySequence();
+            TablePart tablePart = new TablePart(typeof(T));
+            tablePart.TableName = tableName;
+
+            SqlQueryPart query = new SqlQueryPart();
             query.Step = QueryStep.From;
-            query.Type = typeof(T);
+            query.MappingType = typeof(T);
             query.From = new FromPart();
             query.From.Parent = null;
-            query.From.Seq = new SimpleSequence(typeof(T));
+            query.From.Seq = tablePart;
 
 
             var ltsql = new LTSQLObject<T>();
@@ -100,20 +103,22 @@ namespace MNet.LTSQL.v1
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
-            QuerySequence query = src.Query.TryNewTurn();
+            SqlQueryPart query = src.Query.TryNewTurn();
             query.TryNextStep(QueryStep.Where);
             query.Wheres ??= new List<Expression>();
             query.Wheres.Add(expr);
-            return src;
+
+            src.Query = query;
+            return new LTSQLObject<T>(query);
         }
         //having
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> Where<T, TKey>(this ILTSQLObjectQueryable<IGrouping<TKey, T>> src, Expression<Func<IGrouping<TKey, T>, bool>> expr)
         {
-            QuerySequence query = src.Query.TryNewTurn();
+            SqlQueryPart query = src.Query.TryNewTurn();
             query.TryNextStep(QueryStep.Having);
             query.Havings ??= new List<Expression>();
             query.Havings.Add(expr);
-            return src;
+            return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
 
         //order
@@ -121,24 +126,29 @@ namespace MNet.LTSQL.v1
         {
             var query = src.Query;
             AddOrder(ref query, keyExpr, false);
+
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> OrderByDescending<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
             AddOrder(ref query, keyExpr, true);
+
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
             AddOrder(ref query, keyExpr, false);
+;
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenByDescending<T, TKey>(this ILTSQLOrderedQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             var query = src.Query;
             AddOrder(ref query, keyExpr, true);
+
+            src.Query = query;
             return new LTSQLObject<T>(query);
         }
 
@@ -179,8 +189,8 @@ namespace MNet.LTSQL.v1
             Expression<Func<TInner, TKey>> innerKeyExpr,
             Expression<Func<TOuter, TInner, TResult>> joinExpr)
         {
-            QuerySequence qOuter = outer.Query;
-            QuerySequence qInner = inner.Query;
+            SqlQueryPart qOuter = outer.Query;
+            SqlQueryPart qInner = inner.Query;
             FromPart fromJoin = new FromPart();
             if ((int)qOuter.Step <= (int)QueryStep.Join)
             {
@@ -212,11 +222,11 @@ namespace MNet.LTSQL.v1
             //fromJoin.JoinKeyOn = joinExpr;
             fromJoin.JoinObject = joinExpr;
 
-            return new LTSQLObject<TResult>(new QuerySequence
+            return new LTSQLObject<TResult>(new SqlQueryPart
             {
                 From = fromJoin,
                 Step = QueryStep.Join,
-                Type = typeof(TResult)
+                MappingType = typeof(TResult)
             });
         }
 
@@ -230,7 +240,10 @@ namespace MNet.LTSQL.v1
         //直接聚合函数
         public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
-            return src.Select(p => 1).Take(1);
+            return src.Select(p => new { flag = 1 })
+                .Where(p => src.Any())
+                .Select(p => p.flag)
+                .Take(1);
         }
         public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
         {
@@ -245,39 +258,4 @@ namespace MNet.LTSQL.v1
                    select g.LongCount();
         }
     }
-
-
-
-
-    internal class LTSQLObject<T> : ILTSQLOrderedQueryable<T>
-    {
-        public LTSQLObject() 
-        { }
-        public LTSQLObject(QuerySequence query)
-        {
-            this.Query = query;
-        }
-
-
-        public QuerySequence Query { get; set; }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-    }
-
-    public interface ILTSQLObjectQueryable
-    {
-        //保存查询的结构
-        public QuerySequence Query { get; set; }
-    }
-    public interface ILTSQLObjectQueryable<T> : IEnumerable<T>, ILTSQLObjectQueryable
-    { }
-    public interface ILTSQLOrderedQueryable<T> : ILTSQLObjectQueryable<T>
-    { }
 }

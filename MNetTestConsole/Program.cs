@@ -5,12 +5,7 @@ using System.Text;
 
 /*
 TO DO
- 1. having 的支持                         [ok]
- 2. 分页的支持(Skip/Take扩展方法组合使用) [ok]
-    2.1 fetch next 子句实现的分页         [ok]
-    2.2 limit 子句实现的分页              [ok]
- 3. 去重子句支持                          [ok]
- 4. FirstOrDefault 支持                   [ok]
+ QuerySequence 是不可变类型，才能复用逻辑
 
 
  笛卡尔积
@@ -30,7 +25,7 @@ c_persion_t c = new c_persion_t();
 var query1 = from mine in c.AsLTSQL().Take(10)
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where (mine.Age > 0) && mother.Id == c.AsLTSQL().Select(p => p.Id).FirstOrDefault()
+             where (mine.Age > 0)
              group mine by new { Name = mine.SelfName, Age = mine.Age } into g
              select new
              {

@@ -127,7 +127,7 @@ namespace MNet.LTSQL.v1
         //递归分配表命名
         private void AssignTableAlias()
         {
-            QuerySequence query = this._context.Root;
+            SqlQueryPart query = this._context.Root;
             if (query == null)
                 return;
 
@@ -153,7 +153,7 @@ namespace MNet.LTSQL.v1
 
 
             //统一根参数名
-            Type rootParameterType = query.Type;
+            Type rootParameterType = query.MappingType;
             ExpressionModifier exprModifier = new ExpressionModifier();
             ParameterExpression newRootParameter = Expression.Parameter(rootParameterType, root);
             if (query.Wheres.IsNotEmpty())
@@ -334,14 +334,14 @@ namespace MNet.LTSQL.v1
             }
             else
             {
-                self.FromType = from.Seq.Type;
+                self.FromType = from.Seq.MappingType;
             }
 
 
             //嵌套子查询
-            if (from.Seq is QuerySequence)
+            if (from.Seq is SqlQueryPart)
             {
-                qry = new SequenceTranslater().Translate((QuerySequence)from.Seq, this._scope.NewScope());
+                qry = new SequenceTranslater().Translate((SqlQueryPart)from.Seq, this._scope.NewScope());
 
                 //解析字段
                 if (qry is SqlQueryToken sqlquery)
@@ -355,19 +355,19 @@ namespace MNet.LTSQL.v1
                 qry = new SqlScopeToken(qry);
             }
             //单表访问
-            else if (from.Seq is SimpleSequence simple)
+            else if (from.Seq is TablePart table)
             {
-                qry = new AliasToken(simple.Type.Name) { ValueType = simple.Type };
+                qry = new AliasToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
 
                 //解析字段
-                foreach (PropertyInfo prop in simple.Type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new AliasToken(simple.Alias), prop.Name);
+                    var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
                     fields.Add(new SelectItemToken(fieldAccess, prop.Name));
                 }
-                foreach (FieldInfo prop in simple.Type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+                foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new AliasToken(simple.Alias), prop.Name);
+                    var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
                     fields.Add(new SelectItemToken(fieldAccess, prop.Name));
                 }
             }
@@ -508,7 +508,7 @@ namespace MNet.LTSQL.v1
             //分配表名
             this.AssignTableAlias();
 
-            QuerySequence query = this._context.Root;
+            SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
             List<SelectItemToken> fields = new List<SelectItemToken>();
 
@@ -569,7 +569,7 @@ namespace MNet.LTSQL.v1
             }
 
 
-            sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.Type);
+            sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
             sqlToken.DefaultFields = fields;
 
             //内联查询翻译
@@ -637,11 +637,11 @@ namespace MNet.LTSQL.v1
                 return node;
             }
 
-            if (node.Value == null)
-            {
-                this.PushToken(new ConstantToken("null", node.Type));
-            }
-            else
+            //if (node.Value == null)
+            //{
+            //    this.PushToken(new ConstantToken("null", node.Type));
+            //}
+            //else
             {
                 this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
             }
@@ -982,7 +982,7 @@ namespace MNet.LTSQL.v1
 
 
 
-        public LTSQLToken Translate(QuerySequence query, LTSQLOptions options)
+        public LTSQLToken Translate(SqlQueryPart query, LTSQLOptions options)
         {
             return this.Translate(query, new LTSQLScope()
             {
@@ -995,7 +995,7 @@ namespace MNet.LTSQL.v1
                 }
             });
         }
-        internal LTSQLToken Translate(QuerySequence query, LTSQLScope scope)
+        internal LTSQLToken Translate(SqlQueryPart query, LTSQLScope scope)
         {
             this._scope = scope;
             this._context = scope.Context;

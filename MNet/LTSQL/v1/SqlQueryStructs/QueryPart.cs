@@ -7,31 +7,43 @@ using System.Text;
 namespace MNet.LTSQL.v1.SqlQueryStructs
 {
     //可命名的数据序列
-    public class Sequence
+    public class QueryPart
     {
-        //字段集合
-        public string[] Fields { get; set; }
         //命名
         public string Alias { get; set; }
         //an object type that mappting to table in a database
-        public Type Type { get; set; }
-        //指定的table名称(优先级最高)
-        public string TableRename { get; set; }
+        public Type MappingType { get; set; }
     }
     
+
     //单表数据源
-    public class SimpleSequence : Sequence
+    public class TablePart : QueryPart
     {
-        public SimpleSequence(Type mappingType) 
+        public TablePart(Type mappingType) 
         {
-            this.Type = mappingType;
+            this.MappingType = mappingType;
         }
+
+
+        //指定的table名称(优先级最高)
+        public string TableName { get; set; }
+        //字段集合
+        public string[] TableFields { get; set; }
     }
     
+
+
     //复杂查询结构数据源
-    public class QuerySequence : Sequence
+    public class SqlQueryPart : QueryPart
     {
+        //去重、分页等
+        public int? Skip { get; set; }
+        public int? Take { get; set; }
+        public bool Distinct { get; set; }
         public QueryStep Step { get; set; }
+
+
+        //from
         public FromPart From { get; set; }
 
         //where
@@ -50,10 +62,5 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         //select 
         public Expression SelectKey { get; set; }
         public Type NewType { get; set; }
-
-        //去重、分页等
-        public int? Skip { get; set; }
-        public int? Take { get; set; }
-        public bool Distinct { get; set; }
     }
 }
