@@ -43,7 +43,15 @@ namespace MNet.LTSQL.v1
             query.Orders ??= new List<OrderKeyPart>();
             query.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
         }
-
+        //将序列直接转换为分组模式(不带group by 子句)
+        private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey,T>(this ILTSQLObjectQueryable<T> src)
+        {
+            src = src.AsLTSQL();
+            src.Query.GroupFlag = true;
+            src.Query.GroupElement = (Expression<Func<T, T>>)(p => p);
+            src.Query = src.Query.TryNextStep(QueryStep.GroupBy);
+            return new LTSQLObject<IGrouping<TKey, T>>(src.Query);
+        }
 
 
         //初始化查询对象，以支持LINQ语法
@@ -69,6 +77,7 @@ namespace MNet.LTSQL.v1
 
             return ltsql;
         }
+        //指定from数据源，开启新的外层查询
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this ILTSQLObjectQueryable<T> frm)
         {
             SqlQueryPart query = new SqlQueryPart();
@@ -170,13 +179,7 @@ namespace MNet.LTSQL.v1
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
-            //var query = src.Query.TryNewTurn();
-            //query.TryNextStep(QueryStep.GroupBy);
-            //query.GroupKey = keyExpr;
-            //query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
-            //query.Step = QueryStep.GroupBy;
-
-            //return new LTSQLObject<IGrouping<TKey, T>>(query);
+            //默认的分组元素为整个对象
             return GroupBy(src, keyExpr, p => p);
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
@@ -263,18 +266,11 @@ namespace MNet.LTSQL.v1
         }
         public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
         {
-            //src = src.AsLTSQL();
-            //IGrouping<int, T> grp = null;
-            
-            return from m in src.Select(p => new { flag = 1 })
-                   group m by m.flag into g
-                   select g.Count();
+            return src.AsGroup<int, T>().Select(g => g.Count());
         }
         public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src)
         {
-            return from m in src.Select(p => new { flag = 1 })
-                   group m by m.flag into g
-                   select g.LongCount();
+            return src.AsGroup<int, T>().Select(g => g.LongCount());
         }
     }
 }

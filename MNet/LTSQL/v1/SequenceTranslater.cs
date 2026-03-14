@@ -172,10 +172,15 @@ namespace MNet.LTSQL.v1
             }
 
             //分组
-            if (query.GroupKey != null)
+            if (query.GroupFlag)
             {
-                ParameterExpression _old = (query.GroupKey as LambdaExpression).Parameters[0];
-                query.GroupKey = exprModifier.VisitParameter(query.GroupKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
+                ParameterExpression _old = null;
+                if (query.GroupKey != null)
+                {
+                    _old = (query.GroupKey as LambdaExpression).Parameters[0];
+                    query.GroupKey = exprModifier.VisitParameter(query.GroupKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
+                }
+
                 if (query.GroupElement != null)
                 {
                     _old = (query.GroupElement as LambdaExpression).Parameters[0];
@@ -219,7 +224,7 @@ namespace MNet.LTSQL.v1
             }
 
             //投影（仅在不存在分组的情况下才有替换参数的意义）
-            if (query.SelectKey != null && query.GroupFlag)
+            if (query.SelectKey != null && !query.GroupFlag)
             {
                 ParameterExpression _old = (query.SelectKey as LambdaExpression).Parameters[0];
                 query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
@@ -384,15 +389,10 @@ namespace MNet.LTSQL.v1
             return new WhereToken("WHERE", token);
         }
         private GroupToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle , out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
-        {
+        {   
             groupKeyToken = null;
             groupEleToken = null;
-
-            //分组依据翻译
-            if (groupKey != null)
-            {
-                groupKeyToken = this.TranslateLambda(groupKey);
-            }
+            GroupToken groupToken = null;
 
             //分组元素翻译
             if (groupEle != null)
@@ -400,13 +400,18 @@ namespace MNet.LTSQL.v1
                 groupEleToken = this.TranslateLambda(groupEle);
             }
 
+            //分组依据翻译
+            if (groupKey != null)
+            {
+                groupKeyToken = this.TranslateLambda(groupKey);
 
-            GroupToken groupToken = new GroupToken();
-            if (groupKeyToken is TupleToken tuple)
-                groupToken.GroupByItems = tuple.Props.ToArray();
-            else
-                groupToken.GroupByItems = new[] { groupKeyToken };
-            
+                groupToken = new GroupToken();
+                if (groupKeyToken is TupleToken tuple)
+                    groupToken.GroupByItems = tuple.Props.ToArray();
+                else
+                    groupToken.GroupByItems = new[] { groupKeyToken };
+            }
+
             return groupToken;
         }
         private WhereToken TranslateHaving(LambdaExpression havings)
@@ -518,7 +523,7 @@ namespace MNet.LTSQL.v1
             }
 
             //group by
-            if (query.GroupKey != null)
+            if (query.GroupFlag)
             {
                 sqlToken.Group = this.TranslateGroup(query.GroupKey as LambdaExpression, query.GroupElement as LambdaExpression, out LTSQLToken groupKey, out LTSQLToken groupEle);
                 this._context.GroupKey = groupKey;
