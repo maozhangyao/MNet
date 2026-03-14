@@ -47,7 +47,11 @@ namespace MNet.LTSQL.v1
 
 
         //初始化查询对象，以支持LINQ语法
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName = null) where T : class
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class
+        {
+            return AsLTSQL<T>(obj, null);
+        }
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName) where T : class
         {
             TablePart tablePart = new TablePart(typeof(T));
             tablePart.TableName = tableName;
@@ -64,6 +68,17 @@ namespace MNet.LTSQL.v1
             ltsql.Query = query;
 
             return ltsql;
+        }
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this ILTSQLObjectQueryable<T> frm)
+        {
+            SqlQueryPart query = new SqlQueryPart();
+            query.Step = QueryStep.From;
+            query.MappingType = typeof(T);
+            query.From = new FromPart();
+            query.From.Parent = null;
+            query.From.Seq = frm.Query;
+
+            return new LTSQLObject<T>(query);
         }
 
 
@@ -240,13 +255,13 @@ namespace MNet.LTSQL.v1
         //直接聚合函数
         public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
-            return src.Select(p => new { flag = 1 })
-                .Where(p => src.Any())
-                .Select(p => p.flag)
-                .Take(1);
+            return src.AsLTSQL().Where(p => src.Any()).Take(1).Select(p => 1);
         }
         public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
         {
+            //src = src.AsLTSQL();
+            //IGrouping<int, T> grp = null;
+            
             return from m in src.Select(p => new { flag = 1 })
                    group m by m.flag into g
                    select g.Count();
