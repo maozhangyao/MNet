@@ -40,6 +40,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         public int? Skip { get; set; }
         public int? Take { get; set; }
         public bool Distinct { get; set; }
+        public bool GroupFlag { get; set; }
         public QueryStep Step { get; set; }
 
 

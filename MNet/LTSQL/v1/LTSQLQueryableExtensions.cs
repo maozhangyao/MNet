@@ -170,19 +170,23 @@ namespace MNet.LTSQL.v1
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
-            var query = src.Query.TryNewTurn();
-            query.TryNextStep(QueryStep.GroupBy);
-            query.GroupKey = keyExpr;
-            query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
-            query.Step = QueryStep.GroupBy;
-            return new LTSQLObject<IGrouping<TKey, T>>(query);
+            //var query = src.Query.TryNewTurn();
+            //query.TryNextStep(QueryStep.GroupBy);
+            //query.GroupKey = keyExpr;
+            //query.GroupElement = (Expression<Func<T, T>>)(p => p); //默认的分组元素为整个对象
+            //query.Step = QueryStep.GroupBy;
+
+            //return new LTSQLObject<IGrouping<TKey, T>>(query);
+            return GroupBy(src, keyExpr, p => p);
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
             var query = src.Query.TryNewTurn();
             query.TryNextStep(QueryStep.GroupBy);
+            query.GroupFlag = true;
             query.GroupKey = keyExpr;
             query.GroupElement = elementExpr;
+
             return new LTSQLObject<IGrouping<TKey, TElement>>(query);
         }
 

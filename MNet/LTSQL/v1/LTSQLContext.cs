@@ -19,9 +19,6 @@ namespace MNet.LTSQL.v1
         public TableAliasMapping TableAliasMapping { get; set; }
 
 
-
-        //是否存在分组子句
-        public bool GroupFlag { get; set; }
         public LTSQLToken GroupKey { get; set; }
         public LTSQLToken GroupElement { get; set; }
     }

@@ -131,10 +131,8 @@ namespace MNet.LTSQL.v1
             if (query == null)
                 return;
 
-            bool bGroupFlag = false;
-            string root = "p" + this._context.TableNameGenerator.Next();
-
             TableAliasMapping mapping = null;
+            string root = "p" + this._context.TableNameGenerator.Next();
 
             //涉及联表
             if (query.From.Parent != null)
@@ -176,7 +174,6 @@ namespace MNet.LTSQL.v1
             //分组
             if (query.GroupKey != null)
             {
-                bGroupFlag = true;
                 ParameterExpression _old = (query.GroupKey as LambdaExpression).Parameters[0];
                 query.GroupKey = exprModifier.VisitParameter(query.GroupKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
                 if (query.GroupElement != null)
@@ -222,14 +219,13 @@ namespace MNet.LTSQL.v1
             }
 
             //投影（仅在不存在分组的情况下才有替换参数的意义）
-            if (query.SelectKey != null && !bGroupFlag)
+            if (query.SelectKey != null && query.GroupFlag)
             {
                 ParameterExpression _old = (query.SelectKey as LambdaExpression).Parameters[0];
                 query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
             }
 
-            //
-            this._context.GroupFlag = bGroupFlag;
+
             this._context.TableAliasMapping = mapping;
         }
         private void AssignFromJoinAlias(TableAliasMapping mapping, FromPart from, Expression obj, ParameterExpression root)
@@ -463,7 +459,7 @@ namespace MNet.LTSQL.v1
             fieldResults = null;
             ParameterExpression parameter = selectKey.Parameters[0];
 
-            if (this._context.GroupFlag)
+            if (this._context.Root.GroupFlag)
             {
                 //构造分组对象，将分组键和分组元素作为属性，供后续的表达式访问，便于判断聚合函数处理的时机
                 GroupObjToken groupToken = new GroupObjToken();
