@@ -25,4 +25,10 @@
 	  <WarningLevel>9999</WarningLevel>
 	</PropertyGroup>
 
+	<ItemGroup>
+	  <None Update="MNetSqllite.db">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	</ItemGroup>
+
 </Project>

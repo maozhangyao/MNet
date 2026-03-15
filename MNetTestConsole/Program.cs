@@ -1,6 +1,8 @@
 using MNet.LTSQL.v1;
 using MNet.LTSQL.v1.SqlTokens;
 using MNetTestConsole.Utils;
+using System.Numerics;
+using System.Reflection;
 using System.Text;
 
 /*
@@ -22,7 +24,7 @@ List<int> id1s = new List<int> { 1, 2, 3, 4 };
 IEnumerable<int> id2s = id1s;
 
 c_persion_t c = new c_persion_t();
-var query1 = from mine in c.AsLTSQL().Take(10)
+var query1 = from mine in c.AsLTSQL()
              join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
              join father in c.AsLTSQL() on mine.FatherId equals father.Id
              where (mine.Age > 0)
@@ -30,7 +32,11 @@ var query1 = from mine in c.AsLTSQL().Take(10)
              select new
              {
                  NO = g.Key.Name,
-                 SA = g.Sum(x => x.Age)
+                 SA = g.Sum(x => x.Age),
+                 AV = g.Average(x => x.Age),
+                 MX = g.Max(x => x.Age),
+                 MN = g.Min(x => x.Age),
+                 CN = g.Count()
              };
 
 
@@ -43,14 +49,17 @@ var query2 = from e in c.AsLTSQL()
                  Cn = g.Sum(p => p.Id)
              };
 
+var query3 = c.AsLTSQL();
+
+
 LTSQLOptions options = new LTSQLOptions
 {
-    DbType = DbType.MySQL,
+    DbType = DbType.SQLLite,
     UseSqlParameter = false, //是否参数化
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.WithLongCount().Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query3.WithLongCount(p => p.Age > 0).Query, options);
 
 
 //生成的sql语句
@@ -70,6 +79,8 @@ sqlBuilder.Build(token, new SqlBuilderContext
 });
 
 ConsoleHelper.WriteLineWithYellow(builder);
+
+
 return 0;
 
 

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 
@@ -253,6 +254,7 @@ namespace MNet.LTSQL.v1
         }
 
 
+
         //占位函数，用于 linq 表达式写法，其效果等同于Take(1)函数调用
         public static T FirstOrDefault<T>(this ILTSQLObjectQueryable<T> src)
         {
@@ -268,9 +270,230 @@ namespace MNet.LTSQL.v1
         {
             return src.AsGroup<int, T>().Select(g => g.Count());
         }
+        public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> selector)
+        {
+            return WithGroup<T, bool, int>(nameof(Enumerable.Count), src, selector);
+        }
+
+
         public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src)
         {
             return src.AsGroup<int, T>().Select(g => g.LongCount());
+        }
+        public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> selector)
+        {
+            return WithGroup<T, bool, long>(nameof(Enumerable.LongCount), src, selector);
+        }
+
+
+        public static ILTSQLObjectQueryable<int> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T,int>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<int?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Sum), src, selector);
+        }
+
+
+        public static ILTSQLObjectQueryable<int> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<int?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Max), src, selector);
+        }
+
+
+        public static ILTSQLObjectQueryable<int> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<int?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<long?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Min), src, selector);
+        }
+
+
+        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
+        {
+            return WithGroup<T,int, double>(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
+        {
+            return WithGroup<T, int?, double?>(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
+        {
+            return WithGroup<T, long, double>(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
+        {
+            return WithGroup<T, long?, double?>(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<float?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+        public static ILTSQLObjectQueryable<decimal?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
+        {
+            return WithGroup(nameof(Enumerable.Average), src, selector);
+        }
+
+
+
+        private static ILTSQLObjectQueryable<TResult> WithGroup<T, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfSum)
+        {
+            MethodInfo m = GetEnumerableGroupMethod(groupMethodName, typeof(TResult)).MakeGenericMethod(typeof(T));
+            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, TResult, int>(m, exprOfSum);
+
+            return src.AsGroup<int, T>().Select(expr);
+        }
+        private static ILTSQLObjectQueryable<TResult> WithGroup<T, T1, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, T1>> exprOfSum)
+        {
+            MethodInfo m = GetEnumerableGroupMethod(groupMethodName, typeof(TResult)).MakeGenericMethod(typeof(T));
+            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, T1, TResult, int>(m, exprOfSum);
+
+            return src.AsGroup<int, T>().Select(expr);
+        }
+        private static MethodInfo GetEnumerableGroupMethod(string methodName, Type methodReturnType)
+        {
+            MethodInfo m = typeof(Enumerable).GetMethods()
+                .Where(p => p.Name == methodName && p.IsGenericMethod && p.GetGenericArguments().Length == 1 && p.ReturnType == methodReturnType)
+                .Where(p => p.GetParameters().Length == 2 && p.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                .First();
+            return m;
+        }
+        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TResult,TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TResult>> exprOfGroup)
+        {
+            ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
+            Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(
+              Expression.Call(null, groupMethod, new Expression[] { p, exprOfGroup }),
+              new[] { p }
+               );
+            return expr;
+        }
+        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, T1, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, T1>> exprOfGroup)
+        {
+            ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
+            Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(
+              Expression.Call(null, groupMethod, new Expression[] { p, exprOfGroup }),
+              new[] { p }
+               );
+            return expr;
         }
     }
 }

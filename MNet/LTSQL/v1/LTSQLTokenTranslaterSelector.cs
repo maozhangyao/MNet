@@ -135,6 +135,25 @@ namespace MNet.LTSQL.v1
             });
 
 
+            // 聚合函数 AVG
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo avgMethod = ctx.Member as MethodInfo;
+                if (avgMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Average))
+                    return;
+                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    return;
+                if (ctx.MethodParameterTokenList.IsEmpty())
+                    return;
+
+                // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
+                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
+                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                if (groupObj != null)
+                    ctx.ResultToken = new FunctionToken("AVG", parameters, avgMethod.ReturnType);
+            });
+
+
             // 聚合函数 COUNT
             defaultTranslater.UseMemberTranslate(ctx =>
             {
