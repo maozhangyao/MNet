@@ -21,6 +21,7 @@ TO DO
 优化：
  ConstantToken 类设计优化，硬编码和SQL值分离
  检查对主流数据库的支持
+ ConditionToken.Not操作不准确：比如AND , OR 等操作取反不对
  */
 
 
@@ -63,7 +64,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query3.WithLongCount(p => p.Age > 0).Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
 
 
 //生成的sql语句
