@@ -60,6 +60,7 @@ namespace MNet.LTSQL.v1
         {
             return AsLTSQL<T>(obj, null);
         }
+        //指定表名
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName) where T : class
         {
             TablePart tablePart = new TablePart(typeof(T));
@@ -78,7 +79,7 @@ namespace MNet.LTSQL.v1
 
             return ltsql;
         }
-        //指定from数据源，开启新的外层查询
+        //指定from为子查询形式的数据源，开启新的外层查询
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this ILTSQLObjectQueryable<T> frm)
         {
             SqlQueryPart query = new SqlQueryPart();
@@ -274,8 +275,6 @@ namespace MNet.LTSQL.v1
         {
             return WithGroup<T, bool, int>(nameof(Enumerable.Count), src, selector);
         }
-
-
         public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src)
         {
             return src.AsGroup<int, T>().Select(g => g.LongCount());
@@ -462,10 +461,10 @@ namespace MNet.LTSQL.v1
 
             return src.AsGroup<int, T>().Select(expr);
         }
-        private static ILTSQLObjectQueryable<TResult> WithGroup<T, T1, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, T1>> exprOfSum)
+        private static ILTSQLObjectQueryable<TResult> WithGroup<T, TValue, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, TValue>> exprOfSum)
         {
             MethodInfo m = GetEnumerableGroupMethod(groupMethodName, typeof(TResult)).MakeGenericMethod(typeof(T));
-            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, T1, TResult, int>(m, exprOfSum);
+            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, TValue, TResult, int>(m, exprOfSum);
 
             return src.AsGroup<int, T>().Select(expr);
         }
@@ -486,7 +485,7 @@ namespace MNet.LTSQL.v1
                );
             return expr;
         }
-        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, T1, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, T1>> exprOfGroup)
+        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TValue, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TValue>> exprOfGroup)
         {
             ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
             Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(

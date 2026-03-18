@@ -17,6 +17,10 @@ TO DO
  5. 基础函数的支持
     5.1 字符串相关函数的支持
     5.2 日期函数的相关支持
+
+优化：
+ ConstantToken 类设计优化，硬编码和SQL值分离
+ 检查对主流数据库的支持
  */
 
 
@@ -32,11 +36,11 @@ var query1 = from mine in c.AsLTSQL()
              select new
              {
                  NO = g.Key.Name,
-                 SA = g.Sum(x => x.Age),
-                 AV = g.Average(x => x.Age),
-                 MX = g.Max(x => x.Age),
-                 MN = g.Min(x => x.Age),
-                 CN = g.Count()
+                 SA = g.Sum(x => x.Age),  //求和
+                 AV = g.Average(x => x.Age), //求平均值
+                 MX = g.Max(x => x.Age),  //求最大值
+                 MN = g.Min(x => x.Age),  //求最小值
+                 CN = g.Count()          //求计数
              };
 
 

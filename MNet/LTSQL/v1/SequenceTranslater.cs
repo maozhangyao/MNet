@@ -349,6 +349,7 @@ namespace MNet.LTSQL.v1
                 {
                     foreach (var selecdtFields in sqlquery.DefaultFields)
                     {
+                        string fieldAlias = selecdtFields.FieldAlias ?? "transparentField";
                         var fieldAccess = new ObjectAccessToken(new AliasToken(from.Seq.Alias), selecdtFields.FieldAlias);
                         fields.Add(new SelectItemToken(fieldAccess, selecdtFields.FieldAlias));
                     }
@@ -360,12 +361,13 @@ namespace MNet.LTSQL.v1
             {
                 qry = new AliasToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
 
-                //解析字段
+                //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
                     var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
                     fields.Add(new SelectItemToken(fieldAccess, prop.Name));
                 }
+                //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
                     var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
