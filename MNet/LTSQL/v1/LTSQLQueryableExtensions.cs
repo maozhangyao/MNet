@@ -13,44 +13,38 @@ namespace MNet.LTSQL.v1
 {
     public static class LTSQLQueryableExtensions
     {
-        private static SqlQueryPart TryNewTurn(this SqlQueryPart seq)
+        private static SqlQueryPart SetNextStep(this SqlQueryPart query, QueryStepSeq step, bool equals = true)
         {
-            if (seq.Step == QueryStep.Select)
+            if (query.Step >= step)
             {
+                if (equals && query.Step == step)
+                    return query;
+
                 return new SqlQueryPart()
                 {
-                    MappingType = seq.NewType,
+                    Step = step,
+                    MappingType = query.NewType,
                     From = new FromPart()
                     {
-                        Seq = seq
+                        Seq = query
                     }
                 };
             }
-
-            return seq;
-        }
-        private static SqlQueryPart TryNextStep(this SqlQueryPart seq, QueryStep step)
-        {
-            if (seq.Step < step)
-                seq.Step = step;
-            return seq;
+            return query;
         }
         private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
         {
-            sequence = sequence.TryNewTurn();
-            sequence.TryNextStep(QueryStep.OrderBy);
-
-            var query = sequence;
-            query.Orders ??= new List<OrderKeyPart>();
-            query.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
+            sequence = sequence.SetNextStep(QueryStepSeq.OrderBy);
+            sequence.Orders ??= new List<OrderKeyPart>();
+            sequence.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
         }
         //将序列直接转换为分组模式(不带group by 子句)
         private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey,T>(this ILTSQLObjectQueryable<T> src)
         {
             src = src.AsLTSQL();
+            src.Query = src.Query.SetNextStep(QueryStepSeq.GroupBy);
             src.Query.GroupFlag = true;
             src.Query.GroupElement = (Expression<Func<T, T>>)(p => p);
-            src.Query = src.Query.TryNextStep(QueryStep.GroupBy);
             return new LTSQLObject<IGrouping<TKey, T>>(src.Query);
         }
 
@@ -67,7 +61,7 @@ namespace MNet.LTSQL.v1
             tablePart.TableName = tableName;
 
             SqlQueryPart query = new SqlQueryPart();
-            query.Step = QueryStep.From;
+            query.Step = QueryStepSeq.From;
             query.MappingType = typeof(T);
             query.From = new FromPart();
             query.From.Parent = null;
@@ -83,7 +77,7 @@ namespace MNet.LTSQL.v1
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this ILTSQLObjectQueryable<T> frm)
         {
             SqlQueryPart query = new SqlQueryPart();
-            query.Step = QueryStep.From;
+            query.Step = QueryStepSeq.From;
             query.MappingType = typeof(T);
             query.From = new FromPart();
             query.From.Parent = null;
@@ -100,7 +94,7 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable WithSkip(this ILTSQLObjectQueryable src, int skip)
         {
             src.Query = src.Query.CopyNew() as SqlQueryPart;
-            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.SetNextStep(QueryStepSeq.Page);
             src.Query.Skip = skip;
             return src;
         }
@@ -112,7 +106,7 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable WithTake(this ILTSQLObjectQueryable src, int take)
         {
             src.Query = src.Query.CopyNew() as SqlQueryPart;
-            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.SetNextStep(QueryStepSeq.Page);
             src.Query.Take = take;
             return src;
         }
@@ -124,7 +118,7 @@ namespace MNet.LTSQL.v1
         public static ILTSQLObjectQueryable WithDistinct(this ILTSQLObjectQueryable src)
         {
             src.Query = src.Query.CopyNew() as SqlQueryPart;
-            src.Query.TryNextStep(QueryStep.Query);
+            src.Query.SetNextStep(QueryStepSeq.Query);
             src.Query.Distinct = true;
             return src;
         }
@@ -134,12 +128,10 @@ namespace MNet.LTSQL.v1
         {
             src.Query = src.Query.CopyNew() as SqlQueryPart;
 
-            SqlQueryPart query = src.Query.TryNewTurn();
-            query.TryNextStep(QueryStep.Where);
+            SqlQueryPart query = src.Query.SetNextStep(QueryStepSeq.Where);
             query.Wheres ??= new List<Expression>();
             query.Wheres.Add(expr);
 
-            src.Query = query;
             return new LTSQLObject<T>(query);
         }
         //having
@@ -147,8 +139,7 @@ namespace MNet.LTSQL.v1
         {
             src.Query = src.Query.CopyNew() as SqlQueryPart;
 
-            SqlQueryPart query = src.Query.TryNewTurn();
-            query.TryNextStep(QueryStep.Having);
+            SqlQueryPart query = src.Query.SetNextStep(QueryStepSeq.Having);
             query.Havings ??= new List<Expression>();
             query.Havings.Add(expr);
             return new LTSQLObject<IGrouping<TKey, T>>(query);
@@ -193,10 +184,9 @@ namespace MNet.LTSQL.v1
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
-            src.Query = src.Query.CopyNew() as SqlQueryPart;
-
-            var query = src.Query.TryNewTurn();
-            query.TryNextStep(QueryStep.GroupBy);
+            var query = (src.Query.CopyNew() as SqlQueryPart)
+                .SetNextStep(QueryStepSeq.GroupBy, false);
+            
             query.GroupFlag = true;
             query.GroupKey = keyExpr;
             query.GroupElement = elementExpr;
@@ -207,11 +197,10 @@ namespace MNet.LTSQL.v1
         //select
         public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
-            src.Query = src.Query.CopyNew() as SqlQueryPart;
-
-            var query = src.Query.TryNewTurn();
+            var query = (src.Query.CopyNew() as SqlQueryPart)
+                .SetNextStep(QueryStepSeq.Select, false);
+            
             query.SelectKey = expr;
-            query.Step = QueryStep.Select;
             query.NewType = typeof(TResult);
 
             return new LTSQLObject<TResult>(query);
@@ -227,7 +216,7 @@ namespace MNet.LTSQL.v1
             SqlQueryPart qOuter = outer.Query.CopyNew() as SqlQueryPart;
             SqlQueryPart qInner = inner.Query.CopyNew() as SqlQueryPart;
             FromPart fromJoin = new FromPart();
-            if ((int)qOuter.Step <= (int)QueryStep.Join)
+            if ((int)qOuter.Step <= (int)QueryStepSeq.Join)
             {
                 //连续的join
                 fromJoin.Parent = qOuter.From;
@@ -239,7 +228,7 @@ namespace MNet.LTSQL.v1
             }
 
 
-            if ((int)qInner.Step < (int)QueryStep.Join)
+            if ((int)qInner.Step < (int)QueryStepSeq.Join)
             {
                 //join 一张表
                 fromJoin.Seq = qInner.From.Seq;
@@ -260,7 +249,7 @@ namespace MNet.LTSQL.v1
             return new LTSQLObject<TResult>(new SqlQueryPart
             {
                 From = fromJoin,
-                Step = QueryStep.Join,
+                Step = QueryStepSeq.Join,
                 MappingType = typeof(TResult)
             });
         }

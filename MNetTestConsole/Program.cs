@@ -7,7 +7,7 @@ using System.Text;
 
 /*
 TO DO
- QuerySequence 是不可变类型，才能复用逻辑
+ QuerySequence 是不可变类型，才能复用逻辑  [ok]
 
 
  笛卡尔积
@@ -64,7 +64,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Take(1).WithCount().Query, options);
 
 
 //生成的sql语句
