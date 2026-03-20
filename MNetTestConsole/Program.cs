@@ -9,7 +9,6 @@ using System.Text;
 TO DO
  QuerySequence 是不可变类型，才能复用逻辑  [ok]
 
-
  笛卡尔积
  join into 句子 翻译
  对 is null / is not null 的支持
@@ -19,9 +18,12 @@ TO DO
     5.2 日期函数的相关支持
 
 优化：
- ConstantToken 类设计优化，硬编码和SQL值分离
- 检查对主流数据库的支持
+ ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
  ConditionToken.Not操作不准确：比如AND , OR 等操作取反不对
+ Token 种类优化，如增加优先级运算Token 来代替 SqlCopeToken
+ 接收参数的Dictionary容器替换掉，避免大量参数生成的情况
+ 检查对主流数据库的支持情况
+ 
  */
 
 
