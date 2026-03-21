@@ -74,23 +74,22 @@ namespace MNet.LTSQL.v1
 
             })
             .UseTokenBuilder<FromToken>((t, ctx, nxt) => {
-                if (t.JoinFrom != null)
-                {
-                    nxt(t.JoinFrom);
-                    ctx.Sql.AppendLine();
-                    ctx.Sql.Append(t.JoinType);
-                    ctx.Sql.Append(' ');
+                ctx.Sql.Append("FROM ");
+                nxt(t.Source);
+            })
+            .UseTokenBuilder<JoinToken>((t, ctx, nxt) =>
+            {
+                nxt(t.MainQuery);
 
-                    nxt(t.Sequence);
+                ctx.Sql.AppendLine();
+                ctx.Sql.Append(t.JoinType);
+                ctx.Sql.Append(' ');
 
-                    ctx.Sql.Append(" ON ");
-                    nxt(t.JoinKeys);
-                }
-                else
-                {
-                    ctx.Sql.Append("FROM ");
-                    nxt(t.Sequence);
-                }
+                nxt(t.JoinQuery);
+
+                ctx.Sql.Append(" ON ");
+
+                nxt(t.JoinKeys);
             })
             .UseTokenBuilder<FunctionToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.FunctionName);

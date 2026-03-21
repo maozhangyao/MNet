@@ -6,16 +6,12 @@ namespace MNet.LTSQL.v1.SqlTokens
     public class FromToken : LTSQLToken
     {
         public Type FromType { get; set; }
-        public string JoinType { get; set; }
-        public LTSQLToken JoinFrom { get; set; }
-        public LTSQLToken JoinKeys { get; set; }
-        public LTSQLToken Sequence { get; set; }
-        
+        public LTSQLToken Source { get; set; }
+
+
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            if (this.JoinFrom != null)
-                return new[] { this.JoinFrom, this.Sequence, this.JoinKeys };
-            return new[] { this.Sequence };
+            return new[] { this.Source };
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -23,9 +19,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.JoinFrom = this.JoinFrom?.Visit(visitor);
-            this.Sequence = this.Sequence.Visit(visitor);
-            this.JoinKeys = this.JoinKeys?.Visit(visitor);
+            this.Source = this.Source?.Visit(visitor);
             return this;
         }
     }

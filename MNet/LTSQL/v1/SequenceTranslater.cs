@@ -131,22 +131,19 @@ namespace MNet.LTSQL.v1
             if (query == null)
                 return;
 
-            TableAliasMapping mapping = null;
             string root = "p" + this._context.TableNameGenerator.Next();
+            TableAliasMapping mapping = new TableAliasMapping(root);
 
             //涉及联表
-            if (query.From.Parent != null)
+            if (query.From1 is JoinPart join)
             {
-                mapping = new TableAliasMapping(root);
-
-                ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)query.From.JoinObject).Body.Type, root);
-                this.AssignFromJoinAlias(mapping, query.From, joinObj, joinObj);
+                ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinObject).Body.Type, root);
+                this.AssignFromJoinAlias(mapping, query.From1, joinObj, joinObj);
             }
             //单表
             else
             {
-                query.From.Seq.Alias = root;
-                mapping = new TableAliasMapping(root, root);
+                this.AssignFromJoinAlias(mapping, query.From1, null, null);
             }
 
 
@@ -233,49 +230,63 @@ namespace MNet.LTSQL.v1
 
             this._context.TableAliasMapping = mapping;
         }
-        private void AssignFromJoinAlias(TableAliasMapping mapping, FromPart from, Expression obj, ParameterExpression root)
+        private void AssignFromJoinAlias(TableAliasMapping mapping, QueryPart from, Expression obj, ParameterExpression root)
         {
-            if (from.Parent != null)
+            if (from is JoinPart join)
             {
-                //构造 join
-                LambdaExpression getJoinKey1 = from.JoinKey1 as LambdaExpression;
-                LambdaExpression getJoinKey2 = from.JoinKey2 as LambdaExpression;
+                if (join.JoinKey1 != null)
+                {
+                    //构造 join
+                    LambdaExpression getJoinKey1 = join.JoinKey1 as LambdaExpression;
+                    LambdaExpression getJoinKey2 = join.JoinKey2 as LambdaExpression;
 
-                Expression accessJoinKey1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey1.Parameters[0].Name)[0]);
-                Expression accessJoinKey2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey2.Parameters[0].Name)[0]);
+                    Expression accessJoinKey1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey1.Parameters[0].Name)[0]);
+                    Expression accessJoinKey2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(getJoinKey2.Parameters[0].Name)[0]);
 
-                ExpressionModifier modifier = new ExpressionModifier();
-                Expression joinKey1 = modifier.VisitParameter(getJoinKey1.Body, p => object.ReferenceEquals(p, getJoinKey1.Parameters[0]) ? accessJoinKey1 : p);
-                Expression joinKey2 = modifier.VisitParameter(getJoinKey2.Body, p => object.ReferenceEquals(p, getJoinKey2.Parameters[0]) ? accessJoinKey2 : p);
-                Expression joinEqual = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), root);
+                    ExpressionModifier modifier = new ExpressionModifier();
+                    Expression joinKey1 = modifier.VisitParameter(getJoinKey1.Body, p => object.ReferenceEquals(p, getJoinKey1.Parameters[0]) ? accessJoinKey1 : p);
+                    Expression joinKey2 = modifier.VisitParameter(getJoinKey2.Body, p => object.ReferenceEquals(p, getJoinKey2.Parameters[0]) ? accessJoinKey2 : p);
+                    Expression joinEqual = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), root);
 
+                    string p1 = getJoinKey1.Parameters[0].Name;
+                    string p2 = getJoinKey2.Parameters[0].Name;
 
-                string p1 = getJoinKey1.Parameters[0].Name;
-                string p2 = getJoinKey2.Parameters[0].Name;
-                TableAliasMapping mapping1 = new TableAliasMapping(p1);
-                
-                //next
-                this.AssignFromJoinAlias(mapping1, from.Parent, accessJoinKey1, root);
-                
-                string alias = this._context.TableNameGenerator.Next();
-                TableAliasMapping mapping2 = new TableAliasMapping(alias, p2);
+                    //next
+                    TableAliasMapping mapping1 = new TableAliasMapping(p1);
+                    this.AssignFromJoinAlias(mapping1, join.MainQuery, accessJoinKey1, root);
 
-                mapping.Props.Add(mapping1);
-                mapping.Props.Add(mapping2);
+                    TableAliasMapping mapping2 = new TableAliasMapping(p2);
+                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, accessJoinKey1, root);
 
-                from.JoinKeyOn = joinEqual;
-                from.Seq.Alias = alias;
+                    join.JoinKeyOn = joinEqual;
+                    mapping.Props.Add(mapping1);
+                    mapping.Props.Add(mapping2);
+                }
+                else
+                {
+                    Type anonymouseType = (join.JoinObject as LambdaExpression).Body.Type;
+                    PropertyInfo[] props = anonymouseType.GetProperties();
+                    PropertyInfo prop1 = props.FirstOrDefault(p => p.Name == join.JoinKey1Prop);
+                    PropertyInfo prop2 = props.FirstOrDefault(p => p.Name != join.JoinKey1Prop);
+
+                    TableAliasMapping mapping1 = new TableAliasMapping(prop1.Name);
+                    this.AssignFromJoinAlias(mapping1, join.MainQuery, null, null);
+
+                    TableAliasMapping mapping2 = new TableAliasMapping(prop2.Name);
+                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, null, null);
+
+                    mapping.Props.Add(mapping1);
+                    mapping.Props.Add(mapping2);
+                }
             }
             else
             {
                 //
                 string alias = this._context.TableNameGenerator.Next();
-
+                from.Alias = alias;
                 mapping.Alias = alias;
-                from.Seq.Alias = alias;
             }
         }
-
 
 
         // 调用外部翻译扩展
@@ -319,47 +330,57 @@ namespace MNet.LTSQL.v1
             this.Visit(lambda.Body);
             return this.PopToken();
         }
-        private FromToken TranslateFrom(FromPart from, ref List<SelectItemToken> fields)
+        private FromToken TranslateFrom(QueryPart from, ref List<SelectItemToken> fields)
         {
-            FromToken self = new FromToken();
-            LTSQLToken qry = null;
-
-            //left join
-            if (from.Parent != null)
+            var src = this.TranslateQueryPart(from, ref fields);
+            return new FromToken()
             {
-                //先解析 from 部分
-                self.JoinType = from.JoinType;
-                self.FromType = from.JoinObject.Type;
-                self.JoinFrom = this.TranslateFrom(from.Parent, ref fields);
-                self.JoinKeys = this.TranslateLambda(from.JoinKeyOn as LambdaExpression);
+                FromType = from.MappingType,
+                Source = src
+            };
+        }
+        private LTSQLToken TranslateQueryPart(QueryPart from, ref List<SelectItemToken> fields)
+        {
+            LTSQLToken src = null;
+            if(from is JoinPart join)
+            {
+                LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, ref fields);
+                LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, ref fields);
+
+                if (join.JoinKeyOn != null)
+                {
+                    JoinToken joinToken = new JoinToken();
+                    joinToken.JoinType = join.JoinType;
+                    joinToken.MainQuery = query1;
+                    joinToken.JoinQuery = query2;
+                    joinToken.JoinKeys = this.TranslateLambda(join.JoinKeyOn as LambdaExpression);
+                    return joinToken;
+                }
+                else
+                {
+                    //from 中的内联接查询
+                    return new TokenItemListToken(query1, query2);
+                }
             }
-            else
+            else if (from is SqlQueryPart query)
             {
-                self.FromType = from.Seq.MappingType;
-            }
-
-
-            //嵌套子查询
-            if (from.Seq is SqlQueryPart)
-            {
-                qry = new SequenceTranslater().Translate((SqlQueryPart)from.Seq, this._scope.NewScope());
-
+                var qry = new SequenceTranslater().Translate(query, this._scope.NewScope());
                 //解析字段
                 if (qry is SqlQueryToken sqlquery)
                 {
                     foreach (var selecdtFields in sqlquery.DefaultFields)
                     {
                         string fieldAlias = selecdtFields.FieldAlias ?? "transparentField";
-                        var fieldAccess = new ObjectAccessToken(new AliasToken(from.Seq.Alias), selecdtFields.FieldAlias);
+                        var fieldAccess = new ObjectAccessToken(new AliasToken(query.Alias), selecdtFields.FieldAlias);
                         fields.Add(new SelectItemToken(fieldAccess, selecdtFields.FieldAlias));
                     }
                 }
                 qry = new SqlScopeToken(qry);
+                src = qry;
             }
-            //单表访问
-            else if (from.Seq is TablePart table)
+            else if (from is TablePart table)
             {
-                qry = new AliasToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
+                var qry = new AliasToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -373,15 +394,15 @@ namespace MNet.LTSQL.v1
                     var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
                     fields.Add(new SelectItemToken(fieldAccess, prop.Name));
                 }
+                src = qry;
             }
             else
             {
-                throw new Exception($"不支持的查询结构:{from.Seq.GetType().FullName}");
+                throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
             }
-
-            self.Sequence = new AliasTable(from.Seq.Alias, qry);
-            return self;
+            return new AliasTable(from.Alias, src);
         }
+        
         private WhereToken TranslateWhere(LambdaExpression wheres)
         {
             if (wheres == null)
@@ -516,7 +537,7 @@ namespace MNet.LTSQL.v1
             List<SelectItemToken> fields = new List<SelectItemToken>();
 
             //from
-            sqlToken.From = this.TranslateFrom(query.From, ref fields);
+            sqlToken.From = this.TranslateFrom(query.From1, ref fields);
 
             //where
             if (query.Wheres.IsNotEmpty())

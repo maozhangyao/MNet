@@ -24,7 +24,6 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         }
     }
     
-
     //单表数据源
     public class TablePart : QueryPart
     {
@@ -50,7 +49,56 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         }
     }
     
+    //联表数据源
+    public class JoinPart : QueryPart
+    {
+        public JoinPart()
+        {
 
+        }
+        public JoinPart(QueryPart q1, QueryPart q2)
+        {
+            this.MainQuery = q1;
+            this.JoinQuery = q2;
+        }
+
+
+
+        public QueryPart MainQuery { get; set; }
+        public QueryPart JoinQuery { get; set; }
+
+        //join info
+        //目前仅支持 left join
+        public string JoinType { get; set; }
+        // 连接的左侧key选择
+        public Expression JoinKey1 { get; set; }
+        // 连接的右侧key选择(即当前类)
+        public Expression JoinKey2 { get; set; }
+        //Source1Key 和 Source2Key 做合并后得到的联接条件
+        public Expression JoinKeyOn { get; set; }
+        // 两个对象连接成一个对象： (t1, t2) => new { t1, t2 }
+        public Expression JoinObject { get; set; }
+        public string JoinKey1Prop { get; set; }
+
+
+        public override QueryPart CopyNew()
+        {
+            JoinPart _new = new JoinPart();
+            _new.Alias = this.Alias;
+            _new.MappingType = this.MappingType;
+            _new.JoinType = this.JoinType;
+            _new.JoinQuery = this.JoinQuery;
+            _new.JoinKey1 = this.JoinKey1;
+            _new.JoinKey2 = this.JoinKey2;
+            _new.JoinKeyOn = this.JoinKeyOn;
+            _new.JoinObject = this.JoinObject;
+            _new.JoinKey1Prop = this.JoinKey1Prop;
+
+            _new.MainQuery = this.MainQuery?.CopyNew();
+            _new.JoinQuery = this.JoinQuery?.CopyNew();
+            return _new;
+        }
+    }
 
     //复杂查询结构数据源
     public class SqlQueryPart : QueryPart
@@ -64,7 +112,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
 
 
         //from
-        public FromPart From { get; set; }
+        public QueryPart From1 { get; set; }
 
         //where
         // 由于存在连表查询的情况，条件是一个表达式列表，默认是AND关系
@@ -104,22 +152,8 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
             part.SelectKey = this.SelectKey;
             part.NewType = this.NewType;
 
-            part.From = NewFromPart(this.From);
+            part.From1 = this.From1?.CopyNew();
             return part;
-        }
-        private FromPart NewFromPart(FromPart from)
-        {
-            if (from == null)
-                return null;
-
-            FromPart newFrom = new FromPart(from.Seq?.CopyNew());
-            newFrom.Parent = this.NewFromPart(from.Parent);
-            newFrom.JoinType = from.JoinType;
-            newFrom.JoinKey1 = from.JoinKey1;
-            newFrom.JoinKey2 = from.JoinKey2;
-            newFrom.JoinKeyOn = from.JoinKeyOn;
-            newFrom.JoinObject = from.JoinObject;
-            return newFrom;
         }
     }
 }

@@ -3,6 +3,7 @@ using MNet.LTSQL.v1.SqlTokens;
 using MNetTestConsole.Utils;
 using System.Numerics;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 /*
@@ -11,6 +12,10 @@ TO DO
 
  笛卡尔积
  join into 句子 翻译
+ right join
+ left join 
+ inner join 的支持
+
  对 is null / is not null 的支持
 
  5. 基础函数的支持
@@ -27,36 +32,19 @@ TO DO
  */
 
 
-List<int> id1s = new List<int> { 1, 2, 3, 4 };
-IEnumerable<int> id2s = id1s;
+c_persion_t p = new c_persion_t();
+var query1 = from p2 in p.AsLTSQL()
+             from p1 in p.AsLTSQL()
+             from p3 in p.AsLTSQL()
+             where p1.Id == p2.Id && p2.Id == p3.Id
+             select new { first = p1.Id, second = p2.Id, thrid = p3.Id };
 
-c_persion_t c = new c_persion_t();
-var query1 = from mine in c.AsLTSQL()
-             join mother in c.AsLTSQL() on mine.MotherId equals mother.Id
-             join father in c.AsLTSQL() on mine.FatherId equals father.Id
-             where (mine.Age > 0)
-             group mine by new { Name = mine.SelfName, Age = mine.Age } into g
-             select new
-             {
-                 NO = g.Key.Name,
-                 SA = g.Sum(x => x.Age),  //求和
-                 AV = g.Average(x => x.Age), //求平均值
-                 MX = g.Max(x => x.Age),  //求最大值
-                 MN = g.Min(x => x.Age),  //求最小值
-                 CN = g.Count()          //求计数
-             };
+var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
+             join p2 in p.AsLTSQL() on p1.MotherId equals p2.Id
+             join p3 in p.AsLTSQL() on new { Id = p1.FatherId } equals new { Id = p3.Id }
+             where p1.Id > 0
+             select new { Id = p1.Id, Name = p1.SelfName, MName = p2.SelfName, FName = p3.SelfName };
 
-
-var query2 = from e in c.AsLTSQL()
-             where e.Id == 1
-             group e by e.SelfName into g
-             select new
-             {
-                 No = g.Key,
-                 Cn = g.Sum(p => p.Id)
-             };
-
-var query3 = c.AsLTSQL();
 
 
 LTSQLOptions options = new LTSQLOptions
@@ -66,7 +54,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Take(1).WithCount().Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
 
 
 //生成的sql语句
@@ -86,7 +74,6 @@ sqlBuilder.Build(token, new SqlBuilderContext
 });
 
 ConsoleHelper.WriteLineWithYellow(builder);
-
 
 return 0;
 

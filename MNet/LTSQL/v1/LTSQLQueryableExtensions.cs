@@ -2,6 +2,7 @@ using MNet.LTSQL.v1.SqlQueryStructs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -24,12 +25,10 @@ namespace MNet.LTSQL.v1
                 {
                     Step = step,
                     MappingType = query.NewType,
-                    From = new FromPart()
-                    {
-                        Seq = query
-                    }
+                    From1 = query
                 };
             }
+            query.Step = step;
             return query;
         }
         private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
@@ -63,10 +62,7 @@ namespace MNet.LTSQL.v1
             SqlQueryPart query = new SqlQueryPart();
             query.Step = QueryStepSeq.From;
             query.MappingType = typeof(T);
-            query.From = new FromPart();
-            query.From.Parent = null;
-            query.From.Seq = tablePart;
-
+            query.From1 = tablePart;
 
             var ltsql = new LTSQLObject<T>();
             ltsql.Query = query;
@@ -79,9 +75,7 @@ namespace MNet.LTSQL.v1
             SqlQueryPart query = new SqlQueryPart();
             query.Step = QueryStepSeq.From;
             query.MappingType = typeof(T);
-            query.From = new FromPart();
-            query.From.Parent = null;
-            query.From.Seq = frm.Query.CopyNew();
+            query.From1 = frm.Query.CopyNew();
 
             return new LTSQLObject<T>(query);
         }
@@ -195,7 +189,7 @@ namespace MNet.LTSQL.v1
         }
 
         //select
-        public static ILTSQLObjectQueryable<TResult> Select<T,TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
+        public static ILTSQLObjectQueryable<TResult> Select<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
             var query = (src.Query.CopyNew() as SqlQueryPart)
                 .SetNextStep(QueryStepSeq.Select, false);
@@ -206,54 +200,109 @@ namespace MNet.LTSQL.v1
             return new LTSQLObject<TResult>(query);
         }
         //join
-        public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(
-            this ILTSQLObjectQueryable<TOuter> outer,
-            ILTSQLObjectQueryable<TInner> inner,
-            Expression<Func<TOuter, TKey>> outerKeyExpr,
-            Expression<Func<TInner, TKey>> innerKeyExpr,
-            Expression<Func<TOuter, TInner, TResult>> joinExpr)
+        public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(this ILTSQLObjectQueryable<TOuter> outer
+            ,ILTSQLObjectQueryable<TInner> inner
+            ,Expression<Func<TOuter, TKey>> outerKeyExpr
+            ,Expression<Func<TInner, TKey>> innerKeyExpr
+            ,Expression<Func<TOuter, TInner, TResult>> joinExpr)
         {
             SqlQueryPart qOuter = outer.Query.CopyNew() as SqlQueryPart;
             SqlQueryPart qInner = inner.Query.CopyNew() as SqlQueryPart;
-            FromPart fromJoin = new FromPart();
+            JoinPart joinPart = new JoinPart();
+
+            //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
+            joinPart.JoinType = "LEFT JOIN";
+            joinPart.JoinKey1 = outerKeyExpr;
+            joinPart.JoinKey2 = innerKeyExpr;
+            joinPart.JoinObject = joinExpr;
+            joinPart.MappingType = typeof(TResult);
+
+            //判断匿名类所在的属性
+            if (qOuter.Step == QueryStepSeq.Join)
+            {
+                Type anymouseType = typeof(TResult);
+                foreach (PropertyInfo prop in anymouseType.GetProperties())
+                {
+                    if (prop.PropertyType == typeof(TOuter))
+                        joinPart.JoinKey1Prop = prop.Name;
+                }
+            }
+
+
             if ((int)qOuter.Step <= (int)QueryStepSeq.Join)
             {
                 //连续的join
-                fromJoin.Parent = qOuter.From;
+                joinPart.MainQuery = qOuter.From1;
             }
             else
             {
                 //直接作为子查询
-                fromJoin.Parent = new FromPart(qOuter);
+                joinPart.MainQuery = qOuter;
             }
 
 
             if ((int)qInner.Step < (int)QueryStepSeq.Join)
             {
                 //join 一张表
-                fromJoin.Seq = qInner.From.Seq;
+                joinPart.JoinQuery = qInner.From1;
             }
             else
             {
                 //join 子查询
-                fromJoin.Seq = qInner;
+                joinPart.JoinQuery = qInner;
             }
-
-            //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
-            fromJoin.JoinType = "LEFT JOIN";
-            fromJoin.JoinKey1 = outerKeyExpr;
-            fromJoin.JoinKey2 = innerKeyExpr;
-            //fromJoin.JoinKeyOn = joinExpr;
-            fromJoin.JoinObject = joinExpr;
 
             return new LTSQLObject<TResult>(new SqlQueryPart
             {
-                From = fromJoin,
+                From1 = joinPart,
                 Step = QueryStepSeq.Join,
                 MappingType = typeof(TResult)
             });
         }
 
+        // select Many
+        public static ILTSQLObjectQueryable<TResult> SelectMany<TSource, TCollection, TResult>(this ILTSQLObjectQueryable<TSource> source
+            , Expression<Func<TSource, ILTSQLObjectQueryable<TCollection>>> collectionSelector
+            , Expression<Func<TSource, TCollection, TResult>> resultSelector)
+        {
+            ILTSQLObjectQueryable<TCollection> inner = collectionSelector.Compile().Invoke(default(TSource));
+
+            SqlQueryPart qOuter = source.Query.CopyNew() as SqlQueryPart;
+            SqlQueryPart qInner = inner.Query.CopyNew() as SqlQueryPart;
+
+            JoinPart join = new JoinPart();
+            join.JoinObject = resultSelector;
+
+            Type anymouseType = typeof(TResult);
+            //确定主表属性
+            if (typeof(TSource) == typeof(TCollection))
+            {
+                join.JoinKey1Prop = anymouseType.GetProperties()[0].Name;
+            }
+            else
+            {
+                foreach (PropertyInfo prop in anymouseType.GetProperties())
+                {
+                    if (prop.PropertyType == typeof(TSource))
+                        join.JoinKey1Prop = prop.Name;
+                }
+            }
+
+            join.MainQuery = qOuter.From1;
+            //非连续join
+            if (qOuter.Step > QueryStepSeq.Join)
+                join.MainQuery = qOuter;
+
+            join.JoinQuery = qInner;
+            if (qInner.Step < QueryStepSeq.Join)
+                join.JoinQuery = qInner.From1;
+
+            SqlQueryPart query = new SqlQueryPart();
+            query.From1 = join;
+            query.Step = QueryStepSeq.Join;
+            query.MappingType = typeof(TResult);
+            return new LTSQLObject<TResult>(query);
+        }
 
 
         //占位函数，用于 linq 表达式写法，其效果等同于Take(1)函数调用
