@@ -3,6 +3,7 @@ using MNet.LTSQL.v1.SqlTokens;
 using MNetTestConsole.Utils;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -10,11 +11,11 @@ using System.Text;
 TO DO
  QuerySequence 是不可变类型，才能复用逻辑  [ok]
 
- 笛卡尔积
- join into 句子 翻译
- right join
- left join 
- inner join 的支持
+ 笛卡尔积    [OK]
+ right join  [OK]
+ left join   [OK]
+ inner join  [OK]
+ 笛卡尔积    [OK]
 
  对 is null / is not null 的支持
 
@@ -33,17 +34,24 @@ TO DO
 
 
 c_persion_t p = new c_persion_t();
-var query1 = from p2 in p.AsLTSQL().Where(p => p.Id > 1) //t1
-             from p1 in p.AsLTSQL() //t2
-             from p3 in p.AsLTSQL() //t3
+var query1 = from p2 in p.AsLTSQL().Where(p => p.Id > 1)
+             from p1 in p.AsLTSQL()
+             from p3 in p.AsLTSQL()
              where p1.Id == p2.Id && p2.Id == p3.Id
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id };
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
-             join p2 in p.AsLTSQL() on p1.MotherId equals p2.Id
-             join p3 in p.AsLTSQL() on new { Id = p1.FatherId } equals new { Id = p3.Id }
+             join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
+             join p3 in p.AsLTSQL().WithLeft()  on new { Id = p1.FatherId } equals new { Id = p3.Id }
              where p1.Id > 0
              select new { Id = p1.Id, Name = p1.SelfName, MName = p2.SelfName, FName = p3.SelfName };
+
+var query4 = from p1 in p.AsLTSQL()
+             join p2 in p.AsLTSQL() on p1.Id equals p2.Id into ps
+             from p3 in ps
+             where p1.Id == 1
+             select p3;
+
 
 
 
@@ -54,7 +62,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query2.Query, options);
 
 
 //生成的sql语句

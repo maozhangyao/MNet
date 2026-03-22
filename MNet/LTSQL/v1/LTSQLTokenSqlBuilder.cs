@@ -82,7 +82,15 @@ namespace MNet.LTSQL.v1
                 nxt(t.MainQuery);
 
                 ctx.Sql.AppendLine();
-                ctx.Sql.Append(t.JoinType);
+                if (t.JoinType == JoinType.InnerJoin)
+                    ctx.Sql.Append("INNER JOIN");
+                else if (t.JoinType == JoinType.LeftJoin)
+                    ctx.Sql.Append("LEFT JOIN");
+                else if (t.JoinType == JoinType.RightJoin)
+                    ctx.Sql.Append("RIGHT JOIN");
+                else
+                    ctx.Sql.Append(t.JoinType);
+
                 ctx.Sql.Append(' ');
 
                 nxt(t.JoinQuery);

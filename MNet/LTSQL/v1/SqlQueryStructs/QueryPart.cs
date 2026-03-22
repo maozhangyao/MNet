@@ -69,7 +69,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
 
         //join info
         //目前仅支持 left join
-        public string JoinType { get; set; }
+        public JoinType JoinType { get; set; }
         // 连接的左侧key选择
         public Expression JoinKey1 { get; set; }
         // 连接的右侧key选择(即当前类)

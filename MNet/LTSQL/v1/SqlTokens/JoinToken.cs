@@ -5,7 +5,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     // 联表
     public class JoinToken : LTSQLToken 
     {
-        public string JoinType { get; set; }
+        public JoinType JoinType { get; set; }
         public LTSQLToken JoinKeys { get; set; }
         public LTSQLToken MainQuery { get; set; }
         public LTSQLToken JoinQuery { get; set; }

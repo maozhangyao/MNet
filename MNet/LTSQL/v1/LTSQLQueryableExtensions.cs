@@ -108,6 +108,34 @@ namespace MNet.LTSQL.v1
 
             return new LTSQLObject<T>(query);
         }
+        public static ILTSQLOrderedQueryable<T> WithJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
+        {
+            return new LTSQLObject<T>(src.Query) { JoinFlag = flag };
+        }
+        /// <summary>
+        /// 设置联接类型为左连接
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLOrderedQueryable<T> WithLeft<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.WithJoin(JoinType.LeftJoin);
+        }
+        /// <summary>
+        /// 设置联接类型为右联接
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLOrderedQueryable<T> WithRight<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.WithJoin(JoinType.RightJoin);
+        }
+        public static ILTSQLOrderedQueryable<T> WithInner<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.WithJoin(JoinType.InnerJoin);
+        }
 
 
         public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
@@ -228,6 +256,7 @@ namespace MNet.LTSQL.v1
 
             return new LTSQLObject<TResult>(query);
         }
+        
         //join
         public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(this ILTSQLObjectQueryable<TOuter> outer
             , ILTSQLObjectQueryable<TInner> inner
@@ -240,7 +269,7 @@ namespace MNet.LTSQL.v1
             JoinPart joinPart = new JoinPart();
 
             //如果是手工方法调用，则需要检验join表达式中，参数命名是否能够推出表命名来
-            joinPart.JoinType = "LEFT JOIN";
+            joinPart.JoinType = (inner as LTSQLObject<TInner>).JoinFlag;
             joinPart.JoinKey1 = outerKeyExpr;
             joinPart.JoinKey2 = innerKeyExpr;
             joinPart.JoinObject = joinExpr;
@@ -348,6 +377,17 @@ namespace MNet.LTSQL.v1
             query.MappingType = typeof(TResult);
             return new LTSQLObject<TResult>(query);
         }
+
+        //不支持 GroupJoin
+        public static ILTSQLObjectQueryable<TResult> GroupJoin<TOuter, TInner, TKey, TResult>(this ILTSQLObjectQueryable<TOuter> outer
+            , ILTSQLObjectQueryable<TInner> inner
+            , Expression<Func<TOuter, TKey>> outerKeySelector
+            , Expression<Func<TInner, TKey>> innerKeySelector
+            , Expression<Func<TOuter, IEnumerable<TInner>, TResult>> resultSelector)
+        {
+            throw new Exception("不支持Join into 写法，请使用Join代替。");
+        }
+
 
 
         //占位函数，用于 linq 表达式写法，其效果等同于Take(1)函数调用

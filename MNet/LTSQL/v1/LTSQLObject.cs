@@ -14,7 +14,8 @@ namespace MNet.LTSQL.v1
             this.Query = query;
         }
 
-
+        //默认左外链接
+        public JoinType JoinFlag { get; set; } = JoinType.LeftJoin;
         public SqlQueryPart Query { get; set; }
 
         public IEnumerator<T> GetEnumerator()
