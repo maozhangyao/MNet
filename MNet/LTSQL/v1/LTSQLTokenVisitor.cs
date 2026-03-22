@@ -62,7 +62,7 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitAliasTableToken(AliasTable token)
+        public virtual LTSQLToken VisitAliasTableToken(AliasTableToken token)
         {
             return this._visitor(token);
         }
@@ -77,6 +77,10 @@ namespace MNet.LTSQL.v1
         public virtual LTSQLToken VisitConstantToken(ConstantToken token)
         {
             return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitNullToken(NullToken token)
+        {
+            return this._visitor(token); 
         }
         public virtual LTSQLToken VisitFromToken(FromToken token)
         {

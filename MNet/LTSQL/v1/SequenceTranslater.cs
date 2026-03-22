@@ -400,7 +400,7 @@ namespace MNet.LTSQL.v1
             {
                 throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
             }
-            return new AliasTable(from.Alias, src);
+            return new AliasTableToken(from.Alias, src);
         }
         
         private WhereToken TranslateWhere(LambdaExpression wheres)
@@ -597,18 +597,45 @@ namespace MNet.LTSQL.v1
             sqlToken.DefaultFields = fields;
 
             //内联查询翻译
-            LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
             {
-                //t = nxt(t);
                 //如果存在内联查询，需要进一步翻译
-                if (t is SqlParameterToken p && p.Value is ILTSQLObjectQueryable subquery)
+                if (t is SqlParameterToken p)
                 {
-                    LTSQLToken subQueryToken = new SequenceTranslater()
+                    if (p.Value is ILTSQLObjectQueryable subquery)
+                    {
+                        LTSQLToken subQueryToken = new SequenceTranslater()
                        .Translate(subquery.Query, this._scope.NewScope());
-                    return new SqlScopeToken(subQueryToken);
+                        return new SqlScopeToken(subQueryToken);
+                    }
                 }
                 return t;
-            });
+            }) as SqlQueryToken;
+
+            //null 等式处理
+            if (!this._context.Options.DisNullable)
+            {
+                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+                {
+                    if (t is SqlParameterToken p && p.Value == null)
+                        return new NullToken(p.ValueType);
+                    return t;
+                }) as SqlQueryToken;
+
+                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+                {
+                    if (t is ConditionToken cdt && (cdt.ConditionType == ConditionToken.OPT_EQUAL || cdt.ConditionType == ConditionToken.OPT_NOT_EQUAL))
+                    {
+                        string opt = cdt.ConditionType == ConditionToken.OPT_EQUAL ? ConditionToken.OPT_IS : ConditionToken.OPT_IS_NOT;
+
+                        if (cdt.Left is NullToken)
+                            return new ConditionToken(cdt.Right, cdt.Left, opt);
+                        else if (cdt.Right is NullToken)
+                            return new ConditionToken(cdt.Left, cdt.Right, opt);
+                    }
+                    return t;
+                }) as SqlQueryToken;
+            }
 
             return sqlToken;
         }
@@ -661,15 +688,7 @@ namespace MNet.LTSQL.v1
                 return node;
             }
 
-            //if (node.Value == null)
-            //{
-            //    this.PushToken(new ConstantToken("null", node.Type));
-            //}
-            //else
-            {
-                this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
-            }
-
+            this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
             return base.VisitConstant(node);
         }
         //字段或者属性
@@ -957,6 +976,9 @@ namespace MNet.LTSQL.v1
                 //    break;
                 case ExpressionType.Equal:
                     condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_EQUAL);
+                    break;
+                case ExpressionType.NotEqual:
+                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_NOT_EQUAL);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
                     condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER_OR_EQUAL);

@@ -17,7 +17,7 @@ TO DO
  inner join  [OK]
  笛卡尔积    [OK]
 
- 对 is null / is not null 的支持
+ 对 is null / is not null 的支持   [ok]
 
  5. 基础函数的支持
     5.1 字符串相关函数的支持
@@ -33,15 +33,14 @@ TO DO
  检查对主流数据库的支持情况
  orderby 和 goupby 执行顺序问题
  */
-
+string n = null;
 
 c_persion_t p = new c_persion_t();
 var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             join p4 in p.AsLTSQL() on p1.MotherId equals p4.Id
-             where p1.Id == p2.Id && p2.Id == p3.Id
-             select new { first = p1.Id, second = p2.Id, thrid = p3.Id, M = p4.SelfName };
+             where p1.Id > 1 && n == p1.SelfName
+             select new { first = p1.Id, second = p2.Id, thrid = p3.Id};
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
@@ -49,19 +48,12 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              where p1.Id > 0
              select new { Id = p1.Id, Name = p1.SelfName, MName = p2.SelfName, FName = p3.SelfName };
 
-//var query4 = from p1 in p.AsLTSQL()
-//             join p2 in p.AsLTSQL() on p1.Id equals p2.Id into ps
-//             from p3 in ps
-//             where p1.Id == 1
-//             select p3;
-
-
-
 
 LTSQLOptions options = new LTSQLOptions
 {
     DbType = DbType.SQLLite,
     UseSqlParameter = false, //是否参数化
+    DisNullable = false
 };
 
 //token 化

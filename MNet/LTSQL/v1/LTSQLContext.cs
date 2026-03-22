@@ -15,8 +15,8 @@ namespace MNet.LTSQL.v1
         public NameGenerator ParameterNameGenerator { get; set; }
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
-        public SqlQueryPart Root { get; set; }
         public TableAliasMapping TableAliasMapping { get; set; }
+        public SqlQueryPart Root { get; set; }
 
 
         public LTSQLToken GroupKey { get; set; }

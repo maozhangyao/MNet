@@ -25,7 +25,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         public readonly static string OPT_OR = "OR";
 
         public readonly static string OPT_EQUAL = "=";
-        public readonly static string OPT_NOT = "<>";
+        public readonly static string OPT_NOT_EQUAL = "<>";
         public readonly static string OPT_GREATER = ">";
         public readonly static string OPT_GREATER_OR_EQUAL = ">=";
         public readonly static string OPT_LESS = "<";
@@ -35,8 +35,8 @@ namespace MNet.LTSQL.v1.SqlTokens
         public readonly static string OPT_NOT_IN = "NOT IN";
         public readonly static string OPT_LIKE = "LIKE";
         public readonly static string OPT_NOT_LIKE = "NOT LIKE";
-        public readonly static string OPT_NULL = "IS NULL";
-        public readonly static string OPT_NOT_NULL = "IS NOT NULL";
+        public readonly static string OPT_IS = "IS";
+        public readonly static string OPT_IS_NOT = "IS NOT";
         public readonly static string OPT_BETWEEN = "BETWEEN";
         public readonly static string OPT_NOT_BETWEEN = "NOT BETWEEN";
         public readonly static string OPT_EXISTS = "EXISTS";
@@ -57,8 +57,8 @@ namespace MNet.LTSQL.v1.SqlTokens
                 return OPT_AND;
 
             if (opt == OPT_EQUAL)
-                return OPT_NOT;
-            if (opt == OPT_NOT)
+                return OPT_NOT_EQUAL;
+            if (opt == OPT_NOT_EQUAL)
                 return OPT_EQUAL;
 
             if (opt == OPT_GREATER)
@@ -81,10 +81,10 @@ namespace MNet.LTSQL.v1.SqlTokens
             if (opt == OPT_NOT_LIKE)
                 return OPT_NOT_LIKE;
 
-            if (opt == OPT_NULL)
-                return OPT_NOT_NULL;
-            if (opt == OPT_NOT_NULL)
-                return OPT_NULL;
+            if (opt == OPT_IS)
+                return OPT_IS_NOT;
+            if (opt == OPT_IS_NOT)
+                return OPT_IS;
 
             if (opt == OPT_BETWEEN)
                 return OPT_NOT_BETWEEN;

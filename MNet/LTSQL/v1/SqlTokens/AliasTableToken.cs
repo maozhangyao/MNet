@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class AliasTable : LTSQLToken
+    public class AliasTableToken : LTSQLToken
     {
-        public AliasTable() 
+        public AliasTableToken() 
         { }
-        public AliasTable(string alias, LTSQLToken sqlObj)
+        public AliasTableToken(string alias, LTSQLToken sqlObj)
         {
             this.Alias = alias;
             this.Query = sqlObj;

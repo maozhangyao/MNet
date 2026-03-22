@@ -44,7 +44,7 @@ namespace MNet.LTSQL.v1
             LTSQLTokenSqlBuilder builder = new LTSQLTokenSqlBuilder();
 
             builder
-            .UseTokenBuilder<AliasTable>((t, ctx, nxt) =>
+            .UseTokenBuilder<AliasTableToken>((t, ctx, nxt) =>
             {
                 nxt(t.Query);
                 ctx.Sql.Append(' ');
@@ -71,11 +71,15 @@ namespace MNet.LTSQL.v1
             })
             .UseTokenBuilder<ConstantToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.Value);
-
+            })
+            .UseTokenBuilder<NullToken>((t, ctx, nxt) =>
+            {
+                ctx.Sql.Append(t.Value);
             })
             .UseTokenBuilder<FromToken>((t, ctx, nxt) => {
                 ctx.Sql.Append("FROM ");
                 nxt(t.Source);
+
             })
             .UseTokenBuilder<JoinToken>((t, ctx, nxt) =>
             {
