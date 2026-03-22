@@ -23,6 +23,8 @@ TO DO
     5.1 字符串相关函数的支持
     5.2 日期函数的相关支持
 
+ 表名，字段名的自定义映射
+
 优化：
  ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
  ConditionToken.Not操作不准确：比如AND , OR 等操作取反不对
