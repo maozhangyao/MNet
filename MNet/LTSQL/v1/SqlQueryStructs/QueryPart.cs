@@ -79,6 +79,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
         // 两个对象连接成一个对象： (t1, t2) => new { t1, t2 }
         public Expression JoinObject { get; set; }
         public string JoinKey1Prop { get; set; }
+        public string JoinKey2Prop { get; set; }
 
 
         public override QueryPart CopyNew()
@@ -112,7 +113,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
 
 
         //from
-        public QueryPart From1 { get; set; }
+        public QueryPart From { get; set; }
 
         //where
         // 由于存在连表查询的情况，条件是一个表达式列表，默认是AND关系
@@ -152,7 +153,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
             part.SelectKey = this.SelectKey;
             part.NewType = this.NewType;
 
-            part.From1 = this.From1?.CopyNew();
+            part.From = this.From?.CopyNew();
             return part;
         }
     }

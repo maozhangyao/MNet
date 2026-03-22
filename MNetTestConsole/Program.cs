@@ -28,14 +28,14 @@ TO DO
  Token 种类优化，如增加优先级运算Token 来代替 SqlCopeToken
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况
  检查对主流数据库的支持情况
- 
+ orderby 和 goupby 执行顺序问题
  */
 
 
 c_persion_t p = new c_persion_t();
-var query1 = from p2 in p.AsLTSQL()
-             from p1 in p.AsLTSQL()
-             from p3 in p.AsLTSQL()
+var query1 = from p2 in p.AsLTSQL().Where(p => p.Id > 1) //t1
+             from p1 in p.AsLTSQL() //t2
+             from p3 in p.AsLTSQL() //t3
              where p1.Id == p2.Id && p2.Id == p3.Id
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id };
 
@@ -75,9 +75,8 @@ sqlBuilder.Build(token, new SqlBuilderContext
 
 ConsoleHelper.WriteLineWithYellow(builder);
 
+
 return 0;
-
-
 
 
 public class c_persion_t

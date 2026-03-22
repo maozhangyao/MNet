@@ -135,15 +135,15 @@ namespace MNet.LTSQL.v1
             TableAliasMapping mapping = new TableAliasMapping(root);
 
             //涉及联表
-            if (query.From1 is JoinPart join)
+            if (query.From is JoinPart join)
             {
                 ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinObject).Body.Type, root);
-                this.AssignFromJoinAlias(mapping, query.From1, joinObj, joinObj);
+                this.AssignFromJoinAlias(mapping, query.From, joinObj, joinObj);
             }
             //单表
             else
             {
-                this.AssignFromJoinAlias(mapping, query.From1, null, null);
+                this.AssignFromJoinAlias(mapping, query.From, null, null);
             }
 
 
@@ -267,7 +267,7 @@ namespace MNet.LTSQL.v1
                     Type anonymouseType = (join.JoinObject as LambdaExpression).Body.Type;
                     PropertyInfo[] props = anonymouseType.GetProperties();
                     PropertyInfo prop1 = props.FirstOrDefault(p => p.Name == join.JoinKey1Prop);
-                    PropertyInfo prop2 = props.FirstOrDefault(p => p.Name != join.JoinKey1Prop);
+                    PropertyInfo prop2 = props.FirstOrDefault(p => p.Name == join.JoinKey2Prop);
 
                     TableAliasMapping mapping1 = new TableAliasMapping(prop1.Name);
                     this.AssignFromJoinAlias(mapping1, join.MainQuery, null, null);
@@ -537,7 +537,7 @@ namespace MNet.LTSQL.v1
             List<SelectItemToken> fields = new List<SelectItemToken>();
 
             //from
-            sqlToken.From = this.TranslateFrom(query.From1, ref fields);
+            sqlToken.From = this.TranslateFrom(query.From, ref fields);
 
             //where
             if (query.Wheres.IsNotEmpty())
