@@ -94,6 +94,7 @@ namespace MNet.LTSQL.v1.SqlQueryStructs
             _new.JoinKeyOn = this.JoinKeyOn;
             _new.JoinObject = this.JoinObject;
             _new.JoinKey1Prop = this.JoinKey1Prop;
+            _new.JoinKey2Prop = this.JoinKey2Prop;
 
             _new.MainQuery = this.MainQuery?.CopyNew();
             _new.JoinQuery = this.JoinQuery?.CopyNew();
