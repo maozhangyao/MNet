@@ -19,6 +19,8 @@ TO DO
 
  对 is null / is not null 的支持   [ok]
 
+ 运算符： + - * / 支持    [ok]
+
  5. 基础函数的支持
     5.1 字符串相关函数的支持
     5.2 日期函数的相关支持
@@ -39,7 +41,7 @@ c_persion_t p = new c_persion_t();
 var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             where p1.Id > 1 && n == p1.SelfName
+             where/* p1.Id > 1 && n == p1.SelfName &&*/ p1.Id * 1 == 2
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id};
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)

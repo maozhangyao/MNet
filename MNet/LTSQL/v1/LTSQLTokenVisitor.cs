@@ -70,6 +70,10 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitBinaryToken(BinaryToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitConditionToken(ConditionToken token)
         {
             return this._visitor(token);

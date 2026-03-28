@@ -69,6 +69,15 @@ namespace MNet.LTSQL.v1
                 nxt(t.Right);
 
             })
+            .UseTokenBuilder<BinaryToken>((t, ctx, nxt) =>
+            {
+                nxt(t.Left);
+                ctx.Sql.Append(' ');
+                ctx.Sql.Append(t.Opration);
+                ctx.Sql.Append(' ');
+                nxt(t.Right);
+
+            })
             .UseTokenBuilder<ConstantToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.Value);
             })
@@ -122,9 +131,6 @@ namespace MNet.LTSQL.v1
                 ctx.Sql.Append(')');
 
             })
-            //.UseTokenBuilder<GroupObjToken>((t, ctx, nxt) => { 
-                
-            //})
             .UseTokenBuilder<GroupToken>((t, ctx, nxt) => {
                 ctx.Sql.Append("GROUP BY ");
                 bool comma = false;

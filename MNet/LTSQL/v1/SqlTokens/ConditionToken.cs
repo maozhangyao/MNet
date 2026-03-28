@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class ConditionToken : SqlValueToken
+    public class ConditionToken : BinaryToken
     {
         // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
@@ -102,19 +102,10 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
         }
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new[] { this.Left, this.Right }.Where(p => p != null);
-        }   
+ 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConditionToken(this);
-        }
-        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
-        {
-            this.Left = this.Left?.Visit(visitor); // 比如 exists 就没有 left
-            this.Right = this.Right?.Visit(visitor);
-            return this;
         }
     }
 }

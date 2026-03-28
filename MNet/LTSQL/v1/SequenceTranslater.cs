@@ -967,42 +967,50 @@ namespace MNet.LTSQL.v1
             if (sqll == null || sqlr == null)
                 throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
-            ConditionToken condition = null;
+            BinaryToken binary = null;
             switch (node.NodeType)
             {
-                //case ExpressionType.Add:
-                //    //c# 中的 字符串支持 "+" 号拼接操作，但在此处不做SQL字符串拼接函数的翻译操作，如果需要指定字符串拼接应该用 string.concat 函数操作
-                //    condition = new ConditionToken(sqll, sqlr, "+");
-                //    break;
+                case ExpressionType.Add:
+                    binary = BinaryToken.CreateAdd(sqll, sqlr, node.Type);
+                    break;
+                case ExpressionType.Subtract:
+                    binary = BinaryToken.CreateSubtract(sqll, sqlr, node.Type);
+                    break;
+                case ExpressionType.Divide:
+                    binary = BinaryToken.CreateDivide(sqll, sqlr, node.Type);
+                    break;
+                case ExpressionType.Multiply:
+                    binary = BinaryToken.CreateMultiply(sqll, sqlr, node.Type);
+                    break;
                 case ExpressionType.Equal:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_EQUAL);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_EQUAL);
                     break;
                 case ExpressionType.NotEqual:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_NOT_EQUAL);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_NOT_EQUAL);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER_OR_EQUAL);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER_OR_EQUAL);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS_OR_EQUAL);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS_OR_EQUAL);
                     break;
                 case ExpressionType.LessThan:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS);
                     break;
                 case ExpressionType.GreaterThan:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER);
                     break;
                 case ExpressionType.AndAlso:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_AND);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_AND);
                     break;
                 case ExpressionType.OrElse:
-                    condition = new ConditionToken(sqll, sqlr, ConditionToken.OPT_OR);
+                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_OR);
                     break;
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
 
-            this.PushToken(new SqlScopeToken(condition));
+            this.PushToken(new SqlScopeToken(binary));
             return expr;
         }
         //一元表达式：主要是取反操作，not exists 以及 not in 等
