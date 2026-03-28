@@ -24,9 +24,11 @@ namespace MNet.LTSQL.v1
                 return "NULL";
             else if (ob is string s)
                 return $"'{s.Replace("'", "''")}'";
+            else if (ob is char c)
+                return $"'{c.ToString().Replace("'", "''")}'";
 #if NET5_0_OR_GREATER
             else if (ob is DateOnly dl)
-                return $"{dl:yyyy-MM-dd}";
+                return $"'{dl:yyyy-MM-dd}'";
 #endif
             else if (ob is DateTime dt)
                 return $"'{dt:yyyy-MM-dd HH:mm:ss}'";

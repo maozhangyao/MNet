@@ -8,24 +8,9 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 /*
-TO DO
- QuerySequence 是不可变类型，才能复用逻辑  [ok]
-
- 笛卡尔积    [OK]
- right join  [OK]
- left join   [OK]
- inner join  [OK]
- 笛卡尔积    [OK]
-
- 对 is null / is not null 的支持   [ok]
-
- 运算符： + - * / 支持    [ok]
-
- 5. 基础函数的支持
+ 基础函数的支持
     5.1 字符串相关函数的支持
     5.2 日期函数的相关支持
-
- 表名，字段名的自定义映射
 
 优化：
  ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
@@ -34,6 +19,8 @@ TO DO
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况
  检查对主流数据库的支持情况
  orderby 和 goupby 执行顺序问题
+ 
+ 表名，字段名的自定义映射
  */
 string n = null;
 
@@ -41,12 +28,12 @@ c_persion_t p = new c_persion_t();
 var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             where/* p1.Id > 1 && n == p1.SelfName &&*/ p1.Id * 1 == 2
-             select new { first = p1.Id, second = p2.Id, thrid = p3.Id};
+             where p1.SelfName.Contains("女")
+             select new { first = p1.Id, second = p2.Id, thrid = p3.Id, str = p1.SelfName.Trim()};
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
-             join p3 in p.AsLTSQL().WithLeft()  on new { Id = p1.FatherId } equals new { Id = p3.Id }
+             join p3 in p.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
              where p1.Id > 0
              select new { Id = p1.Id, Name = p1.SelfName, MName = p2.SelfName, FName = p3.SelfName };
 

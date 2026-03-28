@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
 using MNet.Utils;
+using System.Xml;
+using System.Net.Http.Headers;
 
 namespace MNet.LTSQL.v1
 {
@@ -32,7 +34,7 @@ namespace MNet.LTSQL.v1
         //对类型成员进行转换(优先级低)
         public virtual LTSQLTokenTranslaterSelector UseMemberTranslate(Action<TranslateContext> translate)
         {
-            if(translate != null)
+            if (translate != null)
                 this._memberTranslaters.Add(translate);
             return this;
         }
@@ -176,14 +178,21 @@ namespace MNet.LTSQL.v1
             // IN 操作
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                if ((typeof(Enumerable) == ctx.OwnerType 
-                    || typeof(LTSQLQueryableExtensions) == ctx.OwnerType 
-                    || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType)) 
+                MethodInfo contains = ctx.Member as MethodInfo;
+                if (contains == null)
+                    return;
+
+                if (
+                    (
+                      typeof(Enumerable) == ctx.OwnerType 
+                      || typeof(LTSQLQueryableExtensions) == ctx.OwnerType 
+                      || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType)
+                    )
+                    && typeof(string) != ctx.OwnerType
                     && (ctx.Member.Name == nameof(Enumerable.Contains)))
                 {
                     // A Container B
                     // B IN A
-
                     LTSQLToken left = null;
                     LTSQLToken right = ctx.OwnerToken;
 
@@ -278,7 +287,11 @@ namespace MNet.LTSQL.v1
                 }
             });            
 
+            return InitForString(defaultTranslater);
+        }
 
+        private static LTSQLTokenTranslaterSelector InitForString(LTSQLTokenTranslaterSelector defaultTranslater)
+        {
             // 字符串 Length 函数
             defaultTranslater.UseMemberTranslate(ctx => {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
@@ -289,6 +302,113 @@ namespace MNet.LTSQL.v1
                         ctx.ResultToken = new FunctionToken("CHAR_LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                     else
                         ctx.ResultToken = new FunctionToken("LENGTH", new[] { ctx.OwnerToken }, typeof(int));
+                }
+            });
+
+
+            // 字符串拼接函数
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Concat))
+                {
+                    DbType db = ctx.Options.DbType;
+                    if (db == DbType.SQLLite || db == DbType.MSSQL || db == DbType.PGSQL)
+                        ctx.ResultToken = new FunctionToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
+                    else if (db == DbType.MySQL)
+                        ctx.ResultToken = new FunctionToken("CONCAT_WS", new[] { new ConstantToken("''", typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                    else if (db == DbType.Oracle)
+                    {
+                        LTSQLToken concat = null;
+                        foreach (var token in ctx.MethodParameterTokenList)
+                        {
+                            if (concat == null)
+                                concat = token;
+                            else
+                                concat = new BinaryToken("||", concat, token, typeof(string));
+                        }
+
+                        ctx.ResultToken = concat != null ? new SqlScopeToken(concat) : null;
+                    }
+                }
+            });
+
+
+            // 字符串截取
+            defaultTranslater.UseMemberTranslate(ctx => {
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Substring)) 
+                {
+                    DbType db = ctx.Options.DbType;
+                    if (db == DbType.Oracle || db == DbType.SQLLite)
+                    {
+                        ctx.ResultToken = new FunctionToken("SUBSTR", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                    }
+                    else if (db == DbType.MySQL || db == DbType.MSSQL || db == DbType.PGSQL)
+                    {
+                        ctx.ResultToken = new FunctionToken("SUBSTRING", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                    }
+                }
+            });
+
+
+            // 字符串前后空格去除
+            defaultTranslater.UseMemberTranslate(ctx => {
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.TrimStart))
+                {
+                    ctx.ResultToken = new FunctionToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                }
+                else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.TrimEnd))
+                {
+                    ctx.ResultToken = new FunctionToken("RTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                }
+                else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Trim))
+                {
+                    FunctionToken trimL = new FunctionToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                    ctx.ResultToken = new FunctionToken("RTRIM", new[] { trimL }, typeof(string));
+                }
+            });
+
+
+            //字符串匹配：Contains / startWith / endWith
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                MethodInfo strMethod = ctx.Member as MethodInfo;
+                if (strMethod == null || strMethod.GetParameters().Length != 1)
+                    return;
+
+                // liek %xxx%
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Contains))
+                {
+                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string)),
+                        ctx.MethodParameterTokenList[0] 
+                    }, typeof(string));
+
+                    FunctionToken concat2 = new FunctionToken("CONCAT", new LTSQLToken[] {
+                        concat1,
+                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string))
+                    }, typeof(string));
+
+                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat2, ConditionToken.OPT_LIKE);
+                }
+                //like xxx%
+                else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.StartsWith))
+                {
+                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                        ctx.MethodParameterTokenList[0],
+                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string))
+                    }, typeof(string));
+
+                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat1, ConditionToken.OPT_LIKE);
+                }
+                //like xxx%
+                else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
+                {
+                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string)),
+                        ctx.MethodParameterTokenList[0]
+                    }, typeof(string));
+
+                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat1, ConditionToken.OPT_LIKE);
                 }
             });
 
