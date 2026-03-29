@@ -13,6 +13,7 @@ using System.Text;
     5.2 日期函数的相关支持
 
 优化：
+ 在 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，增加对可空类型的支持
  ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
  ConditionToken.Not操作不准确：比如AND , OR 等操作取反不对
  Token 种类优化，如增加优先级运算Token 来代替 SqlCopeToken
@@ -29,7 +30,15 @@ var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
              where p1.SelfName.Contains("女")
-             select new { first = p1.Id, second = p2.Id, thrid = p3.Id, str = p1.SelfName.Trim()};
+             select new { first = p1.Id, second = p2.Id, thrid = p3.Id,
+                 dateTime = DateTime.Now.ToString("%Y %m-%H"),
+                 year = DateTime.Now.Year,
+                 month = DateTime.Now.Month,
+                 day = DateTime.Now.Day,
+                 hour = DateTime.Now.Hour,
+                 minute = DateTime.Now.Minute,
+                 second1 = DateTime.Now.Second
+             };
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
@@ -40,7 +49,7 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
 
 LTSQLOptions options = new LTSQLOptions
 {
-    DbType = DbType.SQLLite,
+    DbType = DbType.Oracle,
     UseSqlParameter = false, //是否参数化
     DisNullable = false
 };

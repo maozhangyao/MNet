@@ -285,9 +285,11 @@ namespace MNet.LTSQL.v1
                         ctx.ResultToken = new SqlParameterToken(p.ParameterName, query, method.ReturnType);
                     }
                 }
-            });            
+            });
 
-            return InitForString(defaultTranslater);
+            InitForString(defaultTranslater);
+            InitForDatetime(defaultTranslater);
+            return defaultTranslater;
         }
 
         private static LTSQLTokenTranslaterSelector InitForString(LTSQLTokenTranslaterSelector defaultTranslater)
@@ -412,6 +414,48 @@ namespace MNet.LTSQL.v1
                 }
             });
 
+
+            return defaultTranslater;
+        }
+
+        private static LTSQLTokenTranslaterSelector InitForDatetime(LTSQLTokenTranslaterSelector defaultTranslater)
+        {
+            // 日期时间函数：Year / Month / Day / Hour / Minute / Second / ToString
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if (ctx.OwnerType != typeof(DateTime))
+                    return;
+
+                DbType db = ctx.Options.DbType;
+                if (ctx.Member.Name == nameof(DateTime.Year))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateYearFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.Month))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateMonthFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.Day))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateDayFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.Hour))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateHourFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.Minute))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateMinuteFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.Second))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateSecondFunction(db, ctx.OwnerToken).Builder();
+                }
+                else if (ctx.Member.Name == nameof(DateTime.ToString) && ctx.Member is MethodInfo method && method.GetParameters().Length == 1)
+                {
+                    ctx.ResultToken = SqlFunctionHelper.DateFormatFunction(db, ctx.OwnerToken, ctx.MethodParameterTokenList[0]).Builder();
+                }
+            });
 
             return defaultTranslater;
         }

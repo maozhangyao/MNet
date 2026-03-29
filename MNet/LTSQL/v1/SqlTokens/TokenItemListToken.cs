@@ -6,7 +6,7 @@ using System.Text;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     /// <summary>
-    /// 表达出用分隔符分割的一组token集合
+    /// 表达出一组连续的token集合
     /// </summary>
     public class TokenItemListToken : LTSQLToken
     {
@@ -22,10 +22,15 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             this.Items = tokens?.ToArray();
         }
+        public TokenItemListToken(IEnumerable<LTSQLToken> tokens, string separator)
+        {
+            this.Separator = separator;
+            this.Items = tokens?.ToArray();
+        }
 
 
         /// <summary>
-        /// 分隔符号，一般是逗号
+        /// 分隔符号，一般是逗号或者空格
         /// </summary>
         public string Separator { get; set; } = ", ";
         public LTSQLToken[] Items { get; set; }
