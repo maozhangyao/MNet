@@ -225,7 +225,14 @@ namespace MNet.LTSQL.v1
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = new SqlScopeToken(new TokenItemListToken(paras));
+                            right = new SqlScopeToken(
+                                SequenceToken.CreateWithJoin(
+                                    paras,
+                                    SequenceToken.Create(
+                                        SyntaxToken.Create(" "),
+                                        SyntaxToken.Create(",")
+                                    )
+                                ));
                         }
                     }
 
@@ -261,7 +268,13 @@ namespace MNet.LTSQL.v1
                         foreach (object item in list)
                             paras.Add(ctx.TokenSqlParameter(item));
 
-                        inner = new SqlScopeToken(new TokenItemListToken(paras));
+                        inner = new SqlScopeToken(SequenceToken.CreateWithJoin(
+                                    paras,
+                                    SequenceToken.Create(
+                                        SyntaxToken.Create(" "),
+                                        SyntaxToken.Create(",")
+                                    )
+                                ));
                     }
 
                     ctx.ResultToken = new BoolCalcToken(null, inner, BoolCalcToken.OPT_EXISTS);

@@ -16,7 +16,7 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         //表名
         public LTSQLToken Owner { get; set; }
-        //表字段
+        //表字段， 注意翻译时需要做关键词转义
         public string Field { get; set; }
 
 

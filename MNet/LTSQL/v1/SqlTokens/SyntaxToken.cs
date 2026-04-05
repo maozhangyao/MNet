@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
@@ -23,6 +24,11 @@ namespace MNet.LTSQL.v1.SqlTokens
         public static SyntaxToken Create(string text) 
         {
             return new SyntaxToken(text);
+        }
+        public static SyntaxToken[] CreateBatch(params string[] texts)
+        {
+            SyntaxToken[] tokens = texts.Select(txt => Create(txt)).ToArray();
+            return tokens;
         }
     }
 }

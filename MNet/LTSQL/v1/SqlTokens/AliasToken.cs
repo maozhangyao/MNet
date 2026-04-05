@@ -4,7 +4,8 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.v1.SqlTokens
 {
     /// <summary>
-    /// 命名对象
+    /// 一个sql对象，如：表名称
+    /// 注意其在翻译过程中，需要关键字转义，所以不是单纯的文本
     /// </summary>
     public class AliasToken : ValueToken
     {

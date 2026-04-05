@@ -85,26 +85,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("YEAR FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken year = DateFormatFunction(db, datetime, ConstantToken.Create("%Y", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 year,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:
@@ -126,26 +126,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("MONTH FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken month = DateFormatFunction(db, datetime, ConstantToken.Create("%m", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 month,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:
@@ -167,26 +167,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("DAY FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken day = DateFormatFunction(db, datetime, ConstantToken.Create("%d", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 day,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:
@@ -211,26 +211,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("HOUR FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken hour = DateFormatFunction(db, datetime, ConstantToken.Create("%H", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 hour,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:
@@ -255,26 +255,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("MINUTE FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken minute = DateFormatFunction(db, datetime, ConstantToken.Create("%M", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 minute,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:
@@ -299,26 +299,26 @@ namespace MNet.LTSQL.v1
                 case DbType.Oracle:
                 case DbType.PGSQL:
                     builder.WithFunctionName("EXTRACT", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 SyntaxToken.Create("SECOND FROM"),
                                 datetime
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 case DbType.SQLLite:
 
                     LTSQLToken minute = DateFormatFunction(db, datetime, ConstantToken.Create("%S", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
-                        .WithFunctionArgs(new TokenItemListToken(
+                        .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
                             {
                                 minute,
                                 SyntaxToken.Create("AS INTEGER")
                             },
-                            separator: " "
+                            SyntaxToken.Create(" ")
                             ));
                     break;
                 default:

@@ -135,18 +135,6 @@ namespace MNet.LTSQL.v1
                 ctx.Sql.Append(')');
 
             })
-            .UseTokenBuilder<GroupToken>((t, ctx, nxt) => {
-                ctx.Sql.Append("GROUP BY ");
-                bool comma = false;
-                foreach (LTSQLToken item in t.GroupByItems)
-                {
-                    if (comma)
-                        ctx.Sql.Append(", ");
-                    comma = true;
-                    nxt(item);
-                }
-
-            })
             .UseTokenBuilder<LTSQLToken>((t, ctx, nxt) => { 
                 //理论上不会被调用
             })
@@ -154,18 +142,6 @@ namespace MNet.LTSQL.v1
                 nxt(t.Owner);
                 ctx.Sql.Append('.');
                 ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Field, ctx));
-
-            })
-            .UseTokenBuilder<OrderByItemToken>((t, ctx, nxt) => {
-                nxt(t.Item);
-                ctx.Sql.Append(' ');
-                if (!t.IsAsc)
-                    ctx.Sql.Append("desc");
-
-            })
-            .UseTokenBuilder<OrderToken>((t, ctx, nxt) => {
-                ctx.Sql.Append("ORDER BY ");
-                nxt(t.OrderBy);
 
             })
             .UseTokenBuilder<SelectToken>((t, ctx, nxt) => {
@@ -259,31 +235,10 @@ namespace MNet.LTSQL.v1
                 nxt(t.Value);
                 ctx.Sql.Append(')');
             })
-            //.UseTokenBuilder<SqlValueToken>((t, ctx, nxt) => { })
-            .UseTokenBuilder<TokenItemListToken>((t, ctx, nxt) => {
-                if (t.Items == null)
-                    return;
-
-                for (int i = 0; i < t.Items.Length; i++)
-                {
-                    if (i > 0)
-                        ctx.Sql.Append(t.Separator);
-
-                    LTSQLToken item = t.Items[i];
-                    nxt(item);
-                }
-
-            })
             .UseTokenBuilder<SequenceToken>((t, ctx, nxt) =>
             {
                 foreach (LTSQLToken token in t)
-                    nxt(t);
-            })
-            .UseTokenBuilder<WhereToken>((t, ctx, nxt) => {
-                ctx.Sql.Append(t.WhereOrHaving);
-                ctx.Sql.Append(" ");
-                nxt(t.Condition);
-
+                    nxt(token);
             })
             .UseTokenBuilder<PageToken>((t, ctx, nxt) => {
                 if (ctx.DbType == DbType.MySQL || ctx.DbType == DbType.SQLLite)

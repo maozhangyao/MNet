@@ -98,7 +98,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitConditionToken(this);
+            return visitor.VisitBoolCalcToken(this);
         }
     }
 }

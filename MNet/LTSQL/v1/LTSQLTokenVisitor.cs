@@ -74,7 +74,7 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitConditionToken(BoolCalcToken token)
+        public virtual LTSQLToken VisitBoolCalcToken(BoolCalcToken token)
         {
             return this._visitor(token);
         }
@@ -102,19 +102,7 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitGroupToken(GroupToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitObjectAccessToken(ObjectAccessToken token)
-        {
-            return this._visitor(token);
-        }
-        public virtual LTSQLToken VisitOrderByItemToken(OrderByItemToken token)
-        {
-            return this._visitor(token);
-        }
-        public virtual LTSQLToken VisitOrderToken(OrderToken token)
         {
             return this._visitor(token);
         }
@@ -130,10 +118,6 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitWhereToken(WhereToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitPageToken(PageToken token)
         {
             return this._visitor(token);
@@ -143,10 +127,6 @@ namespace MNet.LTSQL.v1
             return this._visitor(token);
         }
         public virtual LTSQLToken VisitPriorityCalcToken(PriorityCalcToken token)
-        {
-            return this._visitor(token);
-        }
-        public virtual LTSQLToken VisitTokenItemListToken(TokenItemListToken token)
         {
             return this._visitor(token);
         }

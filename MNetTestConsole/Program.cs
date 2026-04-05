@@ -65,17 +65,25 @@ StringBuilder builder = new StringBuilder();
 //如果参数化，则SQL语句依赖的 sql 参数
 Dictionary<string, object> sqlParamemters = new Dictionary<string, object>();
 
-
-//sql化
-ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
-sqlBuilder.Build(token, new SqlBuilderContext
+try
 {
-    DbType = options.DbType,
-    UseParameter = options.UseSqlParameter,
-    Sql = builder,
-    SqlParameters = sqlParamemters
-});
 
+    //sql化
+    ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
+    sqlBuilder.Build(token, new SqlBuilderContext
+    {
+        DbType = options.DbType,
+        UseParameter = options.UseSqlParameter,
+        Sql = builder,
+        SqlParameters = sqlParamemters
+    });
+
+}
+catch (Exception ex)
+{
+
+    throw;
+}
 ConsoleHelper.WriteLineWithYellow(builder);
 
 
