@@ -34,7 +34,12 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public LTSQLToken Not()
         {
-            return (this.Value as INotable)?.Not();
+            if (this.Value is null)
+                throw new Exception("优先级运算符内部节点为null, 无法取反操作。");
+            if (this.Value is INotable notable)
+                return notable.Not();
+            
+            throw new Exception($"该节点类型不支持取反操作：{this.Value?.ToString()}");
         }
     }
 }

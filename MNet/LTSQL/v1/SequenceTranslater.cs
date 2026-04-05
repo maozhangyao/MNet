@@ -1,4 +1,5 @@
 using MNet.LTSQL.v1.SqlQueryStructs;
+using MNet.LTSQL.v1.SqlTokenExtends;
 using MNet.LTSQL.v1.SqlTokens;
 using MNet.Utils;
 using System;
@@ -1024,12 +1025,11 @@ namespace MNet.LTSQL.v1
                 return expr;
 
             LTSQLToken token = this.PopToken();
-            if (token is ConditionToken condition)
-                token = condition.Not();
-            //else if (token is SQLScopeToken scope && scope.Inner is ConditionToken condition1)
-            //{
-                
-            //}
+            if (token is INotable notable)
+                token = notable.Not();
+            else
+                throw new Exception($"表达式不支持取反操作：{node}");
+
             this.PushToken(token);
             return expr;
         }

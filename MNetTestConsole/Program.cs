@@ -32,7 +32,7 @@ c_persion_t p = new c_persion_t();
 var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             where p1.SelfName.Contains("女")
+             where !(p1.SelfName.Contains("女"))
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id,
                  dateTime = DateTime.Now.ToString("%Y %m-%H"),
                  year = DateTime.Now.Year,

@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using MNet.LTSQL.v1.SqlTokenExtends;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class ConditionToken : BinaryToken
+    public class ConditionToken : BinaryToken, INotable
     {
         // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
@@ -17,6 +18,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.Left = left;
             this.Right = right;
             this.ConditionType = opt;
+            this.Opration = opt;
             this.ValueType = typeof(bool);
         }
 
@@ -44,11 +46,12 @@ namespace MNet.LTSQL.v1.SqlTokens
 
 
         public string ConditionType { get; set; }
-        //exists 运算没有 left
-        public LTSQLToken Left { get; set; }
-        public LTSQLToken Right { get; set; }
 
 
+        public LTSQLToken Not()
+        {
+            return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
+        }
         public static string Not(string opt)
         {
             if (opt == OPT_AND)
@@ -96,13 +99,8 @@ namespace MNet.LTSQL.v1.SqlTokens
             if (opt == OPT_NOT_EXISTS)
                 return OPT_EXISTS;
 
-            return opt;
+            throw new Exception($"操作符：{opt}不支持Not取反操作。");
         }
-        public ConditionToken Not()
-        {
-            return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
-        }
- 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConditionToken(this);
