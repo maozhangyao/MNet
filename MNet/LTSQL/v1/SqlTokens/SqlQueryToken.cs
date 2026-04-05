@@ -7,7 +7,8 @@ namespace MNet.LTSQL.v1.SqlTokens
 {
     public class SqlQueryToken　: SqlValueToken
     {
-        public List<SelectItemToken> DefaultFields { get; set; }
+        public List<FieldInfoToken> DefaultFields { get; set; }
+
 
         public LTSQLToken From { get; set; }
         public LTSQLToken Where { get; set; }

@@ -44,14 +44,7 @@ namespace MNet.LTSQL.v1
             LTSQLTokenSqlBuilder builder = new LTSQLTokenSqlBuilder();
 
             builder
-            .UseTokenBuilder<AliasTableToken>((t, ctx, nxt) =>
-            {
-                nxt(t.Query);
-                ctx.Sql.Append(' ');
-                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Alias, ctx));
-
-            })
-            .UseTokenBuilder<AliasToken>((t, ctx, nxt) =>
+            .UseTokenBuilder<ObjectToken>((t, ctx, nxt) =>
             {
                 ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Alias, ctx));
 
@@ -169,11 +162,11 @@ namespace MNet.LTSQL.v1
                 }
 
             })
-            .UseTokenBuilder<SelectItemToken>((t, ctx, nxt) => {
-                nxt(t.Field);
+            .UseTokenBuilder<AliasToken>((t, ctx, nxt) => {
+                nxt(t.Item);
                 ctx.Sql.Append(' ');
-                if(!string.IsNullOrEmpty(t.FieldAlias))
-                    ctx.Sql.Append(ctx.SqlKeyWordEscap(t.FieldAlias, ctx));
+                if(!string.IsNullOrEmpty(t.ItemAlias))
+                    ctx.Sql.Append(ctx.SqlKeyWordEscap(t.ItemAlias, ctx));
             })
             .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) => {
                 //是否参数化

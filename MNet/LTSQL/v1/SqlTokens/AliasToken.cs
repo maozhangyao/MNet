@@ -1,26 +1,27 @@
-using System;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
     /// <summary>
-    /// 一个sql对象，如：表名称
-    /// 注意其在翻译过程中，需要关键字转义，所以不是单纯的文本
+    /// SQL命名语法
     /// </summary>
-    public class AliasToken : ValueToken
+    public class AliasToken : LTSQLToken
     {
-        public AliasToken()
+        public AliasToken() 
         { }
-        public AliasToken(string alias)
+        public AliasToken(LTSQLToken item, string itemAlias)
         {
-            this.Alias = alias;
+            Item = item;
+            ItemAlias = itemAlias;
         }
 
-        public string Alias { get; set; }
+        public LTSQLToken Item { get; set; }
+        public string ItemAlias { get; set; }
+
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return Array.Empty<LTSQLToken>();
+            return new[] { this.Item };
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -28,6 +29,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
+            this.Item = this.Item.Visit(visitor);
             return this;
         }
     }

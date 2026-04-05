@@ -3,31 +3,31 @@ using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class AliasTableToken : LTSQLToken
+    /// <summary>
+    /// 一个sql对象，如：表名称
+    /// 注意其在翻译过程中，需要关键字转义，所以不是单纯的文本
+    /// </summary>
+    public class ObjectToken : ValueToken
     {
-        public AliasTableToken() 
+        public ObjectToken()
         { }
-        public AliasTableToken(string alias, LTSQLToken sqlObj)
+        public ObjectToken(string alias)
         {
             this.Alias = alias;
-            this.Query = sqlObj;
         }
 
-        public LTSQLToken Query { get; set; }
         public string Alias { get; set; }
-
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Query };
+            return Array.Empty<LTSQLToken>();
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitAliasTableToken(this);
+            return visitor.VisitObjectToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Query = this.Query.Visit(visitor);
             return this;
         }
     }

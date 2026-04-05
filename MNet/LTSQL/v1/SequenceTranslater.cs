@@ -331,7 +331,7 @@ namespace MNet.LTSQL.v1
             this.Visit(lambda.Body);
             return this.PopToken();
         }
-        private FromToken TranslateFrom(QueryPart from, ref List<SelectItemToken> fields)
+        private FromToken TranslateFrom(QueryPart from, ref List<FieldInfoToken> fields)
         {
             var src = this.TranslateQueryPart(from, ref fields);
             return new FromToken()
@@ -340,7 +340,7 @@ namespace MNet.LTSQL.v1
                 Source = src
             };
         }
-        private LTSQLToken TranslateQueryPart(QueryPart from, ref List<SelectItemToken> fields)
+        private LTSQLToken TranslateQueryPart(QueryPart from, ref List<FieldInfoToken> fields)
         {
             LTSQLToken src = null;
             if(from is JoinPart join)
@@ -377,11 +377,13 @@ namespace MNet.LTSQL.v1
                 //解析字段
                 if (qry is SqlQueryToken sqlquery)
                 {
-                    foreach (var selecdtFields in sqlquery.DefaultFields)
+                    foreach (FieldInfoToken field in sqlquery.DefaultFields)
                     {
-                        string fieldAlias = selecdtFields.FieldAlias ?? "transparentField";
-                        var fieldAccess = new ObjectAccessToken(new AliasToken(query.Alias), selecdtFields.FieldAlias);
-                        fields.Add(new SelectItemToken(fieldAccess, selecdtFields.FieldAlias));
+                        string fieldAlias = field.Field ?? "transparentField";
+                        fields.Add(new FieldInfoToken(
+                                new AliasToken(new ObjectToken(query.Alias), fieldAlias),
+                                fieldAlias
+                            ));
                     }
                 }
                 qry = new SqlScopeToken(qry);
@@ -389,19 +391,19 @@ namespace MNet.LTSQL.v1
             }
             else if (from is TablePart table)
             {
-                var qry = new AliasToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
+                var qry = new ObjectToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
-                    fields.Add(new SelectItemToken(fieldAccess, prop.Name));
+                    var fieldAccess = new ObjectAccessToken(new ObjectToken(table.Alias), prop.Name);
+                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name));
                 }
                 //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new AliasToken(table.Alias), prop.Name);
-                    fields.Add(new SelectItemToken(fieldAccess, prop.Name));
+                    var fieldAccess = new ObjectAccessToken(new ObjectToken(table.Alias), prop.Name);
+                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name));
                 }
                 src = qry;
             }
@@ -409,7 +411,7 @@ namespace MNet.LTSQL.v1
             {
                 throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
             }
-            return new AliasTableToken(from.Alias, src);
+            return new AliasToken(src, from.Alias);
         }
         
         private LTSQLToken TranslateWhere(LambdaExpression wheres)
@@ -497,10 +499,10 @@ namespace MNet.LTSQL.v1
             SequenceToken orderKeys = SequenceToken.CreateWithJoin(orderKeyTokens, separator);
             return orderKeys;
         }
-        private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<SelectItemToken> fieldResults)
+        private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldResults)
         {
             bool bflag = false;
-            fieldResults = new List<SelectItemToken>();
+            fieldResults = new List<FieldInfoToken>();
             ParameterExpression parameter = selectKey.Parameters[0];
 
             if (this._context.Root.GroupFlag)
@@ -517,19 +519,19 @@ namespace MNet.LTSQL.v1
             try
             {
                 LTSQLToken token = this.TranslateLambda(selectKey);
-                //List<LTSQLToken> 
                 List<LTSQLToken> fields = new List<LTSQLToken>();
                 if (token is TupleToken tuple)
                 {
-                    var select = tuple.Items.Select(p => new SelectItemToken(p.Item1, p.Item2));
-                    fieldResults.AddRange(select);
+                    var select = tuple.Items.Select(p => new AliasToken(p.Item1, p.Item2));
+
+                    fields.AddRange(select);
+                    fieldResults.AddRange(select.Select(p => new FieldInfoToken(p.Item, p.ItemAlias)));
                 }
                 else
                 {
-                    fieldResults.Add(new SelectItemToken(token, null));
+                    fields.Add(new AliasToken(token, null));
+                    fieldResults.Add(new FieldInfoToken(token, "transparentField"));
                 }
-
-                fields.AddRange(fieldResults);
 
                 SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
                 return SequenceToken.CreateWithJoin(fields, separator);
@@ -552,7 +554,7 @@ namespace MNet.LTSQL.v1
 
             SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
-            List<SelectItemToken> fields = new List<SelectItemToken>();
+            List<FieldInfoToken> fields = new List<FieldInfoToken>();
 
             //from
             sqlToken.From = this.TranslateFrom(query.From, ref fields);
@@ -614,8 +616,9 @@ namespace MNet.LTSQL.v1
             }
             else
             {
+                var selectFields = fields.Select(p => new AliasToken(p.Object, p.Field));
                 selectToken.Fields = SequenceToken.CreateWithJoin(
-                        fields,
+                        selectFields,
                         SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
                     );
             }
@@ -711,7 +714,7 @@ namespace MNet.LTSQL.v1
                 {
                     //默认转换
                     string tableName = mapping.Alias;
-                    this.PushToken(new AliasToken(tableName)
+                    this.PushToken(new ObjectToken(tableName)
                     {
                         ValueType = node.Type
                     });
@@ -775,7 +778,7 @@ namespace MNet.LTSQL.v1
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(new AliasToken(mapping.Alias) { ValueType = node.Type });
+                    this.PushToken(new ObjectToken(mapping.Alias) { ValueType = node.Type });
                 }
             }
             //字段访问
