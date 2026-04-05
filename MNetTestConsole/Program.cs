@@ -8,13 +8,15 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 /*
- 基础函数的支持
-    5.1 字符串相关函数的支持
-    5.2 日期函数的相关支持
+ 基础函数的支持                    [ok]
+    5.1 字符串相关函数的支持       [ok]
+    5.2 日期函数的相关支持         [ok
 
 优化：
- 在 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，增加对可空类型的支持
- ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
+ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
+
+在 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，增加对可空类型的支持
+ 
  ConditionToken.Not操作不准确：比如AND , OR 等操作取反不对
  Token 种类优化，如增加优先级运算Token 来代替 SqlCopeToken
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况
@@ -49,7 +51,7 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
 
 LTSQLOptions options = new LTSQLOptions
 {
-    DbType = DbType.Oracle,
+    DbType = DbType.SQLLite,
     UseSqlParameter = false, //是否参数化
     DisNullable = false
 };

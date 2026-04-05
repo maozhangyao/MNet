@@ -82,6 +82,10 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitSyntaxToken(SyntaxToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitNullToken(NullToken token)
         {
             return this._visitor(token); 

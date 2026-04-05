@@ -88,7 +88,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("YEAR FROM"),
+                                SyntaxToken.Create("YEAR FROM"),
                                 datetime
                             },
                             separator: " "
@@ -96,13 +96,13 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken year = DateFormatFunction(db, datetime, new ConstantToken("'%Y'")).Builder();
+                    LTSQLToken year = DateFormatFunction(db, datetime, new ConstantToken("'%Y'", typeof(string))).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
                                 year,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));
@@ -129,7 +129,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("MONTH FROM"),
+                                SyntaxToken.Create("MONTH FROM"),
                                 datetime
                             },
                             separator: " "
@@ -143,7 +143,7 @@ namespace MNet.LTSQL.v1
                             new LTSQLToken[]
                             {
                                 month,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));
@@ -170,7 +170,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("DAY FROM"),
+                                SyntaxToken.Create("DAY FROM"),
                                 datetime
                             },
                             separator: " "
@@ -184,7 +184,7 @@ namespace MNet.LTSQL.v1
                             new LTSQLToken[]
                             {
                                 day,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));
@@ -206,7 +206,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.MSSQL:
                     builder.WithFunctionName("DATEPART", typeof(int))
-                        .WithFunctionArgs(new ConstantToken("HOUR"), datetime);
+                        .WithFunctionArgs(SyntaxToken.Create("HOUR"), datetime);
                     break;
                 case DbType.Oracle:
                 case DbType.PGSQL:
@@ -214,7 +214,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("HOUR FROM"),
+                                SyntaxToken.Create("HOUR FROM"),
                                 datetime
                             },
                             separator: " "
@@ -228,7 +228,7 @@ namespace MNet.LTSQL.v1
                             new LTSQLToken[]
                             {
                                 hour,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));
@@ -250,7 +250,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.MSSQL:
                     builder.WithFunctionName("DATEPART", typeof(int))
-                        .WithFunctionArgs(new ConstantToken("MINUTE"), datetime);
+                        .WithFunctionArgs(SyntaxToken.Create("MINUTE"), datetime);
                     break;
                 case DbType.Oracle:
                 case DbType.PGSQL:
@@ -258,7 +258,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("MINUTE FROM"),
+                                SyntaxToken.Create("MINUTE FROM"),
                                 datetime
                             },
                             separator: " "
@@ -272,7 +272,7 @@ namespace MNet.LTSQL.v1
                             new LTSQLToken[]
                             {
                                 minute,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));
@@ -294,7 +294,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.MSSQL:
                     builder.WithFunctionName("DATEPART", typeof(int))
-                        .WithFunctionArgs(new ConstantToken("SECOND"), datetime);
+                        .WithFunctionArgs(SyntaxToken.Create("SECOND"), datetime);
                     break;
                 case DbType.Oracle:
                 case DbType.PGSQL:
@@ -302,7 +302,7 @@ namespace MNet.LTSQL.v1
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
                             {
-                                new ConstantToken("SECOND FROM"),
+                                SyntaxToken.Create("SECOND FROM"),
                                 datetime
                             },
                             separator: " "
@@ -316,7 +316,7 @@ namespace MNet.LTSQL.v1
                             new LTSQLToken[]
                             {
                                 minute,
-                                new ConstantToken("AS INTEGER")
+                                SyntaxToken.Create("AS INTEGER")
                             },
                             separator: " "
                             ));

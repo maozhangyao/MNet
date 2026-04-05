@@ -171,7 +171,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new [] { new ConstantToken("*") } : parameters), cntMethod.ReturnType);
+                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new[] { SyntaxToken.Create("*") } : parameters), cntMethod.ReturnType);
             });
 
 

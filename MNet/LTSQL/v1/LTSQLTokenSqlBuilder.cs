@@ -81,6 +81,10 @@ namespace MNet.LTSQL.v1
             .UseTokenBuilder<ConstantToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.Value);
             })
+            .UseTokenBuilder<SyntaxToken>((t, ctx, nxt) =>
+            {
+                ctx.Sql.Append(t.Text);
+            })
             .UseTokenBuilder<NullToken>((t, ctx, nxt) =>
             {
                 ctx.Sql.Append(t.Value);
