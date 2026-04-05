@@ -7,12 +7,20 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class NullToken : ConstantToken
     {
-        public NullToken(Type valueTypeOfNull) : base("NULL", valueTypeOfNull)
+        private NullToken(Type valueTypeOfNull) : base(null, valueTypeOfNull)
         { }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitNullToken(this);
+        }
+
+        public static NullToken Create(Type valueTypeOfNull, DbType db)
+        {
+            return new NullToken(valueTypeOfNull)
+            {
+                Value = DbUtils.ToSqlPart(null, db)
+            };
         }
     }
 }

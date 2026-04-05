@@ -618,7 +618,7 @@ namespace MNet.LTSQL.v1
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
                     if (t is SqlParameterToken p && p.Value == null)
-                        return new NullToken(p.ValueType);
+                        return NullToken.Create(p.ValueType, this._context.Options.DbType);
                     return t;
                 }) as SqlQueryToken;
 

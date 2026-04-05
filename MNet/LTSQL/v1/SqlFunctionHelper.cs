@@ -33,7 +33,7 @@ namespace MNet.LTSQL.v1
                 .WithFunctionName(f, typeof(DateTime));
 
             if (db == DbType.SQLLite)
-                builder = builder.WithFunctionArgs(new ConstantToken(DbUtils.ToSqlPart("now", db), typeof(string)));
+                builder = builder.WithFunctionArgs(ConstantToken.Create("now", db));
 
             return builder;
         }
@@ -96,7 +96,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken year = DateFormatFunction(db, datetime, new ConstantToken("'%Y'", typeof(string))).Builder();
+                    LTSQLToken year = DateFormatFunction(db, datetime, ConstantToken.Create("%Y", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
@@ -137,7 +137,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken month = DateFormatFunction(db, datetime, new ConstantToken("'%m'")).Builder();
+                    LTSQLToken month = DateFormatFunction(db, datetime, ConstantToken.Create("%m", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
@@ -178,7 +178,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken day = DateFormatFunction(db, datetime, new ConstantToken("'%d'")).Builder();
+                    LTSQLToken day = DateFormatFunction(db, datetime, ConstantToken.Create("%d", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
@@ -222,7 +222,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken hour = DateFormatFunction(db, datetime, new ConstantToken("'%H'")).Builder();
+                    LTSQLToken hour = DateFormatFunction(db, datetime, ConstantToken.Create("%H", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
@@ -266,7 +266,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken minute = DateFormatFunction(db, datetime, new ConstantToken("'%M'")).Builder();
+                    LTSQLToken minute = DateFormatFunction(db, datetime, ConstantToken.Create("%M", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]
@@ -310,7 +310,7 @@ namespace MNet.LTSQL.v1
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken minute = DateFormatFunction(db, datetime, new ConstantToken("'%S'")).Builder();
+                    LTSQLToken minute = DateFormatFunction(db, datetime, ConstantToken.Create("%S", db)).Builder();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(new TokenItemListToken(
                             new LTSQLToken[]

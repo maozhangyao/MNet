@@ -317,7 +317,7 @@ namespace MNet.LTSQL.v1
                     if (db == DbType.SQLLite || db == DbType.MSSQL || db == DbType.PGSQL)
                         ctx.ResultToken = new FunctionToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
                     else if (db == DbType.MySQL)
-                        ctx.ResultToken = new FunctionToken("CONCAT_WS", new[] { new ConstantToken("''", typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                        ctx.ResultToken = new FunctionToken("CONCAT_WS", new[] { ConstantToken.Create("", db) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     else if (db == DbType.Oracle)
                     {
                         LTSQLToken concat = null;
@@ -381,13 +381,13 @@ namespace MNet.LTSQL.v1
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Contains))
                 {
                     FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
-                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string)),
-                        ctx.MethodParameterTokenList[0] 
+                        ConstantToken.Create('%', ctx.Options.DbType),
+                        ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
                     FunctionToken concat2 = new FunctionToken("CONCAT", new LTSQLToken[] {
                         concat1,
-                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string))
+                        ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
 
                     ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat2, ConditionToken.OPT_LIKE);
@@ -397,7 +397,7 @@ namespace MNet.LTSQL.v1
                 {
                     FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
                         ctx.MethodParameterTokenList[0],
-                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string))
+                        ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
 
                     ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat1, ConditionToken.OPT_LIKE);
@@ -406,7 +406,7 @@ namespace MNet.LTSQL.v1
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
                 {
                     FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
-                        new ConstantToken(DbUtils.ToSqlPart('%', ctx.Options.DbType), typeof(string)),
+                        ConstantToken.Create('%', ctx.Options.DbType),
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
