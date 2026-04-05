@@ -142,6 +142,10 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitPriorityCalcToken(PriorityCalcToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitTokenItemListToken(TokenItemListToken token)
         {
             return this._visitor(token);

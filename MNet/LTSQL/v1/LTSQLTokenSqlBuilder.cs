@@ -253,6 +253,12 @@ namespace MNet.LTSQL.v1
                 ctx.Sql.Append(')');
 
             })
+            .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
+            {
+                ctx.Sql.Append('(');
+                nxt(t.Value);
+                ctx.Sql.Append(')');
+            })
             //.UseTokenBuilder<SqlValueToken>((t, ctx, nxt) => { })
             .UseTokenBuilder<TokenItemListToken>((t, ctx, nxt) => {
                 if (t.Items == null)

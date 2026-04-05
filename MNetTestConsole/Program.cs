@@ -13,7 +13,8 @@ using System.Text;
     5.2 日期函数的相关支持         [ok
 
 优化：
-ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分
+ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分   [ok]
+SqlScopeToken 需要拆分出优先级运算token：PriorityCalcToken
 
 在 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，增加对可空类型的支持
  
