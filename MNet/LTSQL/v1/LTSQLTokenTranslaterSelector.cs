@@ -229,7 +229,7 @@ namespace MNet.LTSQL.v1
                         }
                     }
 
-                    ctx.ResultToken = new ConditionToken(left, right, ConditionToken.OPT_IN);
+                    ctx.ResultToken = new BoolCalcToken(left, right, BoolCalcToken.OPT_IN);
                 }
             });
 
@@ -264,7 +264,7 @@ namespace MNet.LTSQL.v1
                         inner = new SqlScopeToken(new TokenItemListToken(paras));
                     }
 
-                    ctx.ResultToken = new ConditionToken(null, inner, ConditionToken.OPT_EXISTS);
+                    ctx.ResultToken = new BoolCalcToken(null, inner, BoolCalcToken.OPT_EXISTS);
                 }
             });
 
@@ -390,7 +390,7 @@ namespace MNet.LTSQL.v1
                         ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
 
-                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat2, ConditionToken.OPT_LIKE);
+                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat2, BoolCalcToken.OPT_LIKE);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.StartsWith))
@@ -400,7 +400,7 @@ namespace MNet.LTSQL.v1
                         ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
 
-                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat1, ConditionToken.OPT_LIKE);
+                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat1, BoolCalcToken.OPT_LIKE);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
@@ -410,7 +410,7 @@ namespace MNet.LTSQL.v1
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
-                    ctx.ResultToken = new ConditionToken(ctx.OwnerToken, concat1, ConditionToken.OPT_LIKE);
+                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat1, BoolCalcToken.OPT_LIKE);
                 }
             });
 

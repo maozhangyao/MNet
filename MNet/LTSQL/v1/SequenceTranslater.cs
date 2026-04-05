@@ -625,14 +625,14 @@ namespace MNet.LTSQL.v1
 
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
-                    if (t is ConditionToken cdt && (cdt.ConditionType == ConditionToken.OPT_EQUAL || cdt.ConditionType == ConditionToken.OPT_NOT_EQUAL))
+                    if (t is BoolCalcToken cdt && (cdt.ConditionType == BoolCalcToken.OPT_EQUAL || cdt.ConditionType == BoolCalcToken.OPT_NOT_EQUAL))
                     {
-                        string opt = cdt.ConditionType == ConditionToken.OPT_EQUAL ? ConditionToken.OPT_IS : ConditionToken.OPT_IS_NOT;
+                        string opt = cdt.ConditionType == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
 
                         if (cdt.Left is NullToken)
-                            return new ConditionToken(cdt.Right, cdt.Left, opt);
+                            return new BoolCalcToken(cdt.Right, cdt.Left, opt);
                         else if (cdt.Right is NullToken)
-                            return new ConditionToken(cdt.Left, cdt.Right, opt);
+                            return new BoolCalcToken(cdt.Left, cdt.Right, opt);
                     }
                     return t;
                 }) as SqlQueryToken;
@@ -951,11 +951,11 @@ namespace MNet.LTSQL.v1
                         throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
                     
                     //元组中的各个属性做相等操作，用AND操作连接
-                    ConditionToken cur = null;
+                    BoolCalcToken cur = null;
                     for(int i = 0; i < tupl.Props.Length; i++)
                     {
-                        ConditionToken equals = new ConditionToken(tupl.Props[i], tupr.Props[i], "=");
-                        cur = cur == null ? equals : new ConditionToken(cur, equals, "AND");
+                        BoolCalcToken equals = new BoolCalcToken(tupl.Props[i], tupr.Props[i], "=");
+                        cur = cur == null ? equals : new BoolCalcToken(cur, equals, "AND");
                     }
 
                     this.PushToken(new SqlScopeToken(cur));
@@ -984,28 +984,28 @@ namespace MNet.LTSQL.v1
                     binary = BinaryToken.CreateMultiply(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Equal:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_EQUAL);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_EQUAL);
                     break;
                 case ExpressionType.NotEqual:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_NOT_EQUAL);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_NOT_EQUAL);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER_OR_EQUAL);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_GREATER_OR_EQUAL);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS_OR_EQUAL);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_LESS_OR_EQUAL);
                     break;
                 case ExpressionType.LessThan:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_LESS);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_LESS);
                     break;
                 case ExpressionType.GreaterThan:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_GREATER);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_GREATER);
                     break;
                 case ExpressionType.AndAlso:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_AND);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_AND);
                     break;
                 case ExpressionType.OrElse:
-                    binary = new ConditionToken(sqll, sqlr, ConditionToken.OPT_OR);
+                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_OR);
                     break;
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");

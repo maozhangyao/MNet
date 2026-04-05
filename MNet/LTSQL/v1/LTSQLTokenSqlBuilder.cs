@@ -61,7 +61,7 @@ namespace MNet.LTSQL.v1
                 //需要报错，因为 bogusToken 不应该存在
                 throw new Exception($"存在{nameof(BogusToken)}，无法翻译成对应SQL");
             })
-            .UseTokenBuilder<ConditionToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) => {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
                 ctx.Sql.Append(' ');
                 ctx.Sql.Append(t.ConditionType);

@@ -74,7 +74,7 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitConditionToken(ConditionToken token)
+        public virtual LTSQLToken VisitConditionToken(BoolCalcToken token)
         {
             return this._visitor(token);
         }

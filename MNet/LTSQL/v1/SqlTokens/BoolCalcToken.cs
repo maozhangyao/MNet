@@ -5,15 +5,15 @@ using MNet.LTSQL.v1.SqlTokenExtends;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
-    public class ConditionToken : BinaryToken, INotable
+    public class BoolCalcToken : BinaryToken, INotable
     {
         // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
-        public ConditionToken() 
+        public BoolCalcToken() 
         {
             this.ValueType = typeof(bool);
         }
-        public ConditionToken(LTSQLToken left, LTSQLToken right, string opt)
+        public BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt)
         {
             this.Left = left;
             this.Right = right;
@@ -50,15 +50,10 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public LTSQLToken Not()
         {
-            return new ConditionToken(this.Left, this.Right, Not(this.ConditionType));
+            return new BoolCalcToken(this.Left, this.Right, Not(this.ConditionType));
         }
         public static string Not(string opt)
         {
-            if (opt == OPT_AND)
-                return OPT_OR;
-            if (opt == OPT_OR)
-                return OPT_AND;
-
             if (opt == OPT_EQUAL)
                 return OPT_NOT_EQUAL;
             if (opt == OPT_NOT_EQUAL)
