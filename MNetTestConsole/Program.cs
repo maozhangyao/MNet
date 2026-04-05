@@ -16,12 +16,11 @@ using System.Text;
 ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来区分   [ok]
 SqlScopeToken 需要拆分出优先级运算token：PriorityCalcToken          [ok]
 ConditionToken.Not操作不准确：比如不应该支持AND , OR 等操作取反     [ok]
+在翻译条件表达式树过程中， 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，比如：不支持 int == int? ， 增加对可空类型的支持  [ok]
 
  orderby 和 goupby 执行顺序问题
  检查对主流数据库的支持情况
 
- 在 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，增加对可空类型的支持
- 
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况
  表名，字段名的自定义映射
  */
@@ -86,6 +85,7 @@ public class c_persion_t
 {
     public int Id { get; set; }
     public int Age { get; set; }
+
     public string SelfName { get; set; }
     public int FatherId { get; set; }
     public int MotherId { get; set; }

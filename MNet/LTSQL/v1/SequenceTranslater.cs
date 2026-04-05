@@ -939,8 +939,34 @@ namespace MNet.LTSQL.v1
 
             ValueToken vall = left as ValueToken;
             ValueToken valr = right as ValueToken;
+
+            //理论上也不需要验证类型是否相等，因为编译编译通过了就证明类型能够相互转换了
             if (vall.ValueType != valr.ValueType)
-                throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
+            {
+                //对可空类型的检验支持，如：int? 与 int 是相等的
+                Type nullable = typeof(Nullable<>);
+                bool flag1 = vall.ValueType.IsGenericType && (vall.ValueType.GetGenericTypeDefinition() == nullable);
+                bool flag2 = valr.ValueType.IsGenericType && (valr.ValueType.GetGenericTypeDefinition() == nullable);
+                bool flag3 = !flag1 && !flag2; //是否需要异常
+                if (!flag3)
+                {
+                    Type selfType = null;
+                    Type argsType = null;
+                    if (flag1)
+                    {
+                        selfType = valr.ValueType;
+                        argsType = vall.ValueType.GetGenericArguments()[0];
+                    }
+                    else
+                    {
+                        selfType = vall.ValueType;
+                        argsType = valr.ValueType.GetGenericArguments()[0];
+                    }
+                    flag3 = selfType != argsType;
+                }
+                if (flag3)
+                    throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
+            }
 
             if(node.NodeType == ExpressionType.Equal)
             {
@@ -1019,6 +1045,10 @@ namespace MNet.LTSQL.v1
         {
             // not int 支持
             // not exists 支持
+
+            // (int?)val; 类型转换也是一元表达式，需要过滤下
+            if (node.NodeType != ExpressionType.Not)
+                return base.VisitUnary(node);
 
             Expression expr = base.VisitUnary(node);
             if (this.OnTranslateExpression(node, node.Type))
