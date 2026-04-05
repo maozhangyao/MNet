@@ -274,6 +274,11 @@ namespace MNet.LTSQL.v1
                 }
 
             })
+            .UseTokenBuilder<SequenceToken>((t, ctx, nxt) =>
+            {
+                foreach (LTSQLToken token in t)
+                    nxt(t);
+            })
             .UseTokenBuilder<WhereToken>((t, ctx, nxt) => {
                 ctx.Sql.Append(t.WhereOrHaving);
                 ctx.Sql.Append(" ");

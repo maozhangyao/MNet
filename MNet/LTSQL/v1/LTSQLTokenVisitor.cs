@@ -150,6 +150,10 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitSequenceToken(SequenceToken token)
+        {
+            return this._visitor(token);
+        }
     }
 }
  
