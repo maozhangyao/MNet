@@ -22,7 +22,9 @@ namespace MNet.LTSQL.v1
 
             return SequenceToken.Create(
                     item,
+                    SyntaxToken.Create(" "),
                     SyntaxToken.Create("AS"),
+                    SyntaxToken.Create(" "),
                     itemAlias
                 );
         }

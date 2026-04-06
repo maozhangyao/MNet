@@ -16,6 +16,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         public bool Distinct { get; set; }
         //top 子句（sql server 专属）
         public int? MSSQLTopStatement { get; set; }
+
         public LTSQLToken Fields { get; set; }
 
 
