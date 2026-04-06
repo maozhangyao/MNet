@@ -13,17 +13,29 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             this.Text = text;
         }
+        public SyntaxToken(string text, bool escape)
+        {
+            this.Text = text;
+            this.EscapeKey = escape;
+        }
 
 
         public readonly string Text;
+        //是否需要关键字转义
+        public readonly bool EscapeKey;
+
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return Array.Empty<LTSQLToken>();
         }
-        public static SyntaxToken Create(string text) 
+        public static SyntaxToken Create(string text)
         {
             return new SyntaxToken(text);
+        }
+        public static SyntaxToken Create(string text, bool escape)
+        {
+            return new SyntaxToken(text, escape);
         }
         public static SyntaxToken[] CreateBatch(params string[] texts)
         {

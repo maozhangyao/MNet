@@ -331,14 +331,10 @@ namespace MNet.LTSQL.v1
             this.Visit(lambda.Body);
             return this.PopToken();
         }
-        private FromToken TranslateFrom(QueryPart from, ref List<FieldInfoToken> fields)
+        private LTSQLToken TranslateFrom(QueryPart from, ref List<FieldInfoToken> fields)
         {
             var src = this.TranslateQueryPart(from, ref fields);
-            return new FromToken()
-            {
-                FromType = from.MappingType,
-                Source = src
-            };
+            return src;
         }
         private LTSQLToken TranslateQueryPart(QueryPart from, ref List<FieldInfoToken> fields)
         {
@@ -381,8 +377,9 @@ namespace MNet.LTSQL.v1
                     {
                         string fieldAlias = field.Field ?? "transparentField";
                         fields.Add(new FieldInfoToken(
-                                new AliasToken(new ObjectToken(query.Alias), fieldAlias),
-                                fieldAlias
+                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(query.Alias, query.MappingType), fieldAlias, field.AccessType),
+                                fieldAlias,
+                                field.AccessType
                             ));
                     }
                 }
@@ -391,19 +388,19 @@ namespace MNet.LTSQL.v1
             }
             else if (from is TablePart table)
             {
-                var qry = new ObjectToken(table.TableName ?? table.MappingType.Name) { ValueType = table.MappingType };
+                var qry = LTSQLTokenFactory.CreateObjectToken(table.TableName ?? table.MappingType.Name, table.MappingType);
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new ObjectToken(table.Alias), prop.Name);
-                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name));
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(table.Alias, table.MappingType), prop.Name, prop.PropertyType);
+                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.PropertyType));
                 }
                 //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = new ObjectAccessToken(new ObjectToken(table.Alias), prop.Name);
-                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name));
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(table.Alias, table.MappingType), prop.Name, prop.FieldType);
+                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.FieldType));
                 }
                 src = qry;
             }
@@ -411,7 +408,8 @@ namespace MNet.LTSQL.v1
             {
                 throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
             }
-            return new AliasToken(src, from.Alias);
+
+            return LTSQLTokenFactory.CreateAliasToken(src, SyntaxToken.Create(from.Alias, true));
         }
         
         private LTSQLToken TranslateWhere(LambdaExpression wheres)
@@ -499,10 +497,10 @@ namespace MNet.LTSQL.v1
             SequenceToken orderKeys = SequenceToken.CreateWithJoin(orderKeyTokens, separator);
             return orderKeys;
         }
-        private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldResults)
+        private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldInfos)
         {
             bool bflag = false;
-            fieldResults = new List<FieldInfoToken>();
+            fieldInfos = new List<FieldInfoToken>();
             ParameterExpression parameter = selectKey.Parameters[0];
 
             if (this._context.Root.GroupFlag)
@@ -522,15 +520,17 @@ namespace MNet.LTSQL.v1
                 List<LTSQLToken> fields = new List<LTSQLToken>();
                 if (token is TupleToken tuple)
                 {
-                    var select = tuple.Items.Select(p => new AliasToken(p.Item1, p.Item2));
+                    var select = tuple.Items.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item1, SyntaxToken.Create(p.Item2, true)));
 
                     fields.AddRange(select);
-                    fieldResults.AddRange(select.Select(p => new FieldInfoToken(p.Item, p.ItemAlias)));
+                    fieldInfos.AddRange(
+                        tuple.Items.Select(p => new FieldInfoToken(p.Item1, p.Item2, (p.Item1 as ValueToken).ValueType))
+                    );
                 }
                 else
                 {
-                    fields.Add(new AliasToken(token, null));
-                    fieldResults.Add(new FieldInfoToken(token, "transparentField"));
+                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, SyntaxToken.Create("transparentField", true)));
+                    fieldInfos.Add(new FieldInfoToken(token, "transparentField", (token as ValueToken).ValueType));
                 }
 
                 SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
@@ -557,7 +557,11 @@ namespace MNet.LTSQL.v1
             List<FieldInfoToken> fields = new List<FieldInfoToken>();
 
             //from
-            sqlToken.From = this.TranslateFrom(query.From, ref fields);
+            sqlToken.From = SequenceToken.Create(
+                    SyntaxToken.Create("FROM"),
+                    SyntaxToken.Create(" "),
+                    this.TranslateFrom(query.From, ref fields)
+                );
 
             //where
             if (query.Wheres.IsNotEmpty())
@@ -616,7 +620,7 @@ namespace MNet.LTSQL.v1
             }
             else
             {
-                var selectFields = fields.Select(p => new AliasToken(p.Object, p.Field));
+                var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, SyntaxToken.Create(p.Field, true)));
                 selectToken.Fields = SequenceToken.CreateWithJoin(
                         selectFields,
                         SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
@@ -714,10 +718,7 @@ namespace MNet.LTSQL.v1
                 {
                     //默认转换
                     string tableName = mapping.Alias;
-                    this.PushToken(new ObjectToken(tableName)
-                    {
-                        ValueType = node.Type
-                    });
+                    this.PushToken(LTSQLTokenFactory.CreateObjectToken(tableName, node.Type));
                 }
             }
 
@@ -778,7 +779,7 @@ namespace MNet.LTSQL.v1
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(new ObjectToken(mapping.Alias) { ValueType = node.Type });
+                    this.PushToken(LTSQLTokenFactory.CreateObjectToken(mapping.Alias, node.Type, true));
                 }
             }
             //字段访问
@@ -825,8 +826,8 @@ namespace MNet.LTSQL.v1
                     else
                     {
                         //对象访问
-                        this.PushToken(new ObjectAccessToken(objToken, memberName) { ValueType = node.Type });
-                    }   
+                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, memberName, node.Type));
+                    }
                 }
             }
             
@@ -896,11 +897,7 @@ namespace MNet.LTSQL.v1
             }
 
             //sql 函数调用
-            token = new FunctionToken(node.Method.Name)
-            {
-                ValueType = node.Method.ReturnType,
-                Parameters = parameters
-            };
+            token = LTSQLTokenFactory.CreateFunctionCallToken(node.Method.Name, parameters, node.Method.ReturnType);
             this.PushToken(token);
 
             return expr;

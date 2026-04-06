@@ -1,3 +1,5 @@
+using System;
+
 namespace MNet.LTSQL.v1.SqlTokens
 {
     /// <summary>
@@ -5,14 +7,16 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class FieldInfoToken : BogusToken
     {
-        public FieldInfoToken(LTSQLToken obj, string field)
+        public FieldInfoToken(LTSQLToken access, string field, Type accessType)
         {
             this.Field = field;
-            this.Object = obj;
+            this.Access = access;
+            this.AccessType = accessType;
         }
 
         public string Field { get; set; }
-        public LTSQLToken Object { get; set; }
+        public LTSQLToken Access { get; set; }
+        public Type AccessType { get; set; }
     }
 
 }

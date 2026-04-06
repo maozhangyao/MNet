@@ -46,8 +46,8 @@ namespace MNet.LTSQL.v1
             builder
             .UseTokenBuilder<ObjectToken>((t, ctx, nxt) =>
             {
-                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Alias, ctx));
-
+                nxt(t.Alias);
+                
             })
             .UseTokenBuilder<BogusToken>((t, ctx, nxt) =>
             {
@@ -76,16 +76,12 @@ namespace MNet.LTSQL.v1
             })
             .UseTokenBuilder<SyntaxToken>((t, ctx, nxt) =>
             {
-                ctx.Sql.Append(t.Text);
+               ctx.Sql.Append(t.EscapeKey ? ctx.SqlKeyWordEscap(t.Text, ctx) : t.Text);
+
             })
             .UseTokenBuilder<NullToken>((t, ctx, nxt) =>
             {
                 ctx.Sql.Append(t.Value);
-            })
-            .UseTokenBuilder<FromToken>((t, ctx, nxt) => {
-                ctx.Sql.Append("FROM ");
-                nxt(t.Source);
-
             })
             .UseTokenBuilder<JoinToken>((t, ctx, nxt) =>
             {
@@ -109,32 +105,15 @@ namespace MNet.LTSQL.v1
 
                 nxt(t.JoinKeys);
             })
-            .UseTokenBuilder<FunctionToken>((t, ctx, nxt) => {
-                ctx.Sql.Append(t.FunctionName);
-                ctx.Sql.Append('(');
-
-                if(t.Parameters != null)
-                {
-                    bool comma = false;
-                    foreach (var param in t.Parameters)
-                    {
-                        if (comma)
-                            ctx.Sql.Append(',');
-                        nxt(param);
-                        comma = true;
-                    }
-                }
-                
-                ctx.Sql.Append(')');
+            .UseTokenBuilder<FunctionCallToken>((t, ctx, nxt) => {
+                nxt(t.Call);
 
             })
             .UseTokenBuilder<LTSQLToken>((t, ctx, nxt) => { 
                 //理论上不会被调用
             })
             .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) => {
-                nxt(t.Owner);
-                ctx.Sql.Append('.');
-                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Field, ctx));
+                nxt(t.Access);
 
             })
             .UseTokenBuilder<SelectToken>((t, ctx, nxt) => {
@@ -161,12 +140,6 @@ namespace MNet.LTSQL.v1
                     nxt(t.Fields);
                 }
 
-            })
-            .UseTokenBuilder<AliasToken>((t, ctx, nxt) => {
-                nxt(t.Item);
-                ctx.Sql.Append(' ');
-                if(!string.IsNullOrEmpty(t.ItemAlias))
-                    ctx.Sql.Append(ctx.SqlKeyWordEscap(t.ItemAlias, ctx));
             })
             .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) => {
                 //是否参数化

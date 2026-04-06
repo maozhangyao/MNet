@@ -11,24 +11,25 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         public ObjectToken()
         { }
-        public ObjectToken(string alias)
+        public ObjectToken(LTSQLToken alias, Type objectType)
         {
             this.Alias = alias;
         }
 
-        public string Alias { get; set; }
+        public readonly LTSQLToken Alias;
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return Array.Empty<LTSQLToken>();
+            return new[] { this.Alias };
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitObjectToken(this);
         }
+
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            return this;
+            return new ObjectToken(this.Alias.Visit(visitor), this.ValueType);
         }
     }
 }

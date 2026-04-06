@@ -95,7 +95,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("SUM", parameters, sumMethod.ReturnType);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUM", parameters, sumMethod.ReturnType);
             });
 
 
@@ -114,7 +114,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("MAX", parameters, maxMethod.ReturnType);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("MAX", parameters, maxMethod.ReturnType);
             });
 
 
@@ -133,7 +133,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("MIN", parameters, minMethod.ReturnType);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("MIN", parameters, minMethod.ReturnType);
             });
 
 
@@ -152,7 +152,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("AVG", parameters, avgMethod.ReturnType);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("AVG", parameters, avgMethod.ReturnType);
             });
 
 
@@ -171,7 +171,7 @@ namespace MNet.LTSQL.v1
                 GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
                 LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                 if (groupObj != null)
-                    ctx.ResultToken = new FunctionToken("COUNT", (parameters.IsEmpty() ? new[] { SyntaxToken.Create("*") } : parameters), cntMethod.ReturnType);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("COUNT", (parameters.IsEmpty() ? new[] { SyntaxToken.Create("*") } : parameters), cntMethod.ReturnType);
             });
 
 
@@ -312,11 +312,11 @@ namespace MNet.LTSQL.v1
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
                 {
                     if (ctx.Options?.DbType == DbType.MSSQL)
-                        ctx.ResultToken = new FunctionToken("LEN", new[] { ctx.OwnerToken }, typeof(int));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LEN", new[] { ctx.OwnerToken }, typeof(int));
                     else if (ctx.Options?.DbType == DbType.MySQL)
-                        ctx.ResultToken = new FunctionToken("CHAR_LENGTH", new[] { ctx.OwnerToken }, typeof(int));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CHAR_LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                     else
-                        ctx.ResultToken = new FunctionToken("LENGTH", new[] { ctx.OwnerToken }, typeof(int));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                 }
             });
 
@@ -328,9 +328,9 @@ namespace MNet.LTSQL.v1
                 {
                     DbType db = ctx.Options.DbType;
                     if (db == DbType.SQLLite || db == DbType.MSSQL || db == DbType.PGSQL)
-                        ctx.ResultToken = new FunctionToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
                     else if (db == DbType.MySQL)
-                        ctx.ResultToken = new FunctionToken("CONCAT_WS", new[] { ConstantToken.Create("", db) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT_WS", new[] { ConstantToken.Create("", db, typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     else if (db == DbType.Oracle)
                     {
                         LTSQLToken concat = null;
@@ -355,11 +355,11 @@ namespace MNet.LTSQL.v1
                     DbType db = ctx.Options.DbType;
                     if (db == DbType.Oracle || db == DbType.SQLLite)
                     {
-                        ctx.ResultToken = new FunctionToken("SUBSTR", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUBSTR", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     }
                     else if (db == DbType.MySQL || db == DbType.MSSQL || db == DbType.PGSQL)
                     {
-                        ctx.ResultToken = new FunctionToken("SUBSTRING", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUBSTRING", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     }
                 }
             });
@@ -369,16 +369,16 @@ namespace MNet.LTSQL.v1
             defaultTranslater.UseMemberTranslate(ctx => {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.TrimStart))
                 {
-                    ctx.ResultToken = new FunctionToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
                 }
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.TrimEnd))
                 {
-                    ctx.ResultToken = new FunctionToken("RTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("RTRIM", new[] { ctx.OwnerToken }, typeof(string));
                 }
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Trim))
                 {
-                    FunctionToken trimL = new FunctionToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
-                    ctx.ResultToken = new FunctionToken("RTRIM", new[] { trimL }, typeof(string));
+                    LTSQLToken trimL = LTSQLTokenFactory.CreateFunctionCallToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
+                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("RTRIM", new[] { trimL }, typeof(string));
                 }
             });
 
@@ -393,12 +393,12 @@ namespace MNet.LTSQL.v1
                 // liek %xxx%
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Contains))
                 {
-                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                    LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
                         ConstantToken.Create('%', ctx.Options.DbType),
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
-                    FunctionToken concat2 = new FunctionToken("CONCAT", new LTSQLToken[] {
+                    LTSQLToken concat2 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new LTSQLToken[] {
                         concat1,
                         ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
@@ -408,7 +408,7 @@ namespace MNet.LTSQL.v1
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.StartsWith))
                 {
-                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                    LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
                         ctx.MethodParameterTokenList[0],
                         ConstantToken.Create('%', ctx.Options.DbType)
                     }, typeof(string));
@@ -418,7 +418,7 @@ namespace MNet.LTSQL.v1
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
                 {
-                    FunctionToken concat1 = new FunctionToken("CONCAT", new[] {
+                    LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
                         ConstantToken.Create('%', ctx.Options.DbType),
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));

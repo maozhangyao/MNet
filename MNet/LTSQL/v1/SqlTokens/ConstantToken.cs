@@ -33,7 +33,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             return this;
         }
 
-        public static ConstantToken Create(object val, DbType db, Type? typeOfValue = null)
+        public static ConstantToken Create(object val, DbType db, Type typeOfValue = null)
         {
             if (val == null && typeOfValue == null)
                 throw new Exception($"值为null，无法推测出值的类型，请指定{nameof(typeOfValue)}参数");

@@ -6,24 +6,21 @@ namespace MNet.LTSQL.v1.SqlTokens
     // sql 对象的访问
     public class ObjectAccessToken : SqlValueToken
     {
-        public ObjectAccessToken() { }
-        public ObjectAccessToken(LTSQLToken owner, string filed) 
+        public ObjectAccessToken(LTSQLToken access, Type valueOfType) 
         {
-            this.Owner = owner;
-            this.Field = filed;
+            this.Access = access;
+            this.ValueType = valueOfType;
         }
 
-
-        //表名
-        public LTSQLToken Owner { get; set; }
-        //表字段， 注意翻译时需要做关键词转义
-        public string Field { get; set; }
-
+        ////表名
+        //public LTSQLToken Owner { get; set; }
+        //public LTSQLToken Field { get; set; }
+        public LTSQLToken Access { get; set; }
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Owner };
+            return new[] { this.Access };
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -31,7 +28,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Owner = this.Owner.Visit(visitor);
+            this.Access = this.Access.Visit(visitor);
             return this;
         }
     }

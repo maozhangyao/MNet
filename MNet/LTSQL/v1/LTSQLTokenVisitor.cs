@@ -86,15 +86,11 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token); 
         }
-        public virtual LTSQLToken VisitFromToken(FromToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitJoinToken(JoinToken token)
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitFunctionToken(FunctionToken token)
+        public virtual LTSQLToken VisitFunctionCallToken(FunctionCallToken token)
         {
             return this._visitor(token);
         }
@@ -103,10 +99,6 @@ namespace MNet.LTSQL.v1
             return this._visitor(token);
         }
         public virtual LTSQLToken VisitSelectToken(SelectToken token)
-        {
-            return this._visitor(token);
-        }
-        public virtual LTSQLToken VisitAliasToken(AliasToken token)
         {
             return this._visitor(token);
         }
