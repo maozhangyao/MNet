@@ -377,7 +377,7 @@ namespace MNet.LTSQL.v1
                     {
                         string fieldAlias = field.Field ?? "transparentField";
                         fields.Add(new FieldInfoToken(
-                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(query.Alias, query.MappingType), fieldAlias, field.AccessType),
+                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(query.Alias, query.MappingType), fieldAlias, field.AccessType),
                                 fieldAlias,
                                 field.AccessType
                             ));
@@ -388,18 +388,18 @@ namespace MNet.LTSQL.v1
             }
             else if (from is TablePart table)
             {
-                var qry = LTSQLTokenFactory.CreateObjectToken(table.TableName ?? table.MappingType.Name, table.MappingType);
+                var qry = LTSQLTokenFactory.CreateTableObjectToken(table.TableName ?? table.MappingType.Name, table.MappingType);
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(table.Alias, table.MappingType), prop.Name, prop.PropertyType);
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), prop.Name, prop.PropertyType);
                     fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.PropertyType));
                 }
                 //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateObjectToken(table.Alias, table.MappingType), prop.Name, prop.FieldType);
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), prop.Name, prop.FieldType);
                     fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.FieldType));
                 }
                 src = qry;
@@ -718,7 +718,7 @@ namespace MNet.LTSQL.v1
                 {
                     //默认转换
                     string tableName = mapping.Alias;
-                    this.PushToken(LTSQLTokenFactory.CreateObjectToken(tableName, node.Type));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
                 }
             }
 
@@ -779,7 +779,7 @@ namespace MNet.LTSQL.v1
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(LTSQLTokenFactory.CreateObjectToken(mapping.Alias, node.Type, true));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(mapping.Alias, node.Type, true));
                 }
             }
             //字段访问

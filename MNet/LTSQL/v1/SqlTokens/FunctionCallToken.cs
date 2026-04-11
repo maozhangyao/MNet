@@ -1,24 +1,26 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
     public class FunctionCallToken : SqlValueToken
     {
-        public FunctionCallToken(LTSQLToken call, Type typeOfValue)
+        public FunctionCallToken(LTSQLToken fObj, LTSQLToken[] args, Type typeOfValue)
         {
-            this.Call = call;
+            this.FunctionObject = fObj;
+            this.Parameters = args ?? new LTSQLToken[0];
             this.ValueType = typeOfValue;
         }
 
-        public readonly LTSQLToken FunctionName;
+        public readonly LTSQLToken FunctionObject;
         public readonly LTSQLToken[] Parameters;
 
         public readonly LTSQLToken Call;
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
-            return new[] { this.Call };
+            return new LTSQLToken[] { this.FunctionObject }.Concat(this.Parameters);
         }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -27,7 +29,12 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            return new FunctionCallToken(this.Call.Visit(visitor), this.ValueType);
+            LTSQLToken fObj = this.FunctionObject.Visit(visitor);
+            LTSQLToken[] args = new LTSQLToken[this.Parameters.Length];
+            for (int i = 0; i < this.Parameters.Length; i++)
+                args[i] = this.Parameters[i].Visit(visitor);
+
+            return new FunctionCallToken(fObj, args, this.ValueType);
         }
     }
 }

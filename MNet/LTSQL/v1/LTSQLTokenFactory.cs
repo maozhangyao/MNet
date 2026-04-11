@@ -28,14 +28,6 @@ namespace MNet.LTSQL.v1
                     itemAlias
                 );
         }
-        /// <summary>
-        /// 构造形如： table.field as field1 的命名语法token
-        /// </summary>
-        /// <returns></returns>
-        public static LTSQLToken CreateAliasToken(LTSQLToken item, string itemAlias)
-        {
-            return CreateAliasToken(item, SyntaxToken.Create(itemAlias, true));
-        }
 
         /// <summary>
         /// 构造形如： table.field 的访问语法
@@ -69,18 +61,22 @@ namespace MNet.LTSQL.v1
             return CreateAccessToken(obj, SyntaxToken.Create(prop, true), propType);
         }
 
+        public static LTSQLToken CreateFunctionObjectToken(string fName, Type fType = null)
+        {
+            return CreateObjectToken(SqlObjectType.Function, fName, fType);
+        }
         /// <summary>
         /// 构建一个对象名称，如：表名
         /// </summary>
         /// <param name="objName">在数据库中表示的对象名称</param>
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
         /// <returns></returns>
-        public static LTSQLToken CreateObjectToken(string objName, Type objType)
+        public static LTSQLToken CreateTableObjectToken(string objName, Type objType)
         {
             if (objName == null)
                 throw new ArgumentNullException(nameof(objName));
-
-            return CreateObjectToken(
+    
+            return CreateTableObjectToken(
                     objName
                     , objType
                     , true
@@ -93,13 +89,14 @@ namespace MNet.LTSQL.v1
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
         /// <param name="escapeKey"></param>
         /// <returns></returns>
-        public static LTSQLToken CreateObjectToken(string objName, Type objType, bool escapeKey)
+        public static LTSQLToken CreateTableObjectToken(string objName, Type objType, bool escapeKey)
         {
             if (objName == null)
                 throw new ArgumentNullException(nameof(objName));
 
             return CreateObjectToken(
-                    SyntaxToken.Create(objName, escapeKey)
+                    SqlObjectType.Table
+                    , objName
                     , objType
                 );
         }
@@ -109,11 +106,12 @@ namespace MNet.LTSQL.v1
         /// <param name="obj">在数据库中表示的对象名称</param>
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
         /// <returns></returns>
-        public static LTSQLToken CreateObjectToken(LTSQLToken obj, Type objType)
+        public static LTSQLToken CreateObjectToken(SqlObjectType objType, string obj, Type typeOfObj)
         {
             return new ObjectToken(
-                    obj
-                    , objType
+                    objType
+                    , obj
+                    , typeOfObj
                 );
         }
         
@@ -167,7 +165,7 @@ namespace MNet.LTSQL.v1
         /// <returns></returns>
         public static LTSQLToken CreateFunctionCallToken(string fName, LTSQLToken[] parameters, Type returnType)
         {
-            return CreateFunctionCallToken(SyntaxToken.Create(fName, false), parameters, returnType);
+            return CreateFunctionCallToken(CreateFunctionObjectToken(fName, returnType), parameters, returnType);
         }
         /// <summary>
         /// 构造函数调用
@@ -181,7 +179,8 @@ namespace MNet.LTSQL.v1
             if (fName == null)
                 throw new ArgumentNullException(nameof(fName));
 
-            return new FunctionCallToken(CreateCallToken(fName, parameters), returnType);
+            parameters = parameters ?? new LTSQLToken[0];
+            return new FunctionCallToken(fName, parameters, returnType);
         }
     }
 }

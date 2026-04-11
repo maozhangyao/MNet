@@ -46,15 +46,13 @@ namespace MNet.LTSQL.v1
             builder
             .UseTokenBuilder<ObjectToken>((t, ctx, nxt) =>
             {
-                nxt(t.Alias);
-                
+                if (t.ObjectType == SqlObjectType.Table)
+                    ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Alias, ctx));
+                else
+                    ctx.Sql.Append(t.Alias);
             })
-            .UseTokenBuilder<BogusToken>((t, ctx, nxt) =>
+            .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) =>
             {
-                //需要报错，因为 bogusToken 不应该存在
-                throw new Exception($"存在{nameof(BogusToken)}，无法翻译成对应SQL");
-            })
-            .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) => {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
                 ctx.Sql.Append(' ');
                 ctx.Sql.Append(t.ConditionType);
@@ -71,12 +69,13 @@ namespace MNet.LTSQL.v1
                 nxt(t.Right);
 
             })
-            .UseTokenBuilder<ConstantToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<ConstantToken>((t, ctx, nxt) =>
+            {
                 ctx.Sql.Append(t.Value);
             })
             .UseTokenBuilder<SyntaxToken>((t, ctx, nxt) =>
             {
-               ctx.Sql.Append(t.EscapeKey ? ctx.SqlKeyWordEscap(t.Text, ctx) : t.Text);
+                ctx.Sql.Append(t.EscapeKey ? ctx.SqlKeyWordEscap(t.Text, ctx) : t.Text);
 
             })
             .UseTokenBuilder<NullToken>((t, ctx, nxt) =>
@@ -105,18 +104,36 @@ namespace MNet.LTSQL.v1
 
                 nxt(t.JoinKeys);
             })
-            .UseTokenBuilder<FunctionCallToken>((t, ctx, nxt) => {
-                nxt(t.Call);
+            .UseTokenBuilder<FunctionCallToken>((t, ctx, nxt) =>
+            {
+                nxt(t.FunctionObject);
+                ctx.Sql.Append("(");
+                if (t.Parameters != null)
+                {
+                    bool comma = false;
+                    foreach (LTSQLToken arg in t.Parameters)
+                    {
+                        if (comma)
+                            ctx.Sql.Append(", ");
+                        else
+                            comma = true;
+                        nxt(arg);
+                    }
+                }
+                ctx.Sql.Append(")");
 
             })
-            .UseTokenBuilder<LTSQLToken>((t, ctx, nxt) => { 
+            .UseTokenBuilder<LTSQLToken>((t, ctx, nxt) =>
+            {
                 //理论上不会被调用
             })
-            .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) =>
+            {
                 nxt(t.Access);
 
             })
-            .UseTokenBuilder<SelectToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<SelectToken>((t, ctx, nxt) =>
+            {
                 ctx.Sql.Append("SELECT ");
 
                 if (t.Distinct)
@@ -141,7 +158,8 @@ namespace MNet.LTSQL.v1
                 }
 
             })
-            .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) =>
+            {
                 //是否参数化
                 if (ctx.UseParameter)
                 {
@@ -157,11 +175,12 @@ namespace MNet.LTSQL.v1
                 }
 
             })
-            .UseTokenBuilder<SqlQueryToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<SqlQueryToken>((t, ctx, nxt) =>
+            {
                 nxt(t.Select);
                 ctx.Sql.AppendLine();
                 nxt(t.From);
-                
+
                 if (t.Where != null)
                 {
                     ctx.Sql.AppendLine();
@@ -189,7 +208,8 @@ namespace MNet.LTSQL.v1
                 }
 
             })
-            .UseTokenBuilder<SqlScopeToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<SqlScopeToken>((t, ctx, nxt) =>
+            {
                 ctx.Sql.Append('(');
                 nxt(t.Inner);
                 ctx.Sql.Append(')');
@@ -206,7 +226,8 @@ namespace MNet.LTSQL.v1
                 foreach (LTSQLToken token in t)
                     nxt(token);
             })
-            .UseTokenBuilder<PageToken>((t, ctx, nxt) => {
+            .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
+            {
                 if (ctx.DbType == DbType.MySQL || ctx.DbType == DbType.SQLLite)
                 {
                     // 使用 limit 子句分页
@@ -274,10 +295,12 @@ namespace MNet.LTSQL.v1
 
             Type type = typeof(T);
             int index = this._builders.FindIndex(p => p.Item1 == type);
-            (Type, Action<LTSQLToken, SqlBuilderContext, Action<LTSQLToken>>) item = (type, (t, b, nxt) => {
+            (Type, Action<LTSQLToken, SqlBuilderContext, Action<LTSQLToken>>) item = (type, (t, b, nxt) =>
+            {
                 if (t is T t1)
                     builder(t1, b, nxt);
-            });
+            }
+            );
 
             if (index >= 0)
                 this._builders[index] = item;
@@ -286,6 +309,6 @@ namespace MNet.LTSQL.v1
 
             return this;
         }
-     
+
     }
 }

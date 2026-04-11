@@ -43,4 +43,7 @@ namespace MNet.LTSQL.v1.SqlTokens
             return tokens;
         }
     }
+
+    public class SqlTxt 
+    { }
 }
