@@ -527,6 +527,11 @@ namespace MNet.LTSQL.v1
                         tuple.Items.Select(p => new FieldInfoToken(p.Item1, p.Item2, (p.Item1 as ValueToken).ValueType))
                     );
                 }
+                else if (token is ObjectAccessToken access)
+                {
+                    fields.Add(LTSQLTokenFactory.CreateAliasToken(access, access.Prop));
+                    fieldInfos.Add(new FieldInfoToken(access, access.Prop, access.ValueType));
+                }
                 else
                 {
                     fields.Add(LTSQLTokenFactory.CreateAliasToken(token, "transparentField"));
@@ -587,6 +592,7 @@ namespace MNet.LTSQL.v1
                 this._context.GroupElement = groupEle;
             }
 
+            //having
             if (query.Havings.IsNotEmpty())
             {
                 LTSQLToken condition = this.TranslateHaving(query.Havings[0] as LambdaExpression);
@@ -636,7 +642,7 @@ namespace MNet.LTSQL.v1
             //分页子句
             else if (query.Skip != null || query.Take != null)
             {
-                sqlToken.Page = LTSQLTokenFactory.CreatePageToken((int)query.Skip, (int)query.Take);
+                sqlToken.Page = LTSQLTokenFactory.CreatePageToken(query.Skip, query.Take);
             }
 
             sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);

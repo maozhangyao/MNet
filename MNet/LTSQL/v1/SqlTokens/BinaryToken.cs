@@ -37,7 +37,7 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             LTSQLToken left = this.Left?.Visit(visitor); // 比如 exists 就没有 left
             LTSQLToken right = this.Right?.Visit(visitor);
-            return new BinaryToken(this.Opration, this.Left, this.Right, this.ValueType);
+            return new BinaryToken(this.Opration, left, right, this.ValueType);
         }
     }
 }

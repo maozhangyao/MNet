@@ -26,8 +26,8 @@ namespace MNet.LTSQL.v1
             LTSQLTokenVisitor v = new LTSQLTokenVisitor();
             v._visitor = t =>
             {
-                var _new = t.VisitChildren(v);
-                return visitor(t) ?? _new;
+                var slef = t.VisitChildren(v);
+                return visitor(slef ?? t);
             };
 
             return token.Visit(v);

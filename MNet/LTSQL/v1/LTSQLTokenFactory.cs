@@ -168,7 +168,7 @@ namespace MNet.LTSQL.v1
                 Value = DbUtils.ToSqlPart(null, db)
             };
         }
-        public static PageToken CreatePageToken(int skip, int take)
+        public static PageToken CreatePageToken(int? skip, int? take)
         {
             return new PageToken(skip, take);
         }
