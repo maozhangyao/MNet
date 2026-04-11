@@ -12,11 +12,11 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class SequenceToken : LTSQLToken, IContainerable
     {
-        public SequenceToken(params LTSQLToken[] tokens)
+        private SequenceToken(params LTSQLToken[] tokens)
         {
             this.Tokens = tokens;
         }
-        public SequenceToken(IEnumerable<LTSQLToken> tokens)
+        private SequenceToken(IEnumerable<LTSQLToken> tokens)
         {
             this.Tokens = tokens?.ToArray();
         }
@@ -32,10 +32,8 @@ namespace MNet.LTSQL.v1.SqlTokens
         {
             return (this.Tokens as IEnumerable<LTSQLToken>)?.GetEnumerator();
         }
-        public static SequenceToken Create(IEnumerable<LTSQLToken> tokens)
-        {
-            return new SequenceToken(tokens);
-        }
+
+
         public static SequenceToken Create(params LTSQLToken[] tokens)
         {
             return new SequenceToken(tokens);

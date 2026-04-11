@@ -225,7 +225,7 @@ namespace MNet.LTSQL.v1
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = new SqlScopeToken(
+                            right = LTSQLTokenFactory.CreateSqlScopeToken(
                                 SequenceToken.CreateWithJoin(
                                     paras,
                                     SequenceToken.Create(
@@ -236,7 +236,7 @@ namespace MNet.LTSQL.v1
                         }
                     }
 
-                    ctx.ResultToken = new BoolCalcToken(left, right, BoolCalcToken.OPT_IN);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right);
                 }
             });
 
@@ -268,7 +268,7 @@ namespace MNet.LTSQL.v1
                         foreach (object item in list)
                             paras.Add(ctx.TokenSqlParameter(item));
 
-                        inner = new SqlScopeToken(SequenceToken.CreateWithJoin(
+                        inner = LTSQLTokenFactory.CreateSqlScopeToken(SequenceToken.CreateWithJoin(
                                     paras,
                                     SequenceToken.Create(
                                         SyntaxToken.Create(" "),
@@ -277,7 +277,7 @@ namespace MNet.LTSQL.v1
                                 ));
                     }
 
-                    ctx.ResultToken = new BoolCalcToken(null, inner, BoolCalcToken.OPT_EXISTS);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_EXISTS, null, inner);
                 }
             });
 
@@ -295,7 +295,7 @@ namespace MNet.LTSQL.v1
                         //调用 FirstOrDefault 之后需要调整参数
                         MethodInfo method = ctx.Member as MethodInfo;
                         method.Invoke(null, new[] { query }); //直接调用静态方法：LTSQLQueryableExtensions.FirstOrDefault, 其内部会做相关处理
-                        ctx.ResultToken = new SqlParameterToken(p.ParameterName, query, method.ReturnType);
+                        ctx.ResultToken = LTSQLTokenFactory.CreateSqlParameterToken(p.ParameterName, query, method.ReturnType);
                     }
                 }
             });
@@ -330,7 +330,7 @@ namespace MNet.LTSQL.v1
                     if (db == DbType.SQLLite || db == DbType.MSSQL || db == DbType.PGSQL)
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
                     else if (db == DbType.MySQL)
-                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT_WS", new[] { ConstantToken.Create("", db, typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT_WS", new[] { LTSQLTokenFactory.CreateConstantToken("", db, typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     else if (db == DbType.Oracle)
                     {
                         LTSQLToken concat = null;
@@ -342,7 +342,7 @@ namespace MNet.LTSQL.v1
                                 concat = new BinaryToken("||", concat, token, typeof(string));
                         }
 
-                        ctx.ResultToken = concat != null ? new SqlScopeToken(concat) : null;
+                        ctx.ResultToken = concat != null ? LTSQLTokenFactory.CreatePriorityCalcToken(concat as SqlValueToken) : null;
                     }
                 }
             });
@@ -394,36 +394,36 @@ namespace MNet.LTSQL.v1
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Contains))
                 {
                     LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
-                        ConstantToken.Create('%', ctx.Options.DbType),
+                        LTSQLTokenFactory.CreateConstantToken('%', ctx.Options.DbType),
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
                     LTSQLToken concat2 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new LTSQLToken[] {
                         concat1,
-                        ConstantToken.Create('%', ctx.Options.DbType)
+                        LTSQLTokenFactory.CreateConstantToken('%', ctx.Options.DbType)
                     }, typeof(string));
 
-                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat2, BoolCalcToken.OPT_LIKE);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, concat2);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.StartsWith))
                 {
                     LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
                         ctx.MethodParameterTokenList[0],
-                        ConstantToken.Create('%', ctx.Options.DbType)
+                        LTSQLTokenFactory.CreateConstantToken('%', ctx.Options.DbType)
                     }, typeof(string));
 
-                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat1, BoolCalcToken.OPT_LIKE);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, concat1);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
                 {
                     LTSQLToken concat1 = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", new[] {
-                        ConstantToken.Create('%', ctx.Options.DbType),
+                        LTSQLTokenFactory.CreateConstantToken('%', ctx.Options.DbType),
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
-                    ctx.ResultToken = new BoolCalcToken(ctx.OwnerToken, concat1, BoolCalcToken.OPT_LIKE);
+                    ctx.ResultToken =  LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, concat1);
                 }
             });
 

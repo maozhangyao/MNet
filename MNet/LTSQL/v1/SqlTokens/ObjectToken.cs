@@ -9,7 +9,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class ObjectToken : ValueToken
     {
-        public ObjectToken(SqlObjectType objectType, string objectName, Type typeOfObject)
+        internal ObjectToken(SqlObjectType objectType, string objectName, Type typeOfObject)
         {
             this.Alias = objectName;
             this.ObjectType = objectType;

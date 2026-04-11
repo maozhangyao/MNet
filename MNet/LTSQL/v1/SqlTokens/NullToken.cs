@@ -7,7 +7,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class NullToken : ConstantToken
     {
-        private NullToken(Type valueTypeOfNull) : base(null, valueTypeOfNull)
+        internal NullToken(Type valueTypeOfNull) : base(null, valueTypeOfNull)
         { }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)

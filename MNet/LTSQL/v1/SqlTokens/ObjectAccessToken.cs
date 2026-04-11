@@ -6,7 +6,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     // sql 对象的访问
     public class ObjectAccessToken : SqlValueToken
     {
-        public ObjectAccessToken(LTSQLToken obj, string prop, Type valueOfType) 
+        internal ObjectAccessToken(LTSQLToken obj, string prop, Type valueOfType) 
         {
             this.Prop = prop;
             this.Object = obj;

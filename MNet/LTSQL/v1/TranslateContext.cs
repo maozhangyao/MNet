@@ -64,14 +64,9 @@ namespace MNet.LTSQL.v1
 
             return args.ToArray();
         }
-        public SqlParameterToken TokenSqlParameter(object value)
+        public SqlParameterToken TokenSqlParameter(object value, Type type = null)
         {
-            return new SqlParameterToken()
-            {
-                Value = value,
-                ValueType = value.GetType(),
-                ParameterName = this.ParameterNameGenerator.Next()
-            };
+            return LTSQLTokenFactory.CreateSqlParameterToken(this.ParameterNameGenerator.Next(), value, type ?? value.GetType());
         }
         internal void ClearProps()
         {

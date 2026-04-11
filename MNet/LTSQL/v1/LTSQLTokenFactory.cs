@@ -144,5 +144,76 @@ namespace MNet.LTSQL.v1
             parameters = parameters ?? new LTSQLToken[0];
             return new FunctionCallToken(fName, parameters, returnType);
         }
+
+        /// <summary>
+        /// sql硬编码常量
+        /// </summary>
+        /// <param name="val"></param>
+        /// <param name="db"></param>
+        /// <param name="typeOfValue"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static ConstantToken CreateConstantToken(object val, DbType db, Type typeOfValue = null)
+        {
+            if (val == null && typeOfValue == null)
+                throw new Exception($"值为null，无法推测出值的类型，请指定{nameof(typeOfValue)}参数");
+
+            string str = DbUtils.ToSqlPart(val, db);
+            return new ConstantToken(str, typeOfValue ?? val.GetType());
+        }
+        public static NullToken CreateNullToken(Type valueTypeOfNull, DbType db)
+        {
+            return new NullToken(valueTypeOfNull)
+            {
+                Value = DbUtils.ToSqlPart(null, db)
+            };
+        }
+        public static PageToken CreatePageToken(int skip, int take)
+        {
+            return new PageToken(skip, take);
+        }
+        public static SqlScopeToken CreateSqlScopeToken(LTSQLToken inner)
+        {
+            if(inner == null)
+                throw new ArgumentNullException(nameof(inner));
+
+            return new SqlScopeToken(inner);
+        }
+        public static PriorityCalcToken CreatePriorityCalcToken(SqlValueToken inner)
+        {
+            if (inner == null)
+                throw new ArgumentNullException(nameof(inner));
+
+            return new PriorityCalcToken(inner);
+        }
+
+        public static BinaryToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        {
+            return CreateBinaryToken("+", left, right, typeOfValue);
+        }
+        public static BinaryToken CreateSubtract(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        {
+            return CreateBinaryToken("-", left, right, typeOfValue);
+        }
+        public static BinaryToken CreateDivide(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        {
+            return CreateBinaryToken("/", left, right, typeOfValue);
+        }
+        public static BinaryToken CreateMultiply(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        {
+            return CreateBinaryToken("*", left, right, typeOfValue);
+        }
+        public static BinaryToken CreateBinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        {
+            return new BinaryToken(opt, left, right, typeOfValue);
+        }
+        public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right)
+        {
+            return new BoolCalcToken(left, right, opt);
+        }
+        public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
+        {
+            return new SqlParameterToken(pName, value, valueType);
+        }
     }
 }

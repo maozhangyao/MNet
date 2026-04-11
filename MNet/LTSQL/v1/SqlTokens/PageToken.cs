@@ -4,18 +4,20 @@ using System.Text;
 
 namespace MNet.LTSQL.v1.SqlTokens
 {
+    /// <summary>
+    /// 分页语句
+    /// </summary>
     public class PageToken : LTSQLToken
     {
-        public PageToken()
-        { }
-        public PageToken(int? skip, int? take)
+        internal PageToken(int? skip, int? take)
         {
             this.Skip = skip;
             this.Take = take;
         }
 
-        public int? Skip { get; set; }
-        public int? Take { get; set; }
+
+        public readonly int? Skip;
+        public readonly int? Take;
 
 
         public override IEnumerable<LTSQLToken> GetChildren()

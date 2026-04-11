@@ -10,9 +10,9 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class BinaryToken : SqlValueToken
     {
-        public BinaryToken()
+        internal BinaryToken()
         { }
-        public BinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        internal BinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
             this.Opration = opt;
             this.Left = left;
@@ -20,11 +20,10 @@ namespace MNet.LTSQL.v1.SqlTokens
             this.ValueType = typeOfValue;
         }
 
-        public string Opration { get; set; }
+        public readonly string Opration;
         //exists 运算没有 left
-        public LTSQLToken Left { get; set; }
-        public LTSQLToken Right { get; set; }
-
+        public readonly LTSQLToken Left;
+        public readonly LTSQLToken Right;
 
         public override IEnumerable<LTSQLToken> GetChildren()
         {
@@ -36,28 +35,9 @@ namespace MNet.LTSQL.v1.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Left = this.Left?.Visit(visitor); // 比如 exists 就没有 left
-            this.Right = this.Right?.Visit(visitor);
-            return this;
-        }
-
-        public static BinaryToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
-        {
-            return new BinaryToken("+", left, right, typeOfValue);
-        }
-        public static BinaryToken CreateSubtract(LTSQLToken left, LTSQLToken right, Type typeOfValue)
-        {
-            return new BinaryToken("-", left, right, typeOfValue);
-        }
-        public static BinaryToken CreateDivide(LTSQLToken left, LTSQLToken right, Type typeOfValue)
-        {
-            return new BinaryToken("/", left, right, typeOfValue);
-        }
-        public static BinaryToken CreateMultiply(LTSQLToken left, LTSQLToken right, Type typeOfValue)
-        {
-            return new BinaryToken("*", left, right, typeOfValue);
+            LTSQLToken left = this.Left?.Visit(visitor); // 比如 exists 就没有 left
+            LTSQLToken right = this.Right?.Visit(visitor);
+            return new BinaryToken(this.Opration, this.Left, this.Right, this.ValueType);
         }
     }
-
-
 }

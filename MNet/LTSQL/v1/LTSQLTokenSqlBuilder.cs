@@ -61,7 +61,7 @@ namespace MNet.LTSQL.v1
             {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
                 ctx.Sql.Append(' ');
-                ctx.Sql.Append(t.ConditionType);
+                ctx.Sql.Append(t.Opration);
                 ctx.Sql.Append(' ');
                 nxt(t.Right);
 
@@ -128,10 +128,6 @@ namespace MNet.LTSQL.v1
                 }
                 ctx.Sql.Append(")");
 
-            })
-            .UseTokenBuilder<LTSQLToken>((t, ctx, nxt) =>
-            {
-                //理论上不会被调用
             })
             .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) =>
             {

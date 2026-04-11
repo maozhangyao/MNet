@@ -9,7 +9,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class PriorityCalcToken : SqlValueToken, INotable
     {
-        public PriorityCalcToken(SqlValueToken inner)
+        internal PriorityCalcToken(SqlValueToken inner)
         {
             this.Value = inner;
             this.ValueType = inner?.ValueType;

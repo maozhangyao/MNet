@@ -6,7 +6,7 @@ namespace MNet.LTSQL.v1.SqlTokens
 {
     public class FunctionCallToken : SqlValueToken
     {
-        public FunctionCallToken(LTSQLToken fObj, LTSQLToken[] args, Type typeOfValue)
+        internal FunctionCallToken(LTSQLToken fObj, LTSQLToken[] args, Type typeOfValue)
         {
             this.FunctionObject = fObj;
             this.Parameters = args ?? new LTSQLToken[0];

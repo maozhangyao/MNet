@@ -10,7 +10,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     public class AliasToken : LTSQLToken
     {
-        public AliasToken(LTSQLToken obj, string alias)
+        internal AliasToken(LTSQLToken obj, string alias)
         {
             this.Object = obj;
             this.Alias = alias;

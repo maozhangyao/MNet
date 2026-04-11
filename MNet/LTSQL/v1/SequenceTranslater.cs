@@ -383,7 +383,7 @@ namespace MNet.LTSQL.v1
                             ));
                     }
                 }
-                qry = new SqlScopeToken(qry);
+                qry = LTSQLTokenFactory.CreateSqlScopeToken(qry);
                 src = qry;
             }
             else if (from is TablePart table)
@@ -636,7 +636,7 @@ namespace MNet.LTSQL.v1
             //分页子句
             else if (query.Skip != null || query.Take != null)
             {
-                sqlToken.Page = new PageToken(query.Skip, query.Take);
+                sqlToken.Page = LTSQLTokenFactory.CreatePageToken((int)query.Skip, (int)query.Take);
             }
 
             sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
@@ -653,7 +653,7 @@ namespace MNet.LTSQL.v1
                     {
                         LTSQLToken subQueryToken = new SequenceTranslater()
                        .Translate(subquery.Query, this._scope.NewScope());
-                        return new SqlScopeToken(subQueryToken);
+                        return LTSQLTokenFactory.CreatePriorityCalcToken(subQueryToken as SqlQueryToken);
                     }
                 }
                 return t;
@@ -665,20 +665,20 @@ namespace MNet.LTSQL.v1
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
                     if (t is SqlParameterToken p && p.Value == null)
-                        return NullToken.Create(p.ValueType, this._context.Options.DbType);
+                        return LTSQLTokenFactory.CreateNullToken(p.ValueType, this._context.Options.DbType);
                     return t;
                 }) as SqlQueryToken;
 
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
-                    if (t is BoolCalcToken cdt && (cdt.ConditionType == BoolCalcToken.OPT_EQUAL || cdt.ConditionType == BoolCalcToken.OPT_NOT_EQUAL))
+                    if (t is BoolCalcToken cdt && (cdt.Opration == BoolCalcToken.OPT_EQUAL || cdt.Opration == BoolCalcToken.OPT_NOT_EQUAL))
                     {
-                        string opt = cdt.ConditionType == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
+                        string opt = cdt.Opration == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
 
                         if (cdt.Left is NullToken)
-                            return new BoolCalcToken(cdt.Right, cdt.Left, opt);
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Right, cdt.Left);
                         else if (cdt.Right is NullToken)
-                            return new BoolCalcToken(cdt.Left, cdt.Right, opt);
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Left, cdt.Right);
                     }
                     return t;
                 }) as SqlQueryToken;
@@ -732,7 +732,7 @@ namespace MNet.LTSQL.v1
                 return node;
             }
 
-            this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
+            this.PushToken(LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), node.Value, node.Type));
             return base.VisitConstant(node);
         }
         //字段或者属性
@@ -752,7 +752,7 @@ namespace MNet.LTSQL.v1
                     return expr;
 
                 object val = this.PropOrFieldValue(node.Member, null);
-                this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Type });
+                this.PushToken(LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), val, node.Type));
                 return expr;
             }
 
@@ -800,7 +800,7 @@ namespace MNet.LTSQL.v1
                     {
                         //对象访问
                         object val = this.PropOrFieldValue(node.Member, obj);
-                        this.PushToken(new SqlParameterToken(p.ParameterName, val) { ValueType = node.Type });
+                        this.PushToken(LTSQLTokenFactory.CreateSqlParameterToken(p.ParameterName, val, node.Type));
                     }
                 }
                 //非常量(表)
@@ -860,7 +860,7 @@ namespace MNet.LTSQL.v1
                 if (node.Arguments.Count == 0)
                 {
                     val = node.Method.Invoke(null, null);
-                    token = new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Method.ReturnType };
+                    token = LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), val, node.Method.ReturnType);
                     this.PushToken(token);
                     return expr;
                 }
@@ -869,7 +869,7 @@ namespace MNet.LTSQL.v1
                     throw new Exception($"静态方法引用动态参数值，无法继续转换：{node}");
 
                 val = node.Method.Invoke(null, parameters.Select(p => ((SqlParameterToken)p).Value).ToArray());
-                token = new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Method.ReturnType };
+                token = LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), val, node.Method.ReturnType);
                 this.PushToken(token);
                 return expr;
             }
@@ -891,7 +891,7 @@ namespace MNet.LTSQL.v1
                     throw new Exception($"实例对象为null，无法求值：{node}");
 
                 val = node.Method.Invoke(inst.Value, parameters.Select(p => ((SqlParameterToken)p).Value).ToArray());
-                token = new SqlParameterToken(this._context.ParameterNameGenerator.Next(), val) { ValueType = node.Method.ReturnType };
+                token = LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), val, node.Method.ReturnType);
                 this.PushToken(token);
                 return expr;
             }
@@ -919,7 +919,7 @@ namespace MNet.LTSQL.v1
             }
 
             //访问到lambda表达式，表示某些函数求值，其入参为lambda函数
-            this.PushToken(new SqlParameterToken(this._context.ParameterNameGenerator.Next(), node) { ValueType = node.Type });
+            this.PushToken(LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), node, node.Type));
             return node;
         }
         //new 表达式
@@ -1019,11 +1019,11 @@ namespace MNet.LTSQL.v1
                     BoolCalcToken cur = null;
                     for(int i = 0; i < tupl.Props.Length; i++)
                     {
-                        BoolCalcToken equals = new BoolCalcToken(tupl.Props[i], tupr.Props[i], "=");
-                        cur = cur == null ? equals : new BoolCalcToken(cur, equals, "AND");
+                        BoolCalcToken equals = LTSQLTokenFactory.CreateBoolCalcToken("=", tupl.Props[i], tupr.Props[i]);
+                        cur = cur == null ? equals : LTSQLTokenFactory.CreateBoolCalcToken("AND", cur, equals);
                     }
 
-                    this.PushToken(new SqlScopeToken(cur));
+                    this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(cur));
                     return expr;
                 }
             }
@@ -1037,46 +1037,46 @@ namespace MNet.LTSQL.v1
             switch (node.NodeType)
             {
                 case ExpressionType.Add:
-                    binary = BinaryToken.CreateAdd(sqll, sqlr, node.Type);
+                    binary = LTSQLTokenFactory.CreateAdd(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Subtract:
-                    binary = BinaryToken.CreateSubtract(sqll, sqlr, node.Type);
+                    binary = LTSQLTokenFactory.CreateSubtract(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Divide:
-                    binary = BinaryToken.CreateDivide(sqll, sqlr, node.Type);
+                    binary = LTSQLTokenFactory.CreateDivide(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Multiply:
-                    binary = BinaryToken.CreateMultiply(sqll, sqlr, node.Type);
+                    binary = LTSQLTokenFactory.CreateMultiply(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Equal:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_EQUAL);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.NotEqual:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_NOT_EQUAL);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_NOT_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_GREATER_OR_EQUAL);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_GREATER_OR_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_LESS_OR_EQUAL);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LESS_OR_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.LessThan:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_LESS);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LESS, sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThan:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_GREATER);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_GREATER, sqll, sqlr);
                     break;
                 case ExpressionType.AndAlso:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_AND);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_AND, sqll, sqlr);
                     break;
                 case ExpressionType.OrElse:
-                    binary = new BoolCalcToken(sqll, sqlr, BoolCalcToken.OPT_OR);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_OR, sqll, sqlr);
                     break;
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
 
-            this.PushToken(new SqlScopeToken(binary));
+            this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(binary));
             return expr;
         }
         //一元表达式：主要是取反操作，not exists 以及 not in 等

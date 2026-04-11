@@ -9,16 +9,8 @@ namespace MNet.LTSQL.v1.SqlTokens
     {
         // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
-        public BoolCalcToken() 
+        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt) : base(opt, left, right, typeof(bool))
         {
-            this.ValueType = typeof(bool);
-        }
-        public BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt)
-        {
-            this.Left = left;
-            this.Right = right;
-            this.ConditionType = opt;
-            this.Opration = opt;
             this.ValueType = typeof(bool);
         }
 
@@ -44,13 +36,9 @@ namespace MNet.LTSQL.v1.SqlTokens
         public readonly static string OPT_EXISTS = "EXISTS";
         public readonly static string OPT_NOT_EXISTS = "NOT EXISTS";
 
-
-        public string ConditionType { get; set; }
-
-
         public LTSQLToken Not()
         {
-            return new BoolCalcToken(this.Left, this.Right, Not(this.ConditionType));
+            return new BoolCalcToken(this.Left, this.Right, Not(this.Opration));
         }
         public static string Not(string opt)
         {

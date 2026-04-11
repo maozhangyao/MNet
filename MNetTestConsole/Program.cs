@@ -17,8 +17,10 @@ ConstantToken 类设计优化，硬编码和SQL值分离， 增加文本Token来
 SqlScopeToken 需要拆分出优先级运算token：PriorityCalcToken          [ok]
 ConditionToken.Not操作不准确：比如不应该支持AND , OR 等操作取反     [ok]
 在翻译条件表达式树过程中， 关系比较(> = <)和算数运算中(+ - * /)，对可空类型和非可空类型的处理不够友好，比如：不支持 int == int? ， 增加对可空类型的支持  [ok]
+SyntaxToken 增加 关键字转移开关：实现统一的关键字转义 [ok]
 
-SyntaxToken 增加 关键字转移开关：实现统一的关键字转义
+在 where a.field == ().firstOrdefault() 场景如何解决
+boolCaclToken 与 binaryToken 做部分合并，boolCaclToken中只能包含bool操作， < > >= <= != 等操作不属于bool操作
 
 SequenceToken
  orderby 和 goupby 执行顺序问题

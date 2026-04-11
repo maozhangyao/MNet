@@ -6,15 +6,7 @@ namespace MNet.LTSQL.v1.SqlTokens
     //sql 参数
     public class SqlParameterToken : SqlValueToken
     {
-        public SqlParameterToken() 
-        { }
-        public SqlParameterToken(string pName, object value)
-        {
-            this.Value = value;
-            this.ParameterName = pName;
-            this.ValueType = value?.GetType();
-        }
-        public SqlParameterToken(string pName, object value, Type valueType)
+        internal SqlParameterToken(string pName, object value, Type valueType)
         {
             this.Value = value;
             this.ParameterName = pName;
@@ -23,9 +15,9 @@ namespace MNet.LTSQL.v1.SqlTokens
 
 
         //值
-        public object Value { get; set; }
+        public readonly object Value;
         //参数名
-        public string ParameterName { get; set; }
+        public readonly string ParameterName;
 
 
         public override IEnumerable<LTSQLToken> GetChildren()
