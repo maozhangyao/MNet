@@ -1055,22 +1055,22 @@ namespace MNet.LTSQL.v1
                     binary = LTSQLTokenFactory.CreateMultiply(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Equal:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.NotEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_NOT_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_NOT_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_GREATER_OR_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_GREATER_OR_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LESS_OR_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_LESS_OR_EQUAL, sqll, sqlr);
                     break;
                 case ExpressionType.LessThan:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LESS, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_LESS, sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThan:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_GREATER, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_GREATER, sqll, sqlr);
                     break;
                 case ExpressionType.AndAlso:
                     binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_AND, sqll, sqlr);

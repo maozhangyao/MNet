@@ -25,6 +25,16 @@ namespace MNet.LTSQL.v1.SqlTokens
         public readonly LTSQLToken Left;
         public readonly LTSQLToken Right;
 
+        //标准的二元操作符
+        public readonly static string OPT_EQUAL = "=";
+        public readonly static string OPT_NOT_EQUAL = "<>";
+        public readonly static string OPT_GREATER = ">";
+        public readonly static string OPT_GREATER_OR_EQUAL = ">=";
+        public readonly static string OPT_LESS = "<";
+        public readonly static string OPT_LESS_OR_EQUAL = "<=";
+
+
+
         public override IEnumerable<LTSQLToken> GetChildren()
         {
             return (new[] { this.Left, this.Right }).Where(p => p != null);

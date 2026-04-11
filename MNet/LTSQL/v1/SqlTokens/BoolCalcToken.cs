@@ -17,21 +17,13 @@ namespace MNet.LTSQL.v1.SqlTokens
 
         public readonly static string OPT_AND = "AND";
         public readonly static string OPT_OR = "OR";
-
-        public readonly static string OPT_EQUAL = "=";
-        public readonly static string OPT_NOT_EQUAL = "<>";
-        public readonly static string OPT_GREATER = ">";
-        public readonly static string OPT_GREATER_OR_EQUAL = ">=";
-        public readonly static string OPT_LESS = "<";
-        public readonly static string OPT_LESS_OR_EQUAL = "<=";
-        
         public readonly static string OPT_IN = "IN";
         public readonly static string OPT_NOT_IN = "NOT IN";
         public readonly static string OPT_LIKE = "LIKE";
         public readonly static string OPT_NOT_LIKE = "NOT LIKE";
         public readonly static string OPT_IS = "IS";
         public readonly static string OPT_IS_NOT = "IS NOT";
-        public readonly static string OPT_BETWEEN = "BETWEEN";
+        public readonly static string OPT_BETWEEN = "BETWEEN"; 
         public readonly static string OPT_NOT_BETWEEN = "NOT BETWEEN";
         public readonly static string OPT_EXISTS = "EXISTS";
         public readonly static string OPT_NOT_EXISTS = "NOT EXISTS";
