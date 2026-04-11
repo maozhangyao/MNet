@@ -144,14 +144,14 @@ namespace MNet.LTSQL.v1
                     ctx.Sql.Append("DISTINCT ");
                 }
 
-                if (t.MSSQLTopStatement != null)
+                if (t.TopLimit != null)
                 {
                     ctx.Sql.Append("TOP ");
-                    ctx.Sql.Append(t.MSSQLTopStatement);
+                    ctx.Sql.Append(t.TopLimit);
                     ctx.Sql.Append(' ');
                 }
 
-                if (t.AllFields)
+                if (t.Asterisk)
                 {
                     ctx.Sql.Append("*");
                 }

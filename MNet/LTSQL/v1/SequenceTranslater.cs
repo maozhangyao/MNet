@@ -616,37 +616,39 @@ namespace MNet.LTSQL.v1
             }
 
             //select
-            sqlToken.Select = new SelectToken();
-
-            SelectToken selectToken = sqlToken.Select as SelectToken;
-            selectToken.Distinct = query.Distinct; //distinct 子句
+            SelectToken select = null;
             if (query.SelectKey != null)
             {
-                selectToken.Fields = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
+                select.Fields = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
             }
-            else
+            if(select == null)
             {
                 var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
-                selectToken.Fields = SequenceToken.CreateWithJoin(
+                select.Fields = SequenceToken.CreateWithJoin(
                         selectFields,
                         SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
                     );
             }
-            
-            
-            //sql server top 子句支持
-            if (query.Skip == null && query.Take != null && this._context.Options?.DbType == DbType.MSSQL)
+           
+            //分页
+            if (query.Skip != null || query.Take != null)
             {
-                selectToken.MSSQLTopStatement = query.Take;
-            }
-            //分页子句
-            else if (query.Skip != null || query.Take != null)
-            {
-                sqlToken.Page = LTSQLTokenFactory.CreatePageToken(query.Skip, query.Take);
+                if(query.Skip == null && this._context.Options?.DbType == DbType.MSSQL)
+                {
+                    //sql server 的 top 语法
+                    select.TopLimit = query.Take;
+                }
+                else
+                {
+                    sqlToken.Page = LTSQLTokenFactory.CreatePageToken(query.Skip, query.Take);
+                }
             }
 
-            sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
+
+            select.Distinct = query.Distinct; //distinct 子句
+            sqlToken.Select = select;
             sqlToken.DefaultFields = fields;
+            sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
 
 
             //内联查询翻译
@@ -664,6 +666,7 @@ namespace MNet.LTSQL.v1
                 }
                 return t;
             }) as SqlQueryToken;
+
 
             //null 等式处理
             if (!this._context.Options.DisNullable)

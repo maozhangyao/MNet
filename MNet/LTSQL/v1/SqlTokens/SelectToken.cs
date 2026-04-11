@@ -11,12 +11,11 @@ namespace MNet.LTSQL.v1.SqlTokens
 
 
         // 是否 select * 
-        public bool AllFields { get; set; }
+        public bool Asterisk { get; set; }
         //distinct 子句
         public bool Distinct { get; set; }
         //top 子句（sql server 专属）
-        public int? MSSQLTopStatement { get; set; }
-
+        public int? TopLimit { get; set; }
         public LTSQLToken Fields { get; set; }
 
 
