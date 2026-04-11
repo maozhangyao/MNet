@@ -2,6 +2,7 @@ using MNet.LTSQL.v1.SqlTokens;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Xml.Linq;
 
@@ -13,27 +14,21 @@ namespace MNet.LTSQL.v1
         /// 构造形如： table.field as field1 的命名语法token
         /// </summary>
         /// <returns></returns>
-        public static LTSQLToken CreateAliasToken(LTSQLToken item, LTSQLToken itemAlias)
+        public static LTSQLToken CreateAliasToken(LTSQLToken item, string alias)
         {
             if (item == null)
                 throw new ArgumentNullException(nameof(item));
-            if (itemAlias == null)
-                throw new ArgumentNullException(nameof(itemAlias));
+            if (alias == null)
+                throw new ArgumentNullException(nameof(alias));
 
-            return SequenceToken.Create(
-                    item,
-                    SyntaxToken.Create(" "),
-                    SyntaxToken.Create("AS"),
-                    SyntaxToken.Create(" "),
-                    itemAlias
-                );
+            return new AliasToken(item, alias);
         }
 
         /// <summary>
         /// 构造形如： table.field 的访问语法
         /// </summary>
         /// <returns></returns>
-        public static LTSQLToken CreateAccessToken(LTSQLToken obj, LTSQLToken prop, Type propType)
+        public static LTSQLToken CreateAccessToken(LTSQLToken obj, string prop, Type propType)
         {
             if (obj == null)
                 throw new ArgumentNullException(nameof(obj));
@@ -43,22 +38,7 @@ namespace MNet.LTSQL.v1
                 throw new ArgumentNullException(nameof(propType));
 
 
-            return new ObjectAccessToken(
-                    SequenceToken.Create(
-                        obj,
-                        SyntaxToken.Create("."),
-                        prop
-                    ),
-                    propType
-                );
-        }
-        /// <summary>
-        /// 构造形如： table.field 的访问语法
-        /// </summary>
-        /// <returns></returns>
-        public static LTSQLToken CreateAccessToken(LTSQLToken obj, string prop, Type propType)
-        {
-            return CreateAccessToken(obj, SyntaxToken.Create(prop, true), propType);
+            return new ObjectAccessToken(obj, prop, propType);
         }
 
         public static LTSQLToken CreateFunctionObjectToken(string fName, Type fType = null)
@@ -66,7 +46,7 @@ namespace MNet.LTSQL.v1
             return CreateObjectToken(SqlObjectType.Function, fName, fType);
         }
         /// <summary>
-        /// 构建一个对象名称，如：表名
+        /// 构建表对象
         /// </summary>
         /// <param name="objName">在数据库中表示的对象名称</param>
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
@@ -76,24 +56,6 @@ namespace MNet.LTSQL.v1
             if (objName == null)
                 throw new ArgumentNullException(nameof(objName));
     
-            return CreateTableObjectToken(
-                    objName
-                    , objType
-                    , true
-                );
-        }
-        /// <summary>
-        /// 构建一个对象名称，如：表名
-        /// </summary>
-        /// <param name="objName">在数据库中表示的对象名称</param>
-        /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
-        /// <param name="escapeKey"></param>
-        /// <returns></returns>
-        public static LTSQLToken CreateTableObjectToken(string objName, Type objType, bool escapeKey)
-        {
-            if (objName == null)
-                throw new ArgumentNullException(nameof(objName));
-
             return CreateObjectToken(
                     SqlObjectType.Table
                     , objName

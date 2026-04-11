@@ -51,6 +51,12 @@ namespace MNet.LTSQL.v1
                 else
                     ctx.Sql.Append(t.Alias);
             })
+            .UseTokenBuilder<AliasToken>((t, ctx, nxt) =>
+            {
+                nxt(t.Object);
+                ctx.Sql.Append(" AS ");
+                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Alias, ctx));
+            })
             .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) =>
             {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
@@ -129,8 +135,9 @@ namespace MNet.LTSQL.v1
             })
             .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) =>
             {
-                nxt(t.Access);
-
+                nxt(t.Object);
+                ctx.Sql.Append('.');
+                ctx.Sql.Append(ctx.SqlKeyWordEscap(t.Prop, ctx));
             })
             .UseTokenBuilder<SelectToken>((t, ctx, nxt) =>
             {

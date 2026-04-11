@@ -409,7 +409,7 @@ namespace MNet.LTSQL.v1
                 throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
             }
 
-            return LTSQLTokenFactory.CreateAliasToken(src, SyntaxToken.Create(from.Alias, true));
+            return LTSQLTokenFactory.CreateAliasToken(src, from.Alias);
         }
         
         private LTSQLToken TranslateWhere(LambdaExpression wheres)
@@ -520,7 +520,7 @@ namespace MNet.LTSQL.v1
                 List<LTSQLToken> fields = new List<LTSQLToken>();
                 if (token is TupleToken tuple)
                 {
-                    var select = tuple.Items.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item1, SyntaxToken.Create(p.Item2, true)));
+                    var select = tuple.Items.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item1, p.Item2));
 
                     fields.AddRange(select);
                     fieldInfos.AddRange(
@@ -529,7 +529,7 @@ namespace MNet.LTSQL.v1
                 }
                 else
                 {
-                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, SyntaxToken.Create("transparentField", true)));
+                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, "transparentField"));
                     fieldInfos.Add(new FieldInfoToken(token, "transparentField", (token as ValueToken).ValueType));
                 }
 
@@ -620,7 +620,7 @@ namespace MNet.LTSQL.v1
             }
             else
             {
-                var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, SyntaxToken.Create(p.Field, true)));
+                var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
                 selectToken.Fields = SequenceToken.CreateWithJoin(
                         selectFields,
                         SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
@@ -779,7 +779,7 @@ namespace MNet.LTSQL.v1
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(mapping.Alias, node.Type, true));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(mapping.Alias, node.Type));
                 }
             }
             //字段访问

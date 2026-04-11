@@ -66,6 +66,10 @@ namespace MNet.LTSQL.v1
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitAliasToken(AliasToken token)
+        {
+            return this._visitor(token); 
+        }
         public virtual LTSQLToken VisitBinaryToken(BinaryToken token)
         {
             return this._visitor(token);
