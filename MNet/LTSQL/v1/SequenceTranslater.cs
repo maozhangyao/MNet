@@ -33,6 +33,7 @@ namespace MNet.LTSQL.v1
         //复用对象，用于扩展翻译上下文，避免频繁创建对象
         private TranslateContext _templateContext;
         private List<(Expression, LTSQLToken)> _tokenInsteadList;
+        private Stack<(Expression expr, LTSQLToken token)> _parameTokens;
 
 
         private LTSQLToken PopToken()
@@ -103,27 +104,37 @@ namespace MNet.LTSQL.v1
 
             return context.TableAliasMapping;
         }
-        private void UnUseSpecialToken(Expression expr)
+        private void UnUseSpecialToken()
         {
-            if (this._tokenInsteadList == null)
-                return;
-            this._tokenInsteadList.RemoveAll(p => object.ReferenceEquals(p.Item1, expr));
-        }
-        private LTSQLToken GetSpecialTokenInstead(Expression expr)
-        {
-            if (this._tokenInsteadList == null)
-                return null;
-
-            return this._tokenInsteadList.FirstOrDefault(p => object.ReferenceEquals(p.Item1, expr)).Item2;
-        }
-        private void UseSpecialTokenInstead(Expression expr, LTSQLToken token)
-        {
-            this._tokenInsteadList ??= new List<(Expression, LTSQLToken)>();
-            this._tokenInsteadList.Add((expr, token));
+            this._parameTokens.Pop();
         }
 
-        
-
+        private void UseProfixToken(Expression expr, string prefix, TableAliasMapping mapping)
+        {
+            PrefixPropToken token = new PrefixPropToken(prefix);
+            token.AliasMapping = mapping;
+            this._parameTokens.Push((expr, token));
+        }
+        private void UseGroupObjToken(Expression expr, LTSQLToken groupKey, LTSQLToken groupEle)
+        {
+            GroupObjToken gobj = new GroupObjToken();
+            gobj.GroupKey = groupKey;
+            gobj.Element = groupEle;
+            this._parameTokens.Push((expr, gobj));
+        }
+        private void UseToken(Expression expr, LTSQLToken token)
+        {
+            this._parameTokens.Push((expr, token));
+        }
+        private LTSQLToken PopParameterToken(Expression expr)
+        {
+            if (this._parameTokens.Count > 0)
+            {
+                if (this._parameTokens.Peek().expr == expr)
+                    return this._parameTokens.Peek().token;
+            }
+            return null;
+        }
 
         //递归分配表命名
         private void AssignTableAlias()
@@ -211,8 +222,8 @@ namespace MNet.LTSQL.v1
                 query.Havings.Add(merge);
             }
 
-            //排序
-            if (query.Orders.IsNotEmpty())
+            //排序（仅在不存在分组的情况下才有替换参数的意义）
+            if (query.Orders.IsNotEmpty() && !query.GroupFlag)
             {
                 foreach (var orderItem in query.Orders)
                 {
@@ -417,7 +428,11 @@ namespace MNet.LTSQL.v1
             if (wheres == null)
                 return null;
 
+            this.UseProfixToken(wheres.Parameters[0], this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
+
             LTSQLToken token = this.TranslateLambda(wheres);
+
+            this.UnUseSpecialToken();
             return token;
         }
         private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle , out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
@@ -429,13 +444,18 @@ namespace MNet.LTSQL.v1
             //分组元素翻译
             if (groupEle != null)
             {
+                this.UseProfixToken(groupEle.Parameters[0], this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
                 groupEleToken = this.TranslateLambda(groupEle);
+                this.UnUseSpecialToken();
             }
 
             //分组依据翻译
             if (groupKey != null)
             {
+                this.UseProfixToken(groupKey.Parameters[0], this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
                 groupKeyToken = this.TranslateLambda(groupKey);
+                this.UnUseSpecialToken();
+
                 if (groupKeyToken is TupleToken tuple)
                     groupKeyTokens.AddRange(tuple.Props.ToArray());
                 else
@@ -452,26 +472,16 @@ namespace MNet.LTSQL.v1
                 return null;
 
             ParameterExpression parameter = havings.Parameters[0];
-
-            //构造分组对象，将分组键和分组元素作为属性，供后续的表达式访问，便于判断聚合函数处理的时机
-            GroupObjToken groupToken = new GroupObjToken();
-            groupToken.GroupKey = this._context.GroupKey;
-            groupToken.Element = this._context.GroupElement;
-            groupToken.ValueType = parameter.Type;
-            this.UseSpecialTokenInstead(parameter, groupToken);
-
             try
             {
+                this.UseGroupObjToken(havings.Parameters[0], this._context.GroupKey, this._context.GroupElement);
                 LTSQLToken token = this.TranslateLambda(havings);
+                this.UnUseSpecialToken();
                 return token;
             }
             catch (Exception ex)
             {
                 throw;
-            }
-            finally
-            {
-                this.UnUseSpecialToken(parameter);
             }
         }
         private LTSQLToken TranslateOrder(List<OrderKeyPart> orders)
@@ -479,11 +489,17 @@ namespace MNet.LTSQL.v1
             if (orders.IsEmpty())
                 return null;
 
+            bool group = this._context.Root.GroupFlag;
             List<LTSQLToken> orderKeyTokens = new List<LTSQLToken>();
             foreach (OrderKeyPart getKey in orders)
             {
-                LTSQLToken token = this.TranslateLambda(getKey.Key as LambdaExpression);
+                LambdaExpression lambda = getKey.Key as LambdaExpression;
+                if (group)
+                    this.UseGroupObjToken(lambda.Parameters[0], this._context.GroupKey, this._context.GroupElement);
+                else
+                    this.UseProfixToken(lambda.Parameters[0], this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
 
+                LTSQLToken token = this.TranslateLambda(lambda);
                 orderKeyTokens.Add(
                     SequenceToken.Create(
                         token,
@@ -491,6 +507,8 @@ namespace MNet.LTSQL.v1
                         SyntaxToken.Create(getKey.Asc ? "ASC" : "DESC")
                         )
                     );
+
+                this.UnUseSpecialToken();
             }
 
             SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
@@ -499,24 +517,21 @@ namespace MNet.LTSQL.v1
         }
         private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldInfos)
         {
-            bool bflag = false;
+            bool group = this._context.Root.GroupFlag;
             fieldInfos = new List<FieldInfoToken>();
             ParameterExpression parameter = selectKey.Parameters[0];
 
-            if (this._context.Root.GroupFlag)
-            {
-                //构造分组对象，将分组键和分组元素作为属性，供后续的表达式访问，便于判断聚合函数处理的时机
-                GroupObjToken groupToken = new GroupObjToken();
-                groupToken.GroupKey = this._context.GroupKey;
-                groupToken.Element = this._context.GroupElement;
-                groupToken.ValueType = parameter.Type;
-                this.UseSpecialTokenInstead(parameter, groupToken);
-                bflag = true;
-            }
-
             try
             {
+                if (group)
+                    this.UseGroupObjToken(selectKey.Parameters[0], this._context.GroupKey, this._context.GroupElement);
+                else
+                    this.UseProfixToken(selectKey.Parameters[0], this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
+
                 LTSQLToken token = this.TranslateLambda(selectKey);
+
+                this.UnUseSpecialToken();
+
                 List<LTSQLToken> fields = new List<LTSQLToken>();
                 if (token is TupleToken tuple)
                 {
@@ -547,8 +562,8 @@ namespace MNet.LTSQL.v1
             }
             finally
             {
-                if (bflag)
-                    this.UnUseSpecialToken(parameter);
+                //if (bflag)
+                //    this.UnUseSpecialToken(parameter);
             }
         }
         //开始翻译
@@ -571,6 +586,8 @@ namespace MNet.LTSQL.v1
             //where
             if (query.Wheres.IsNotEmpty())
             {
+                //this.UseProfixToken(this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
+
                 LTSQLToken condition = this.TranslateWhere(query.Wheres[0] as LambdaExpression);
                 sqlToken.Where = SequenceToken.Create(
                         SyntaxToken.Create("WHERE"),
@@ -582,7 +599,10 @@ namespace MNet.LTSQL.v1
             //group by
             if (query.GroupFlag)
             {
-                LTSQLToken groupKeys = this.TranslateGroup(query.GroupKey as LambdaExpression, query.GroupElement as LambdaExpression, out LTSQLToken groupKey, out LTSQLToken groupEle);
+                LambdaExpression lambda1 = query.GroupKey as LambdaExpression;
+                LambdaExpression lambda2 = query.GroupElement as LambdaExpression;
+                
+                LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, out LTSQLToken groupKey, out LTSQLToken groupEle);
                 sqlToken.Group = SequenceToken.Create(
                         SyntaxToken.Create("GROUP BY"),
                         SyntaxToken.Create(" "),
@@ -590,11 +610,15 @@ namespace MNet.LTSQL.v1
                     );
                 this._context.GroupKey = groupKey;
                 this._context.GroupElement = groupEle;
+
+
             }
 
             //having
             if (query.Havings.IsNotEmpty())
             {
+                //this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
+
                 LTSQLToken condition = this.TranslateHaving(query.Havings[0] as LambdaExpression);
                 sqlToken.Having = SequenceToken.Create(
                         SyntaxToken.Create("HAVING"),
@@ -606,6 +630,9 @@ namespace MNet.LTSQL.v1
             //order by
             if (query.Orders.IsNotEmpty())
             {
+                //if(query.GroupFlag)
+                //    this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
+
                 LTSQLToken orderKeys = this.TranslateOrder(query.Orders);
                 SequenceToken orderBy = SequenceToken.Create(
                         SyntaxToken.Create("ORDER BY"),
@@ -619,11 +646,17 @@ namespace MNet.LTSQL.v1
             SelectToken select = null;
             if (query.SelectKey != null)
             {
+                //if (query.GroupFlag)
+                //    this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
+
+                select = new SelectToken();
                 select.Fields = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
             }
             if(select == null)
             {
                 var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
+
+                select = new SelectToken();
                 select.Fields = SequenceToken.CreateWithJoin(
                         selectFields,
                         SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
@@ -701,34 +734,63 @@ namespace MNet.LTSQL.v1
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            //内部token替换
-            LTSQLToken tokenInstead = this.GetSpecialTokenInstead(node);
-            if (tokenInstead != null)
-            {
-                this.PushToken(tokenInstead);
-                return node;
-            }
+            LTSQLToken token = this.PopParameterToken(node);
+            PrefixPropToken prefix = token as PrefixPropToken;
 
-            //确定参数范围
-            TableAliasMapping mapping = this.GetRootTableAliasMapping(node.Name);
-            if(mapping.Alias == null)
+            if (token == null)
             {
-                //忽略掉join 过程中的 属性前缀链
-                this.PushToken(new PrefixPropToken(node.Name)
+                //确定参数范围
+                TableAliasMapping mapping = this.GetRootTableAliasMapping(node.Name);
+                if (mapping.Alias == null)
                 {
-                    ValueType = node.Type,
-                    AliasMapping = mapping
-                });
+                    //忽略掉join 过程中的 属性前缀链
+                    this.PushToken(new PrefixPropToken(node.Name)
+                    {
+                        ValueType = node.Type,
+                        AliasMapping = mapping
+                    });
+                }
+                else
+                {
+                    //外部转换优先
+                    if (!this.OnTranslateExpression(node, node.Type))
+                    {
+                        //默认转换
+                        string tableName = mapping.Alias;
+                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
+                    }
+                }
+            }
+            else if (prefix != null)
+            {
+                if (prefix.AliasMapping.Alias == null)
+                {
+                    //忽略掉join 过程中的 属性前缀链
+                    this.PushToken(prefix);
+                }
+                else
+                {
+                    //外部转换优先
+                    if (!this.OnTranslateExpression(node, node.Type))
+                    {
+                        string tableName = prefix.AliasMapping.Alias;
+                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
+                    }
+                }
+            }
+            else if (token != null)
+            {
+                //外部转换优先
+                if (!this.OnTranslateExpression(node, node.Type))
+                {
+                    this.PushToken(token);
+                }
             }
             else
             {
                 //外部转换优先
                 if (!this.OnTranslateExpression(node, node.Type))
-                {
-                    //默认转换
-                    string tableName = mapping.Alias;
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
-                }
+                    throw new Exception($"无法解析参数节点：{node}");
             }
 
             return base.VisitParameter(node);
@@ -920,10 +982,12 @@ namespace MNet.LTSQL.v1
             if (token is GroupObjToken groupToken)
             {
                 //表示开始对分组对象的聚合函数作翻译，需要解析lambda表达式作为聚合函数的参数
-                ParameterExpression parameter = node.Parameters[0];
-                this.UseSpecialTokenInstead(parameter, this._context.GroupElement);
+
+                //this.UseGroupObjToken(node.Parameters[0], this._context.GroupKey, this._context.GroupElement);
+                //this.UseProfixToken(node.Parameters[0], )
+                this.UseToken(node.Parameters[0], this._context.GroupElement);
                 this.Visit(node.Body);
-                this.UnUseSpecialToken(parameter);
+                this.UnUseSpecialToken();
                 return node;
             }
 
@@ -1133,6 +1197,7 @@ namespace MNet.LTSQL.v1
             this._context = scope.Context;
             this._context.Root = query; 
             this._tokens = new Stack<LTSQLToken>();
+            this._parameTokens = new Stack<(Expression expr, LTSQLToken token)>();
 
             return this.TranslateCore();
         }

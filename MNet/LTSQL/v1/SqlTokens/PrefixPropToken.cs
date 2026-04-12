@@ -9,8 +9,6 @@ namespace MNet.LTSQL.v1.SqlTokens
     /// </summary>
     internal class PrefixPropToken : BogusToken
     {
-        public PrefixPropToken() 
-        { }
         public PrefixPropToken(string prefix)
         {
             this.ObjPrefix = prefix;

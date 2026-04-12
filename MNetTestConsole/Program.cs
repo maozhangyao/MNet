@@ -49,8 +49,13 @@ var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
              join p3 in p.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
-             where p1.Id > 0
-             select new { Id = p1.Id, Name = p1.SelfName, MName = p2.SelfName, FName = p3.SelfName };
+             group new {Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id} by new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } into gs
+             where gs.Key.Id1 + gs.Key.Id2 + gs.Key.Id3 > 0
+             orderby gs.Key.Id1 + gs.Key.Id3
+             select new {
+                 Min = gs.Min(p => p.Id1),
+                 Max = gs.Min(p => p.Id3)
+             };
 
 
 LTSQLOptions options = new LTSQLOptions
