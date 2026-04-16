@@ -32,7 +32,6 @@ namespace MNet.LTSQL
         private Stack<LTSQLToken> _tokens;
         //复用对象，用于扩展翻译上下文，避免频繁创建对象
         private TranslateContext _templateContext;
-        private List<(Expression, LTSQLToken)> _tokenInsteadList;
         private Stack<(Expression expr, LTSQLToken token)> _parameTokens;
 
 
