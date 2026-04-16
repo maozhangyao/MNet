@@ -9,7 +9,6 @@ namespace MNet.Utils
 {
     public static class EnumerableExtensions
     {
-
 #if NET10_0_OR_GREATER
         extension(IEnumerable list)
         {

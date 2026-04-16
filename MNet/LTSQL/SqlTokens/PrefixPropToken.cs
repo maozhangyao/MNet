@@ -1,0 +1,20 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace MNet.LTSQL.SqlTokens
+{
+    /// <summary>
+    /// 用于计算表名的过渡token
+    /// </summary>
+    internal class PrefixPropToken : BogusToken
+    {
+        public PrefixPropToken(string prefix)
+        {
+            this.ObjPrefix = prefix;
+        }
+
+        public string ObjPrefix { get; set; }
+        public TableAliasMapping AliasMapping { get; set; }
+    }
+}
