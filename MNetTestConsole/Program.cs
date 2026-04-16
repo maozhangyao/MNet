@@ -17,9 +17,6 @@ using System.Text;
  */
 
 
-
-string n = null;
-int i = 0;
 c_persion_t p = new c_persion_t();
 var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
@@ -57,33 +54,23 @@ LTSQLOptions options = new LTSQLOptions
 //token 化
 LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
 
-
-//生成的sql语句
-StringBuilder builder = new StringBuilder();
-//如果参数化，则SQL语句依赖的 sql 参数
-Dictionary<string, object> sqlParamemters = new Dictionary<string, object>();
-
 try
 {
-
     //sql化
     ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
-    sqlBuilder.Build(token, new SqlBuilderContext
-    {
-        DbType = options.DbType,
-        UseParameter = options.UseSqlParameter,
-        Sql = builder,
-        SqlParameters = sqlParamemters
-    });
-
+    SqlBuilderContext ctx = new SqlBuilderContext();
+    ctx.DbType = options.DbType;
+    ctx.UseParameter = options.UseSqlParameter;
+    ctx.SqlWriterFactory = () => new LTSQLWriter(true);
+    sqlBuilder.Build(token, ctx);
+    
+    ConsoleHelper.WriteLineWithYellow(ctx.Sql);
 }
 catch (Exception ex)
 {
-
+    ConsoleHelper.WriteLineWithRed(ex);
     throw;
 }
-ConsoleHelper.WriteLineWithYellow(builder);
-
 
 return 0;
 
