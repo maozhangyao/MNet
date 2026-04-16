@@ -112,14 +112,16 @@ namespace MNet.LTSQL
         {
             PrefixPropToken token = new PrefixPropToken(prefix);
             token.AliasMapping = mapping;
-            this._parameTokens.Push((expr, token));
+            this.UseToken(expr, token);
+            //this._parameTokens.Push((expr, token));
         }
         private void UseGroupObjToken(Expression expr, LTSQLToken groupKey, LTSQLToken groupEle)
         {
             GroupObjToken gobj = new GroupObjToken();
             gobj.GroupKey = groupKey;
             gobj.Element = groupEle;
-            this._parameTokens.Push((expr, gobj));
+            //this._parameTokens.Push((expr, gobj));
+            this.UseToken(expr, gobj);
         }
         private void UseToken(Expression expr, LTSQLToken token)
         {
