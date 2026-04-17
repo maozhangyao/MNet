@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace MNet.LTSQL.SqlTokens
@@ -15,7 +15,6 @@ namespace MNet.LTSQL.SqlTokens
         public Dictionary<string, object> Metadata { get; protected set; }
 
 
-        public abstract IEnumerable<LTSQLToken> GetChildren();
         protected internal virtual LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitToken(this);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -56,10 +56,6 @@ namespace MNet.LTSQL.SqlTokens
             return new SequenceToken(list);
         }
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return this.Tokens?.ToArray();
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return base.Visit(visitor);

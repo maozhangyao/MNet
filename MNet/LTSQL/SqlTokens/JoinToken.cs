@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -10,10 +10,6 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken MainQuery { get; set; }
         public LTSQLToken JoinQuery { get; set; }
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new[] { JoinKeys, MainQuery, JoinQuery };
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitJoinToken(this);

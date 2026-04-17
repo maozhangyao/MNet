@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -20,10 +20,6 @@ namespace MNet.LTSQL.SqlTokens
 
         public string Value { get; set; }
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return Array.Empty<LTSQLToken>();
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConstantToken(this);

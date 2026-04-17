@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -18,10 +18,6 @@ namespace MNet.LTSQL.SqlTokens
         public readonly bool EscapeKey;
 
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return Array.Empty<LTSQLToken>();
-        }
         public static SyntaxToken Create(string text)
         {
             return new SyntaxToken(text);

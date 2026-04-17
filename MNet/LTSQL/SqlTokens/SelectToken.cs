@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -19,10 +19,6 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken Fields { get; set; }
 
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new[] { this.Fields};
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSelectToken(this);

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -17,11 +17,6 @@ namespace MNet.LTSQL.SqlTokens
         public readonly LTSQLToken[] Parameters;
 
         public readonly LTSQLToken Call;
-
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new LTSQLToken[] { this.FunctionObject }.Concat(this.Parameters);
-        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

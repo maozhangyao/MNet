@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokenExtends;
+using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections.Generic;
 
@@ -18,10 +18,6 @@ namespace MNet.LTSQL.SqlTokens
 
         public readonly SqlValueToken Value;
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return new[] { this.Value };
-        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

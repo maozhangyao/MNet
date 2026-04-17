@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -35,10 +35,6 @@ namespace MNet.LTSQL.SqlTokens
 
 
 
-        public override IEnumerable<LTSQLToken> GetChildren()
-        {
-            return (new[] { this.Left, this.Right }).Where(p => p != null);
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitBinaryToken(this);
