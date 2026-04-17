@@ -22,14 +22,6 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal virtual LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            var children = this.GetChildren();
-            if (children != null)
-            {
-                foreach (LTSQLToken child in children)
-                {
-                    child.Visit(visitor);
-                }
-            }
             return this;
         }
 
