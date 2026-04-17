@@ -117,9 +117,7 @@ namespace MNet.LTSQL
         }
         private void UseGroupObjToken(Expression expr, LTSQLToken groupKey, LTSQLToken groupEle)
         {
-            GroupObjToken gobj = new GroupObjToken();
-            gobj.GroupKey = groupKey;
-            gobj.Element = groupEle;
+            GroupObjToken gobj = new GroupObjToken(groupEle, groupKey);
             //this._parameTokens.Push((expr, gobj));
             this.UseToken(expr, gobj);
         }
@@ -358,11 +356,8 @@ namespace MNet.LTSQL
 
                 if (join.JoinKeyOn != null)
                 {
-                    JoinToken joinToken = new JoinToken();
-                    joinToken.JoinType = join.JoinType;
-                    joinToken.MainQuery = query1;
-                    joinToken.JoinQuery = query2;
-                    joinToken.JoinKeys = this.TranslateLambda(join.JoinKeyOn as LambdaExpression);
+                    LTSQLToken joinKeys = this.TranslateLambda(join.JoinKeyOn as LambdaExpression);
+                    JoinToken joinToken = new JoinToken(join.JoinType, query1, query2, joinKeys);
                     return joinToken;
                 }
                 else

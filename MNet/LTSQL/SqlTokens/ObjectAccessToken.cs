@@ -12,9 +12,9 @@ namespace MNet.LTSQL.SqlTokens
             this.Object = obj;
             this.ValueType = valueOfType;
         }
-        
-        public string Prop{ get; set; }
-        public LTSQLToken Object { get; set; }
+
+        public string Prop { get; }
+        public LTSQLToken Object { get; }
 
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -23,8 +23,11 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Object = this.Object.Visit(visitor);
-            return this;
+            var newObject = this.Object.Visit(visitor);
+            if (newObject == this.Object)
+                return this;
+            
+            return new ObjectAccessToken(newObject, this.Prop, this.ValueType);
         }
     }
 }

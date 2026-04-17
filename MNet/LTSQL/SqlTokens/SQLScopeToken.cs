@@ -14,7 +14,7 @@ namespace MNet.LTSQL.SqlTokens
             this.Inner = inner;
         }
 
-        public LTSQLToken Inner { get; private set; }
+        public LTSQLToken Inner { get; }
 
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -23,8 +23,8 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            this.Inner = this.Inner.Visit(visitor);
-            return this;
+            LTSQLToken inner = this.Inner.Visit(visitor);
+            return new SqlScopeToken(inner);
         }
     }
 }

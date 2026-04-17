@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
@@ -10,7 +10,6 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class GroupObjToken : BogusToken
     {
-        public GroupObjToken() { }
         public GroupObjToken(LTSQLToken groupElement, LTSQLToken groupKey)
         {
             this.Element = groupElement;
@@ -20,10 +19,10 @@ namespace MNet.LTSQL.SqlTokens
         /// <summary>
         /// 分组元素
         /// </summary>
-        public LTSQLToken Element { get; set; }
+        public LTSQLToken Element { get; }
         /// <summary>
         /// 分组依据
         /// </summary>
-        public LTSQLToken GroupKey { get; set; }
+        public LTSQLToken GroupKey { get; }
     }
 }
