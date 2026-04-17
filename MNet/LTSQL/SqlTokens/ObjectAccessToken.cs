@@ -12,9 +12,7 @@ namespace MNet.LTSQL.SqlTokens
             this.Object = obj;
             this.ValueType = valueOfType;
         }
-
-        ////表名
-        public LTSQLToken Owner { get; set; }
+        
         public string Prop{ get; set; }
         public LTSQLToken Object { get; set; }
 
