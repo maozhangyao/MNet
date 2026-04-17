@@ -582,8 +582,6 @@ namespace MNet.LTSQL
             //where
             if (query.Wheres.IsNotEmpty())
             {
-                //this.UseProfixToken(this._context.TableAliasMapping.PropName, this._context.TableAliasMapping);
-
                 LTSQLToken condition = this.TranslateWhere(query.Wheres[0] as LambdaExpression);
                 sqlToken.Where = SequenceToken.Create(
                         SyntaxToken.Create("WHERE"),
@@ -606,15 +604,11 @@ namespace MNet.LTSQL
                     );
                 this._context.GroupKey = groupKey;
                 this._context.GroupElement = groupEle;
-
-
             }
 
             //having
             if (query.Havings.IsNotEmpty())
             {
-                //this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
-
                 LTSQLToken condition = this.TranslateHaving(query.Havings[0] as LambdaExpression);
                 sqlToken.Having = SequenceToken.Create(
                         SyntaxToken.Create("HAVING"),
@@ -626,9 +620,6 @@ namespace MNet.LTSQL
             //order by
             if (query.Orders.IsNotEmpty())
             {
-                //if(query.GroupFlag)
-                //    this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
-
                 LTSQLToken orderKeys = this.TranslateOrder(query.Orders);
                 SequenceToken orderBy = SequenceToken.Create(
                         SyntaxToken.Create("ORDER BY"),
@@ -642,9 +633,6 @@ namespace MNet.LTSQL
             SelectToken select = null;
             if (query.SelectKey != null)
             {
-                //if (query.GroupFlag)
-                //    this.UseGroupObjToken(this._context.GroupKey, this._context.GroupElement);
-
                 select = new SelectToken();
                 select.Fields = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
             }

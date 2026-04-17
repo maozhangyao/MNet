@@ -8,7 +8,7 @@ namespace MNet.LTSQL.SqlTokens
     {
         public LTSQLToken()
         {
-            this.Metadata = new Dictionary<string, object>();
+            this.Metadata = null;
         }
 
         //跨节点传递数据
