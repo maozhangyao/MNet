@@ -38,7 +38,7 @@ namespace MNet.LTSQL
                 }
             }
         }
-        
+
         //初始化默认的 sql 生成器
         private static LTSQLTokenSqlBuilder UseDefault()
         {
@@ -223,7 +223,13 @@ namespace MNet.LTSQL
             .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
+                if (t.Value is SqlQueryToken)
+                    ctx.Writer.BeginIndent();
+
                 nxt(t.Value);
+                
+                if (t.Value is SqlQueryToken)
+                    ctx.Writer.EndIndent();
                 ctx.Writer.Write(')');
             })
             .UseTokenBuilder<SequenceToken>((t, ctx, nxt) =>
@@ -285,7 +291,7 @@ namespace MNet.LTSQL
             writerCxt.SqlParameters = context.SqlParameters ?? new List<(string key, object value)>(8);
 
             writerCxt.Writer = (context.SqlWriterFactory ?? (() => new LTSQLWriter(false, null)))();
-            writerCxt.Obj2SqlPart = context.Obj2SqlPart ??  ((obj, ctx) => DbUtils.ToSqlPart(obj, ctx.DbType));
+            writerCxt.Obj2SqlPart = context.Obj2SqlPart ?? ((obj, ctx) => DbUtils.ToSqlPart(obj, ctx.DbType));
             writerCxt.SqlKeyWordEscape = context.SqlKeyWordEscape ?? ((t, ctx) => DbUtils.Escape(t, ctx.DbType));
 
             this.Next(token, writerCxt);
