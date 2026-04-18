@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlTokenExtends;
@@ -7,11 +7,13 @@ namespace MNet.LTSQL.SqlTokens
 {
     public class BoolCalcToken : BinaryToken, INotable
     {
-        // AND , RO  = , > , < , >= , <= , <> , IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
+        // AND , RO, IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
-        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt) : base(opt, left, right, typeof(bool))
+        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt) : this(left, right, opt, false)
+        { }
+        private BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt, bool isNot) : base(opt, left, right, typeof(bool))
         {
-            this.ValueType = typeof(bool);
+            this.IsNot = isNot;
         }
 
 
@@ -28,9 +30,11 @@ namespace MNet.LTSQL.SqlTokens
         public readonly static string OPT_EXISTS = "EXISTS";
         public readonly static string OPT_NOT_EXISTS = "NOT EXISTS";
 
+        public bool IsNot {  get; private set; }
+
         public LTSQLToken Not()
         {
-            return new BoolCalcToken(this.Left, this.Right, Not(this.Opration));
+            return new BoolCalcToken(this.Left, this.Right, Not(this.Opration), !this.IsNot);
         }
         public static string Not(string opt)
         {

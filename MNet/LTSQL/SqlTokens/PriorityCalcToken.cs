@@ -17,6 +17,7 @@ namespace MNet.LTSQL.SqlTokens
 
 
         public readonly SqlValueToken Value;
+        public bool IsNot => (Value is INotable not) ? not.IsNot : throw new Exception("内部节点类型不支持取反操作");
 
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -33,8 +34,8 @@ namespace MNet.LTSQL.SqlTokens
             if (this.Value is null)
                 throw new Exception("优先级运算符内部节点为null, 无法取反操作。");
             if (this.Value is INotable notable)
-                return notable.Not();
-            
+                return new PriorityCalcToken(notable.Not() as SqlValueToken);
+
             throw new Exception($"该节点类型不支持取反操作：{this.Value?.ToString()}");
         }
     }
