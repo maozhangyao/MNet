@@ -12,7 +12,7 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class SequenceToken : LTSQLToken, IContainerable
     {
-        private SequenceToken(params LTSQLToken[] tokens)
+        protected SequenceToken(params LTSQLToken[] tokens)
         {
             this.Tokens = tokens;
         }

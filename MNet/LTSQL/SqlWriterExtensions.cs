@@ -42,5 +42,12 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(writer));
             writer.WriteLine(part?.ToString());
         }
+
+        public static void WriteWhite(this ISqlWriter writer)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+            writer.WriteWhite(null);
+        }
     }
 }

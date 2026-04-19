@@ -19,6 +19,12 @@ namespace MNet.LTSQL
         /// <param name="part"></param>
         void WriteLine(string? part);
         /// <summary>
+        /// 写一个sql部分并添加一个空格
+        /// </summary>
+        /// <param name="part"></param>
+        void WriteWhite(string? part);
+        
+        /// <summary>
         /// 缩进
         /// </summary>
         void WriteIndent();

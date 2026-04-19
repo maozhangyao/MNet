@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MNet.LTSQL.SqlTokens;
 
 namespace MNet.LTSQL
 {
@@ -8,6 +9,8 @@ namespace MNet.LTSQL
     /// </summary>
     public class SqlWriterContext
     {
+        public LTSQLToken Parent{ get; set; }
+        public Stack<LTSQLToken> TokenStack{ get; set; }
         //目标数据库
         public DbType DbType { get; set; }
         //是否使用参数化

@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -33,7 +33,12 @@ namespace MNet.LTSQL
             {
                 if (item.Item1 == type)
                 {
+                    if (context.TokenStack.Count > 0)
+                        context.Parent = context.TokenStack.Peek();
+
+                    context.TokenStack.Push(token);
                     item.Item2(token, context, t => this.Next(t, context));
+                    context.TokenStack.Pop();
                     return;
                 }
             }
@@ -227,7 +232,7 @@ namespace MNet.LTSQL
                     ctx.Writer.BeginIndent();
 
                 nxt(t.Value);
-                
+
                 if (t.Value is SqlQueryToken)
                     ctx.Writer.EndIndent();
                 ctx.Writer.Write(')');
@@ -236,6 +241,29 @@ namespace MNet.LTSQL
             {
                 foreach (LTSQLToken token in t)
                     nxt(token);
+            })
+            .UseTokenBuilder<FieldListToken>((t, ctx, nxt) =>
+            {
+                if (t.Tokens == null)
+                    return;
+
+                for (int i = 0; i < t.Tokens.Length; i++)
+                {
+                    nxt(t.Tokens[i]);
+                    if (i + 1 < t.Tokens.Length)
+                    {
+                        ctx.Writer.Write(",");
+                        ctx.Writer.WriteLine();
+                    }
+                }
+            })
+            .UseTokenBuilder<ValuesListToken>((t, ctx, nxt) =>
+            {
+                if (t.Tokens == null)
+                    return;
+
+                for (int i = 0; i < t.Tokens.Length; i++)
+                    nxt(t.Tokens[i]);
             })
             .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
             {
@@ -271,8 +299,19 @@ namespace MNet.LTSQL
                     }
                 }
 
+            })
+            .UseTokenBuilder<ClauseToken>((t, ctx, nxt) =>
+            {
+                ctx.Writer.WriteWhite(t.ClauseName);
+                if (t.SubClause != null)
+                {
+                    foreach (var sub in t.SubClause)
+                    {
+                        nxt(sub);
+                        ctx.Writer.WriteWhite();
+                    }
+                }
             });
-
 
             return builder;
         }
@@ -289,7 +328,7 @@ namespace MNet.LTSQL
             writerCxt.DbType = context.DbType;
             writerCxt.UseParameter = context.UseParameter;
             writerCxt.SqlParameters = context.SqlParameters ?? new List<(string key, object value)>(8);
-
+            writerCxt.TokenStack = new Stack<LTSQLToken>();
             writerCxt.Writer = (context.SqlWriterFactory ?? (() => new LTSQLWriter(false, null)))();
             writerCxt.Obj2SqlPart = context.Obj2SqlPart ?? ((obj, ctx) => DbUtils.ToSqlPart(obj, ctx.DbType));
             writerCxt.SqlKeyWordEscape = context.SqlKeyWordEscape ?? ((t, ctx) => DbUtils.Escape(t, ctx.DbType));

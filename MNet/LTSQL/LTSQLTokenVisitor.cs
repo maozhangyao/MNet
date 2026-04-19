@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -123,6 +123,10 @@ namespace MNet.LTSQL
             return this._visitor(token);
         }
         public virtual LTSQLToken VisitSequenceToken(SequenceToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitClauseToken(ClauseToken token)
         {
             return this._visitor(token);
         }

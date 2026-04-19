@@ -58,6 +58,14 @@ namespace MNet.LTSQL
             
             this.WriteIndent();
         }
+        
+        public void WriteWhite(string? part)
+        {
+            this.Write(part);
+            
+            this._charCount++;
+            this.Write(" ");
+        }
 
         /// <summary>
         /// 写入当前级别的缩进

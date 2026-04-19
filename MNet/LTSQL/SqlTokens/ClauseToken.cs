@@ -8,12 +8,12 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class ClauseToken : LTSQLToken
     {
-        public ClauseToken(string clause, LTSQLToken token) : this(clause, token, null)
+        public ClauseToken(string clause, LTSQLToken[] subs) : this(clause, subs, null)
         { }
-        public ClauseToken(string clause, LTSQLToken token, Dictionary<string, object> metadata)
+        public ClauseToken(string clause, LTSQLToken[] subs, Dictionary<string, object> metadata)
         {
-            this.Clause = clause;
-            this.Token = token;
+            this.ClauseName = clause;
+            this.SubClause = subs;
             this.Metadata = metadata == null ? null : new Dictionary<string, object>(metadata);
         }
 
@@ -21,20 +21,30 @@ namespace MNet.LTSQL.SqlTokens
         /// <summary>
         /// 子句名称： select, from, where, group, order, having 等等
         /// </summary>
-        public string Clause { get; }
+        public string ClauseName { get; }
         /// <summary>
-        /// 子句内容
+        /// 子句内容列表
         /// </summary>
-        public LTSQLToken Token { get; }
+        public LTSQLToken[] SubClause { get; }
 
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return base.Visit(visitor);
+            return visitor.VisitClauseToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            return base.VisitChildren(visitor);
+            LTSQLToken[] arr = null;
+            if (this.SubClause != null)
+            {
+                arr = new LTSQLToken[this.SubClause.Length];
+                for (int i = 0; i < this.SubClause.Length; i++)
+                {
+                    arr[i] = visitor.Visit(this.SubClause[i]);
+                }
+            }
+
+            return new ClauseToken(this.ClauseName, arr, this.Metadata);
         }
     }
 }
