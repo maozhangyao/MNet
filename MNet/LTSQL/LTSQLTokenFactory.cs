@@ -55,7 +55,7 @@ namespace MNet.LTSQL
         {
             if (objName == null)
                 throw new ArgumentNullException(nameof(objName));
-    
+
             return CreateObjectToken(
                     SqlObjectType.Table
                     , objName
@@ -76,7 +76,7 @@ namespace MNet.LTSQL
                     , typeOfObj
                 );
         }
-        
+
         /// <summary>
         /// 构造一个对象调用语法token， 如：f(arg1, arg2)
         /// </summary>
@@ -98,7 +98,7 @@ namespace MNet.LTSQL
                       );
             }
 
-            if(args != null)
+            if (args != null)
             {
                 return SequenceToken.Create(
                           obj,
@@ -174,7 +174,7 @@ namespace MNet.LTSQL
         }
         public static SqlScopeToken CreateSqlScopeToken(LTSQLToken inner)
         {
-            if(inner == null)
+            if (inner == null)
                 throw new ArgumentNullException(nameof(inner));
 
             return new SqlScopeToken(inner);
@@ -214,6 +214,18 @@ namespace MNet.LTSQL
         public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
         {
             return new SqlParameterToken(pName, value, valueType);
+        }
+        public static ClauseToken CreateClauseToken(string clause, params LTSQLToken[] subs)
+        {
+            return new ClauseToken(clause, subs);
+        }
+        public static FieldListToken CreateFieldListToken(params LTSQLToken[] fields)
+        {
+            return new FieldListToken(fields);
+        }
+        public static ValuesListToken CreateValuesListToken(params LTSQLToken[] values)
+        {
+            return new ValuesListToken(values);
         }
     }
 }

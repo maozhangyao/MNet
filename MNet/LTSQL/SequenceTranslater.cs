@@ -320,7 +320,7 @@ namespace MNet.LTSQL
             this._context.LTSQLTranslater.TranslateMember(ctx);
             if (ctx.ResultToken != null)
                 this.PushToken(ctx.ResultToken);
-            
+
             return ctx.ResultToken != null;
         }
         private bool OnTranslateMember(MemberInfo member, object owner, Type ownerType, Expression expr, Type exprType = null, LTSQLToken ownerToken = null, LTSQLToken[] memberCallParameters = null)
@@ -349,7 +349,7 @@ namespace MNet.LTSQL
         private LTSQLToken TranslateQueryPart(QueryPart from, ref List<FieldInfoToken> fields)
         {
             LTSQLToken src = null;
-            if(from is JoinPart join)
+            if (from is JoinPart join)
             {
                 LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, ref fields);
                 LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, ref fields);
@@ -418,7 +418,7 @@ namespace MNet.LTSQL
 
             return LTSQLTokenFactory.CreateAliasToken(src, from.Alias);
         }
-        
+
         private LTSQLToken TranslateWhere(LambdaExpression wheres)
         {
             if (wheres == null)
@@ -431,8 +431,8 @@ namespace MNet.LTSQL
             this.UnUseSpecialToken();
             return token;
         }
-        private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle , out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
-        {   
+        private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle, out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
+        {
             groupKeyToken = null;
             groupEleToken = null;
             List<LTSQLToken> groupKeyTokens = new List<LTSQLToken>();
@@ -458,9 +458,9 @@ namespace MNet.LTSQL
                     groupKeyTokens.Add(groupKeyToken);
             }
 
-            SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
-            SequenceToken groupKeys = SequenceToken.CreateWithJoin(groupKeyTokens, separator);
-            return groupKeys;
+            //SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
+            //SequenceToken groupKeys = SequenceToken.CreateWithJoin(groupKeyTokens, separator);
+            return LTSQLTokenFactory.CreateFieldListToken(groupKeyTokens.ToArray());
         }
         private LTSQLToken TranslateHaving(LambdaExpression havings)
         {
@@ -507,9 +507,9 @@ namespace MNet.LTSQL
                 this.UnUseSpecialToken();
             }
 
-            SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
-            SequenceToken orderKeys = SequenceToken.CreateWithJoin(orderKeyTokens, separator);
-            return orderKeys;
+            // SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
+            // SequenceToken orderKeys = SequenceToken.CreateWithJoin(orderKeyTokens, separator);
+            return LTSQLTokenFactory.CreateFieldListToken(orderKeyTokens.ToArray());
         }
         private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldInfos)
         {
@@ -549,8 +549,9 @@ namespace MNet.LTSQL
                     fieldInfos.Add(new FieldInfoToken(token, "transparentField", (token as ValueToken).ValueType));
                 }
 
-                SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
-                return SequenceToken.CreateWithJoin(fields, separator);
+                // SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
+                // return SequenceToken.CreateWithJoin(fields, separator);
+                return LTSQLTokenFactory.CreateFieldListToken(fields.ToArray());
             }
             catch (Exception ex)
             {
@@ -573,21 +574,13 @@ namespace MNet.LTSQL
             List<FieldInfoToken> fields = new List<FieldInfoToken>();
 
             //from
-            sqlToken.From = SequenceToken.Create(
-                    SyntaxToken.Create("FROM"),
-                    SyntaxToken.Create(" "),
-                    this.TranslateFrom(query.From, ref fields)
-                );
+            sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, ref fields));
 
             //where
             if (query.Wheres.IsNotEmpty())
             {
                 LTSQLToken condition = this.TranslateWhere(query.Wheres[0] as LambdaExpression);
-                sqlToken.Where = SequenceToken.Create(
-                        SyntaxToken.Create("WHERE"),
-                        SyntaxToken.Create(" "),
-                        condition
-                    );
+                sqlToken.Where = LTSQLTokenFactory.CreateClauseToken("WHERE", condition);
             }
 
             //group by
@@ -595,13 +588,10 @@ namespace MNet.LTSQL
             {
                 LambdaExpression lambda1 = query.GroupKey as LambdaExpression;
                 LambdaExpression lambda2 = query.GroupElement as LambdaExpression;
-                
+
                 LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, out LTSQLToken groupKey, out LTSQLToken groupEle);
-                sqlToken.Group = SequenceToken.Create(
-                        SyntaxToken.Create("GROUP BY"),
-                        SyntaxToken.Create(" "),
-                        groupKeys
-                    );
+                sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
+
                 this._context.GroupKey = groupKey;
                 this._context.GroupElement = groupEle;
             }
@@ -610,50 +600,43 @@ namespace MNet.LTSQL
             if (query.Havings.IsNotEmpty())
             {
                 LTSQLToken condition = this.TranslateHaving(query.Havings[0] as LambdaExpression);
-                sqlToken.Having = SequenceToken.Create(
-                        SyntaxToken.Create("HAVING"),
-                        SyntaxToken.Create(" "),
-                        condition
-                    );
+                sqlToken.Having = LTSQLTokenFactory.CreateClauseToken("HAVING", condition);
             }
 
             //order by
             if (query.Orders.IsNotEmpty())
             {
                 LTSQLToken orderKeys = this.TranslateOrder(query.Orders);
-                SequenceToken orderBy = SequenceToken.Create(
-                        SyntaxToken.Create("ORDER BY"),
-                        SyntaxToken.Create(" "),
-                        orderKeys
-                    );
-                sqlToken.Order = orderBy;
+                sqlToken.Order = LTSQLTokenFactory.CreateClauseToken("ORDER BY", orderKeys);
             }
 
             //select
-            SelectToken select = null;
+            LTSQLToken selectFieldsToken = null;
             if (query.SelectKey != null)
             {
-                select = new SelectToken();
-                select.Fields = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
+                selectFieldsToken = this.TranslateSelect(query.SelectKey as LambdaExpression, out fields);
             }
-            if(select == null)
+            else
             {
                 var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
-
-                select = new SelectToken();
-                select.Fields = SequenceToken.CreateWithJoin(
-                        selectFields,
-                        SequenceToken.Create(SyntaxToken.CreateBatch(" ", ","))
-                    );
+                selectFieldsToken = LTSQLTokenFactory.CreateFieldListToken(selectFields.ToArray());
             }
-           
+
+            //distict
+             LTSQLToken distinckClause = null;
+            if (query.Distinct)
+                distinckClause = LTSQLTokenFactory.CreateClauseToken("DISTINCT");
+
             //分页
+            LTSQLToken topLimitClause = null;
             if (query.Skip != null || query.Take != null)
             {
-                if(query.Skip == null && this._context.Options?.DbType == DbType.MSSQL)
+                if (query.Skip == null && this._context.Options?.DbType == DbType.MSSQL)
                 {
                     //sql server 的 top 语法
-                    select.TopLimit = query.Take;
+                    topLimitClause = LTSQLTokenFactory.CreateClauseToken("TOP",
+                        LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), query.Take, typeof(int))
+                    );
                 }
                 else
                 {
@@ -661,9 +644,9 @@ namespace MNet.LTSQL
                 }
             }
 
-
-            select.Distinct = query.Distinct; //distinct 子句
-            sqlToken.Select = select;
+            sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT", 
+                new []{ distinckClause, topLimitClause, selectFieldsToken}.Where(p => p != null).ToArray()
+            );
             sqlToken.DefaultFields = fields;
             sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
 
@@ -869,7 +852,7 @@ namespace MNet.LTSQL
                         //IGrouping.Key 的方位转换为分组依据
                         this.PushToken(groupToken.GroupKey);
                     }
-                    else if(objToken is TupleToken tuple)
+                    else if (objToken is TupleToken tuple)
                     {
                         LTSQLToken prop = tuple.GetProp(memberName);
                         if (prop == null)
@@ -885,7 +868,7 @@ namespace MNet.LTSQL
                     }
                 }
             }
-            
+
             return expr;
         }
         //函数调用
@@ -1002,7 +985,7 @@ namespace MNet.LTSQL
         //初始化实例
         protected override Expression VisitMemberInit(MemberInitExpression node)
         {
-            Expression expr = base.VisitMemberInit(node); 
+            Expression expr = base.VisitMemberInit(node);
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
@@ -1012,7 +995,7 @@ namespace MNet.LTSQL
                 TupleToken tuple = this.PopToken() as TupleToken;
 
                 tuple.ValueType = node.Type;
-                for(int i = 0; i < node.Bindings.Count; i++)
+                for (int i = 0; i < node.Bindings.Count; i++)
                 {
                     tuple.Add(bindProps[i], node.Bindings[i].Member.Name);
                 }
@@ -1064,17 +1047,17 @@ namespace MNet.LTSQL
                     throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
             }
 
-            if(node.NodeType == ExpressionType.Equal)
+            if (node.NodeType == ExpressionType.Equal)
             {
                 // join 的联表条件，可能会导致产元组条件
-                if(vall is TupleToken tupl && valr is TupleToken tupr)
+                if (vall is TupleToken tupl && valr is TupleToken tupr)
                 {
-                    if(tupl.Props.Length != tupr.Props.Length)
+                    if (tupl.Props.Length != tupr.Props.Length)
                         throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
-                    
+
                     //元组中的各个属性做相等操作，用AND操作连接
                     BoolCalcToken cur = null;
-                    for(int i = 0; i < tupl.Props.Length; i++)
+                    for (int i = 0; i < tupl.Props.Length; i++)
                     {
                         BoolCalcToken equals = LTSQLTokenFactory.CreateBoolCalcToken("=", tupl.Props[i], tupr.Props[i]);
                         cur = cur == null ? equals : LTSQLTokenFactory.CreateBoolCalcToken("AND", cur, equals);
@@ -1179,7 +1162,7 @@ namespace MNet.LTSQL
         {
             this._scope = scope;
             this._context = scope.Context;
-            this._context.Root = query; 
+            this._context.Root = query;
             this._tokens = new Stack<LTSQLToken>();
             this._parameTokens = new Stack<(Expression expr, LTSQLToken token)>();
 

@@ -52,7 +52,7 @@ namespace MNet.LTSQL
             if (this._memberTranslaters == null)
                 return;
 
-            foreach(Action<TranslateContext> translater in this._memberTranslaters)
+            foreach (Action<TranslateContext> translater in this._memberTranslaters)
             {
                 if (translater != null)
                     translater(context);
@@ -184,8 +184,8 @@ namespace MNet.LTSQL
 
                 if (
                     (
-                      typeof(Enumerable) == ctx.OwnerType 
-                      || typeof(LTSQLQueryableExtensions) == ctx.OwnerType 
+                      typeof(Enumerable) == ctx.OwnerType
+                      || typeof(LTSQLQueryableExtensions) == ctx.OwnerType
                       || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType)
                     )
                     && typeof(string) != ctx.OwnerType
@@ -213,7 +213,7 @@ namespace MNet.LTSQL
                     //拆包
                     if (right is SqlParameterToken p)
                     {
-                        if (p.Value is ILTSQLObjectQueryable query) 
+                        if (p.Value is ILTSQLObjectQueryable query)
                         {
                             // do nothing
                             right = p;
@@ -225,14 +225,7 @@ namespace MNet.LTSQL
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = LTSQLTokenFactory.CreateSqlScopeToken(
-                                SequenceToken.CreateWithJoin(
-                                    paras,
-                                    SequenceToken.Create(
-                                        SyntaxToken.Create(" "),
-                                        SyntaxToken.Create(",")
-                                    )
-                                ));
+                            right = LTSQLTokenFactory.CreateSqlScopeToken(LTSQLTokenFactory.CreateValuesListToken(paras.ToArray()));
                         }
                     }
 
@@ -283,7 +276,8 @@ namespace MNet.LTSQL
 
 
             // 对 FirstOrDefault 的支持(等同于Take(1)函数)
-            defaultTranslater.UseMemberTranslate(ctx => {
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
                 if (ctx.Member.Name == nameof(LTSQLQueryableExtensions.FirstOrDefault) && ctx.OwnerType == typeof(LTSQLQueryableExtensions))
                 {
                     if (ctx.MethodParameterTokenList.IsEmpty() || ctx.MethodParameterTokenList.Length != 1)
@@ -308,7 +302,8 @@ namespace MNet.LTSQL
         private static LTSQLTokenTranslaterSelector InitForString(LTSQLTokenTranslaterSelector defaultTranslater)
         {
             // 字符串 Length 函数
-            defaultTranslater.UseMemberTranslate(ctx => {
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
                 {
                     if (ctx.Options?.DbType == DbType.MSSQL)
@@ -349,8 +344,9 @@ namespace MNet.LTSQL
 
 
             // 字符串截取
-            defaultTranslater.UseMemberTranslate(ctx => {
-                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Substring)) 
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Substring))
                 {
                     DbType db = ctx.Options.DbType;
                     if (db == DbType.Oracle || db == DbType.SQLLite)
@@ -366,7 +362,8 @@ namespace MNet.LTSQL
 
 
             // 字符串前后空格去除
-            defaultTranslater.UseMemberTranslate(ctx => {
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.TrimStart))
                 {
                     ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LTRIM", new[] { ctx.OwnerToken }, typeof(string));
@@ -423,7 +420,7 @@ namespace MNet.LTSQL
                         ctx.MethodParameterTokenList[0]
                     }, typeof(string));
 
-                    ctx.ResultToken =  LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, concat1);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, concat1);
                 }
             });
 

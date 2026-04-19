@@ -255,6 +255,10 @@ namespace MNet.LTSQL
                         ctx.Writer.Write(",");
                         ctx.Writer.WriteLine();
                     }
+                    else
+                    {
+                        ctx.Writer.WriteWhite();
+                    }
                 }
             })
             .UseTokenBuilder<ValuesListToken>((t, ctx, nxt) =>
@@ -263,7 +267,12 @@ namespace MNet.LTSQL
                     return;
 
                 for (int i = 0; i < t.Tokens.Length; i++)
+                {
                     nxt(t.Tokens[i]);
+                    if (i + 1 < t.Tokens.Length)
+                        ctx.Writer.Write(" ,");
+                    
+                }
             })
             .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
             {
