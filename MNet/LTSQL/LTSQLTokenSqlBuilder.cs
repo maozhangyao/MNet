@@ -323,7 +323,7 @@ namespace MNet.LTSQL
             writerCxt.DbType = context.DbType;
             writerCxt.UseParameter = context.UseParameter;
             writerCxt.SqlParameters = context.SqlParameters ?? new List<(string key, object value)>(8);
-            writerCxt.TokenStack = new Stack<LTSQLToken>();
+            //writerCxt.TokenStack = new Stack<LTSQLToken>();
             writerCxt.Writer = (context.SqlWriterFactory ?? (() => new LTSQLWriter(false, null)))();
             writerCxt.Obj2SqlPart = context.Obj2SqlPart ?? ((obj, ctx) => DbUtils.ToSqlPart(obj, ctx.DbType));
             writerCxt.SqlKeyWordEscape = context.SqlKeyWordEscape ?? ((t, ctx) => DbUtils.Escape(t, ctx.DbType));
