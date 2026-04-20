@@ -66,18 +66,18 @@ namespace MNet.LTSQL
             .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) =>
             {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
-                ctx.Writer.Write(' ');
+                ctx.Writer.WriteWhite();
                 ctx.Writer.Write(t.Opration);
-                ctx.Writer.Write(' ');
+                ctx.Writer.WriteWhite();
                 nxt(t.Right);
 
             })
             .UseTokenBuilder<BinaryToken>((t, ctx, nxt) =>
             {
                 nxt(t.Left);
-                ctx.Writer.Write(' ');
+                ctx.Writer.WriteWhite();
                 ctx.Writer.Write(t.Opration);
-                ctx.Writer.Write(' ');
+                ctx.Writer.WriteWhite();
                 nxt(t.Right);
 
             })
@@ -108,7 +108,7 @@ namespace MNet.LTSQL
                 else
                     ctx.Writer.Write(t.JoinType);
 
-                ctx.Writer.Write(' ');
+                ctx.Writer.WriteWhite();
 
                 nxt(t.JoinQuery);
 
@@ -269,7 +269,7 @@ namespace MNet.LTSQL
                     {
                         ctx.Writer.Write("LIMIT ");
                         ctx.Writer.Write(t.Take);
-                        ctx.Writer.Write(' ');
+                        ctx.Writer.WriteWhite();
                     }
                     if (t.Skip != null)
                     {

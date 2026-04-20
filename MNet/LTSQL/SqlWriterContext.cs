@@ -10,7 +10,7 @@ namespace MNet.LTSQL
     public class SqlWriterContext
     {
         public LTSQLToken ParentToken{ get; set; }
-        public Stack<LTSQLToken> TokenStack{ get; set; }
+        public Stack<LTSQLToken> TokenStack{ get; } = new Stack<LTSQLToken>();
         //目标数据库
         public DbType DbType { get; set; }
         //是否使用参数化
