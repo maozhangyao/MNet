@@ -49,5 +49,12 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(writer));
             writer.WriteWhite(null);
         }
+        
+        public static void BeginScope(this ISqlWriter writer)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+            writer.BeginScope("    ");
+        }
     }
 }

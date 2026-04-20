@@ -34,7 +34,7 @@ namespace MNet.LTSQL
                 if (item.Item1 == type)
                 {
                     if (context.TokenStack.Count > 0)
-                        context.Parent = context.TokenStack.Peek();
+                        context.ParentToken = context.TokenStack.Peek();
 
                     context.TokenStack.Push(token);
                     item.Item2(token, context, t => this.Next(t, context));
@@ -141,32 +141,6 @@ namespace MNet.LTSQL
                 ctx.Writer.Write('.');
                 ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Prop, ctx));
             })
-            .UseTokenBuilder<SelectToken>((t, ctx, nxt) =>
-            {
-                ctx.Writer.Write("SELECT ");
-
-                if (t.Distinct)
-                {
-                    ctx.Writer.Write("DISTINCT ");
-                }
-
-                if (t.TopLimit != null)
-                {
-                    ctx.Writer.Write("TOP ");
-                    ctx.Writer.Write(t.TopLimit);
-                    ctx.Writer.Write(' ');
-                }
-
-                if (t.Asterisk)
-                {
-                    ctx.Writer.Write("*");
-                }
-                else
-                {
-                    nxt(t.Fields);
-                }
-
-            })
             .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) =>
             {
                 //是否参数化
@@ -220,21 +194,21 @@ namespace MNet.LTSQL
             .UseTokenBuilder<SqlScopeToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
-                ctx.Writer.BeginIndent();
+                ctx.Writer.BeginScope();
                 nxt(t.Inner);
-                ctx.Writer.EndIndent();
+                ctx.Writer.EndScope();
                 ctx.Writer.Write(')');
             })
             .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
                 if (t.Value is SqlQueryToken)
-                    ctx.Writer.BeginIndent();
+                    ctx.Writer.BeginScope();
 
                 nxt(t.Value);
 
                 if (t.Value is SqlQueryToken)
-                    ctx.Writer.EndIndent();
+                    ctx.Writer.EndScope();
                 ctx.Writer.Write(')');
             })
             .UseTokenBuilder<SequenceToken>((t, ctx, nxt) =>
@@ -247,6 +221,15 @@ namespace MNet.LTSQL
                 if (t.Tokens == null)
                     return;
 
+                ClauseToken parent = ctx.ParentToken as ClauseToken;
+                bool newLineFlag = parent != null && parent.ClauseName.ToLower() switch { 
+                        "select" or "order by" or "group by" => true,
+                        _ => false
+                    };
+
+                if (newLineFlag)
+                    ctx.Writer.BeginScope("  ");
+                
                 for (int i = 0; i < t.Tokens.Length; i++)
                 {
                     nxt(t.Tokens[i]);
@@ -260,6 +243,9 @@ namespace MNet.LTSQL
                         ctx.Writer.WriteWhite();
                     }
                 }
+
+                if (newLineFlag)
+                    ctx.Writer.EndScope();
             })
             .UseTokenBuilder<ValuesListToken>((t, ctx, nxt) =>
             {

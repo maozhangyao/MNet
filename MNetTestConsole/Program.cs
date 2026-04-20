@@ -9,6 +9,7 @@ using System.Text;
 
 /*
  实现sql格式化输出接口，屏蔽直接对sql字符串的拼接
+ IN 操作考虑需要多属性匹配模式
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况
  表名，字段名的自定义映射
 
@@ -18,7 +19,7 @@ using System.Text;
 
 
 c_persion_t p = new c_persion_t();
-var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
+var query1 = (from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
              where !(p1.SelfName.Contains("女")) && p1.Id == (p.AsLTSQL().Select(p => p.Id).FirstOrDefault())
@@ -30,7 +31,7 @@ var query1 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
                  hour = DateTime.Now.Hour,
                  minute = DateTime.Now.Minute,
                  second1 = DateTime.Now.Second
-             };
+             }).Distinct().Take(10);
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id

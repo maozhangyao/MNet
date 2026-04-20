@@ -25,17 +25,13 @@ namespace MNet.LTSQL
         void WriteWhite(string? part);
         
         /// <summary>
-        /// 缩进
+        /// 开始一个子作用域
         /// </summary>
-        void WriteIndent();
-        /// <summary>
-        /// 开始一个
-        /// </summary>
-        void BeginIndent();
+        void BeginScope(string prefix);
         /// <summary>
         /// 结束一个子作用域
         /// </summary>
-        void EndIndent();
+        void EndScope();
         
         /// <summary>
         /// 当前的SQL构建器
