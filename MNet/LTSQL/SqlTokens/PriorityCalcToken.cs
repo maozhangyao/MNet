@@ -29,7 +29,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            return new PriorityCalcToken(this.Value.Visit(visitor) as SqlValueToken);
+            return new PriorityCalcToken(this.Value.Visit(visitor));
         }
 
         public LTSQLToken Not()
@@ -37,7 +37,7 @@ namespace MNet.LTSQL.SqlTokens
             if (this.Value is null)
                 throw new Exception("优先级运算符内部节点为null, 无法取反操作。");
             if (this.Value is INotable notable)
-                return new PriorityCalcToken(notable.Not() as SqlValueToken);
+                return new PriorityCalcToken(notable.Not());
 
             throw new Exception($"该节点类型不支持取反操作：{this.Value?.ToString()}");
         }

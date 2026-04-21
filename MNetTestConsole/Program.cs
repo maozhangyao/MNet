@@ -1,11 +1,8 @@
 using MNet.LTSQL;
 using MNet.LTSQL.SqlTokens;
 using MNetTestConsole.Utils;
-using System.Numerics;
 using System.Reflection;
-using System.Runtime.Serialization;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
+using System.Linq;
 
 /*
  实现sql格式化输出接口，屏蔽直接对sql字符串的拼接                   [ok] 
@@ -21,12 +18,13 @@ using System.Text;
 
  */
 
+var arr = new List<int>() { 1, 2, 3 };
 
 c_persion_t p = new c_persion_t();
 var query1 = (from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             where !(p1.SelfName.Contains("女")) && p1.Id == (p.AsLTSQL().Select(p => p.Id).FirstOrDefault())
+             where arr.Contains(p1.Id)
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id,
                  dateTime = DateTime.Now.ToString("%Y %m-%H"),
                  year = DateTime.Now.Year,
