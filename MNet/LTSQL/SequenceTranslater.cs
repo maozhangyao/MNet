@@ -159,7 +159,7 @@ namespace MNet.LTSQL
 
 
             //统一根参数名
-            Type rootParameterType = query.MappingType;
+            Type rootParameterType = query.From.MappingType;
             ExpressionModifier exprModifier = new ExpressionModifier();
             ParameterExpression newRootParameter = Expression.Parameter(rootParameterType, root);
             if (query.Wheres.IsNotEmpty())
@@ -363,15 +363,10 @@ namespace MNet.LTSQL
                 else
                 {
                     //from 中的内联接查询
-                    //return new TokenItemListToken(query1, query2);
-                    return SequenceToken.Create(
-                            query1,
-                            SequenceToken.Create(
-                                SyntaxToken.Create(" "),
-                                SyntaxToken.Create(",")
-                            ),
-                            query2
-                        );
+                    //拆包，使其在同一范围内
+                    if(query1 is ListToken list)
+                        return LTSQLTokenFactory.CreateListToken(list.Tokens, query2);
+                    return LTSQLTokenFactory.CreateListToken(query1, query2);
                 }
             }
             else if (from is SqlQueryPart query)
@@ -390,7 +385,7 @@ namespace MNet.LTSQL
                             ));
                     }
                 }
-                qry = LTSQLTokenFactory.CreateSqlScopeToken(qry);
+                qry = LTSQLTokenFactory.CreatePriorityCalcToken(qry);
                 src = qry;
             }
             else if (from is TablePart table)
@@ -460,7 +455,7 @@ namespace MNet.LTSQL
 
             //SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
             //SequenceToken groupKeys = SequenceToken.CreateWithJoin(groupKeyTokens, separator);
-            return LTSQLTokenFactory.CreateFieldListToken(groupKeyTokens.ToArray());
+            return LTSQLTokenFactory.CreateListToken(groupKeyTokens.ToArray());
         }
         private LTSQLToken TranslateHaving(LambdaExpression havings)
         {
@@ -509,7 +504,7 @@ namespace MNet.LTSQL
 
             // SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
             // SequenceToken orderKeys = SequenceToken.CreateWithJoin(orderKeyTokens, separator);
-            return LTSQLTokenFactory.CreateFieldListToken(orderKeyTokens.ToArray());
+            return LTSQLTokenFactory.CreateListToken(orderKeyTokens.ToArray());
         }
         private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldInfos)
         {
@@ -551,7 +546,7 @@ namespace MNet.LTSQL
 
                 // SequenceToken separator = SequenceToken.Create(SyntaxToken.Create(" "), SyntaxToken.Create(","));
                 // return SequenceToken.CreateWithJoin(fields, separator);
-                return LTSQLTokenFactory.CreateFieldListToken(fields.ToArray());
+                return LTSQLTokenFactory.CreateListToken(fields.ToArray());
             }
             catch (Exception ex)
             {
@@ -619,7 +614,7 @@ namespace MNet.LTSQL
             else
             {
                 var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
-                selectFieldsToken = LTSQLTokenFactory.CreateFieldListToken(selectFields.ToArray());
+                selectFieldsToken = LTSQLTokenFactory.CreateListToken(selectFields.ToArray());
             }
 
             //distict

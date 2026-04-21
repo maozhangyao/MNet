@@ -118,7 +118,7 @@ namespace MNet.LTSQL
             })
             .UseTokenBuilder<FunctionCallToken>((t, ctx, nxt) =>
             {
-                nxt(t.FunctionObject);
+                nxt(t.FunctionName);
                 ctx.Writer.Write("(");
                 if (t.Parameters != null)
                 {
@@ -191,14 +191,6 @@ namespace MNet.LTSQL
                 }
 
             })
-            .UseTokenBuilder<SqlScopeToken>((t, ctx, nxt) =>
-            {
-                ctx.Writer.Write('(');
-                ctx.Writer.BeginScope();
-                nxt(t.Inner);
-                ctx.Writer.EndScope();
-                ctx.Writer.Write(')');
-            })
             .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
@@ -216,14 +208,17 @@ namespace MNet.LTSQL
                 foreach (LTSQLToken token in t)
                     nxt(token);
             })
-            .UseTokenBuilder<FieldListToken>((t, ctx, nxt) =>
+            .UseTokenBuilder<ListToken>((t, ctx, nxt) =>
             {
                 if (t.Tokens == null)
                     return;
 
                 ClauseToken parent = ctx.ParentToken as ClauseToken;
                 bool newLineFlag = parent != null && parent.ClauseName.ToLower() switch { 
-                        "select" or "order by" or "group by" => true,
+                        "from" => true,
+                        "select" => true,
+                        "order by" => true,
+                        "group by" => true,
                         _ => false
                     };
 
@@ -236,7 +231,8 @@ namespace MNet.LTSQL
                     if (i + 1 < t.Tokens.Length)
                     {
                         ctx.Writer.Write(",");
-                        ctx.Writer.WriteLine();
+                        if(newLineFlag)
+                            ctx.Writer.WriteLine();
                     }
                     else
                     {
@@ -246,19 +242,6 @@ namespace MNet.LTSQL
 
                 if (newLineFlag)
                     ctx.Writer.EndScope();
-            })
-            .UseTokenBuilder<ValuesListToken>((t, ctx, nxt) =>
-            {
-                if (t.Tokens == null)
-                    return;
-
-                for (int i = 0; i < t.Tokens.Length; i++)
-                {
-                    nxt(t.Tokens[i]);
-                    if (i + 1 < t.Tokens.Length)
-                        ctx.Writer.Write(" ,");
-                    
-                }
             })
             .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
             {

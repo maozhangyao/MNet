@@ -8,9 +8,13 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 /*
- 实现sql格式化输出接口，屏蔽直接对sql字符串的拼接
+ 实现sql格式化输出接口，屏蔽直接对sql字符串的拼接                   [ok] 
+ 接收参数的Dictionary容器替换掉，避免大量参数生成的情况             [ok]
  IN 操作考虑需要多属性匹配模式
- 接收参数的Dictionary容器替换掉，避免大量参数生成的情况
+ 
+ select 独立语句支持：如 select 1， 无需from子句
+ select union all 支持
+ withAny逻辑优化，直接selet 1 或者 select 0
  表名，字段名的自定义映射
 
  检查对主流数据库的支持情况                      
@@ -31,7 +35,7 @@ var query1 = (from p1 in p.AsLTSQL().Where(p => p.Id > 1)
                  hour = DateTime.Now.Hour,
                  minute = DateTime.Now.Minute,
                  second1 = DateTime.Now.Second
-             }).Distinct().Take(10);
+             });
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id

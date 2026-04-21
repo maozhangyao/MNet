@@ -225,7 +225,7 @@ namespace MNet.LTSQL
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = LTSQLTokenFactory.CreateSqlScopeToken(LTSQLTokenFactory.CreateValuesListToken(paras.ToArray()));
+                            right = LTSQLTokenFactory.CreatePriorityCalcToken(LTSQLTokenFactory.CreateListToken(paras.ToArray()));
                         }
                     }
 
@@ -261,16 +261,12 @@ namespace MNet.LTSQL
                         foreach (object item in list)
                             paras.Add(ctx.TokenSqlParameter(item));
 
-                        inner = LTSQLTokenFactory.CreateSqlScopeToken(SequenceToken.CreateWithJoin(
-                                    paras,
-                                    SequenceToken.Create(
-                                        SyntaxToken.Create(" "),
-                                        SyntaxToken.Create(",")
-                                    )
-                                ));
+                        //非法的，处分能够转换成 select 
+                        inner = LTSQLTokenFactory.CreateListToken(paras.ToArray());
                     }
 
                     ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_EXISTS, null, inner);
+                    //ctx.ResultToken = SqlFunctionHelper.ExistsFunction(ctx.Options.DbType, inner).Builder();
                 }
             });
 

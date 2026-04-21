@@ -326,5 +326,13 @@ namespace MNet.LTSQL
 
             return builder;
         }
+        // public static FunctionTokenBuilder ExistsFunction(DbType db, LTSQLToken query)
+        // {
+        //     FunctionTokenBuilder builder = new FunctionTokenBuilder();
+        //     builder.WithFunctionName("EXISTS", typeof(bool))
+        //     .WithFunctionArgs(query);
+
+        //     return builder;
+        // }
     }
 }

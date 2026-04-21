@@ -172,14 +172,7 @@ namespace MNet.LTSQL
         {
             return new PageToken(skip, take);
         }
-        public static SqlScopeToken CreateSqlScopeToken(LTSQLToken inner)
-        {
-            if (inner == null)
-                throw new ArgumentNullException(nameof(inner));
-
-            return new SqlScopeToken(inner);
-        }
-        public static PriorityCalcToken CreatePriorityCalcToken(SqlValueToken inner)
+        public static PriorityCalcToken CreatePriorityCalcToken(LTSQLToken inner)
         {
             if (inner == null)
                 throw new ArgumentNullException(nameof(inner));
@@ -219,13 +212,16 @@ namespace MNet.LTSQL
         {
             return new ClauseToken(clause, subs);
         }
-        public static FieldListToken CreateFieldListToken(params LTSQLToken[] fields)
+        public static ListToken CreateListToken(params LTSQLToken[] tokens)
         {
-            return new FieldListToken(fields);
+            return new ListToken(tokens);
         }
-        public static ValuesListToken CreateValuesListToken(params LTSQLToken[] values)
+        public static ListToken CreateListToken(IEnumerable<LTSQLToken> tokens, LTSQLToken append)
         {
-            return new ValuesListToken(values);
+            List<LTSQLToken> list = new List<LTSQLToken>(tokens);
+            list.Add(append);
+            
+            return new ListToken(list);
         }
     }
 }

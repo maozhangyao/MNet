@@ -53,7 +53,7 @@ namespace MNet.LTSQL
                 return new SqlQueryPart()
                 {
                     Step = step,
-                    MappingType = query.NewType,
+                    MappingType = query.MappingType,
                     From = query
                 };
             }
@@ -78,12 +78,12 @@ namespace MNet.LTSQL
 
 
         //初始化查询对象，以支持LINQ语法
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class, new()
         {
             return AsLTSQL<T>(obj, null);
         }
         //指定表名
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName) where T : class
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName) where T : class, new()
         {
             TablePart tablePart = new TablePart(typeof(T));
             tablePart.TableName = tableName;
@@ -252,7 +252,7 @@ namespace MNet.LTSQL
                 .SetNextStep(QueryStepSeq.Select, false);
             
             query.SelectKey = expr;
-            query.NewType = typeof(TResult);
+            query.MappingType = typeof(TResult);
 
             return new LTSQLObject<TResult>(query);
         }
@@ -330,6 +330,7 @@ namespace MNet.LTSQL
             SqlQueryPart qInner = inner.Query.CopyNew() as SqlQueryPart;
 
             JoinPart join = new JoinPart();
+            join.MappingType = typeof(TResult);
             join.JoinObject = resultSelector;
 
             Type anonymouseType = typeof(TResult);
@@ -351,16 +352,6 @@ namespace MNet.LTSQL
                 }
             }
 
-
-            /*
-             root =>
-                p1
-                transparent1 =>
-                    p2
-                    transparent2 =>
-                        p3
-                        p4
-             */
 
             join.MainQuery = qOuter.From;
             //非连续join
@@ -399,6 +390,7 @@ namespace MNet.LTSQL
         //直接聚合函数
         public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
+            //new {flag = 1}.AsLTSQL().Where(p => src.Any())
             return src.AsLTSQL().Where(p => src.Any()).Take(1).Select(p => 1);
         }
         public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)

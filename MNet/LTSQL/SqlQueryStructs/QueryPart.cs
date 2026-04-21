@@ -128,9 +128,6 @@ namespace MNet.LTSQL.SqlQueryStructs
         
         //order by
         public List<OrderKeyPart> Orders { get; set; }
-
-        //select 
-        public Type NewType { get; set; }
         public Expression SelectKey { get; set; }
         
 
@@ -152,7 +149,7 @@ namespace MNet.LTSQL.SqlQueryStructs
             part.Havings = this.Havings?.ToList();
             part.Orders = this.Orders?.ToList();
             part.SelectKey = this.SelectKey;
-            part.NewType = this.NewType;
+            //part.NewType = this.NewType;
 
             part.From = this.From?.CopyNew();
             return part;

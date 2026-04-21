@@ -114,10 +114,6 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitSQLScopeToken(SqlScopeToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitPriorityCalcToken(PriorityCalcToken token)
         {
             return this._visitor(token);
@@ -134,7 +130,7 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitFieldListToken(FieldListToken token)
+        public virtual LTSQLToken VisitListToken(ListToken token)
         {
             return this._visitor(token);
         }

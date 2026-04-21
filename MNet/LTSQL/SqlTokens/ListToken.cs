@@ -5,16 +5,16 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.SqlTokens
 {
     /// <summary>
-    /// 一组字段列表，如：select,order,group等等中的字段列表
+    /// 一个列表
     /// </summary>
-    public class FieldListToken : SequenceToken
+    public class ListToken : SequenceToken
     {
-        public FieldListToken(IEnumerable<LTSQLToken> fields) : base(fields?.ToArray())
+        public ListToken(IEnumerable<LTSQLToken> fields) : base(fields?.ToArray())
         { }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitFieldListToken(this);
+            return visitor.VisitListToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
@@ -26,7 +26,7 @@ namespace MNet.LTSQL.SqlTokens
             for (int i = 0; i < len; i++)
                 _news[i] = this.Tokens[i].Visit(visitor);
 
-            return new FieldListToken(_news);
+            return new ListToken(_news);
         }
     }
 }

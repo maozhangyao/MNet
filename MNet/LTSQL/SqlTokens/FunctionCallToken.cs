@@ -19,6 +19,7 @@ namespace MNet.LTSQL.SqlTokens
 
         public readonly LTSQLToken FunctionObject;
         public readonly LTSQLToken[] Parameters;
+        public LTSQLToken FunctionName => !this.IsNot ? this.FunctionObject : SequenceToken.Create( SyntaxToken.Create("NOT "), this.FunctionObject);
 
         public bool IsNot { get; }
 
