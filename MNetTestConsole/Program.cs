@@ -3,11 +3,12 @@ using MNet.LTSQL.SqlTokens;
 using MNetTestConsole.Utils;
 using System.Reflection;
 using System.Linq;
+using System.Linq.Expressions;
 
 /*
  实现sql格式化输出接口，屏蔽直接对sql字符串的拼接                   [ok] 
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况             [ok]
- IN 操作考虑需要多属性匹配模式
+ IN 操作考虑支持元组匹配
  
  select 独立语句支持：如 select 1， 无需from子句
  select union all 支持
@@ -19,12 +20,15 @@ using System.Linq;
  */
 
 var arr = new List<int>() { 1, 2, 3 };
+var arr1 = new []{new {age = 1, name="ymz"}};
+bool flag = (1,3) == (4,5);
+
 
 c_persion_t p = new c_persion_t();
-var query1 = (from p1 in p.AsLTSQL().Where(p => p.Id > 1)
+var query1 = (from p1 in p.AsLTSQL()
              from p2 in p.AsLTSQL()
              from p3 in p.AsLTSQL()
-             where arr.Contains(p1.Id)
+             where new { age = p1.Age, name = p1.SelfName }.In(arr)
              select new { first = p1.Id, second = p2.Id, thrid = p3.Id,
                  dateTime = DateTime.Now.ToString("%Y %m-%H"),
                  year = DateTime.Now.Year,

@@ -274,7 +274,7 @@ namespace MNet.LTSQL
             // 对 FirstOrDefault 的支持(等同于Take(1)函数)
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                if (ctx.Member.Name == nameof(LTSQLQueryableExtensions.FirstOrDefault) && ctx.OwnerType == typeof(LTSQLQueryableExtensions))
+                if (ctx.Member.Name == nameof(ExpressionFunctionExtensions.FirstOrDefault) && ctx.OwnerType == typeof(ExpressionFunctionExtensions))
                 {
                     if (ctx.MethodParameterTokenList.IsEmpty() || ctx.MethodParameterTokenList.Length != 1)
                         return;

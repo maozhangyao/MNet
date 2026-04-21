@@ -380,13 +380,6 @@ namespace MNet.LTSQL
         }
 
 
-
-        //占位函数，用于 linq 表达式写法，其效果等同于Take(1)函数调用
-        public static T FirstOrDefault<T>(this ILTSQLObjectQueryable<T> src)
-        {
-            src.Take(1);
-            return default(T);
-        }
         //直接聚合函数
         public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
