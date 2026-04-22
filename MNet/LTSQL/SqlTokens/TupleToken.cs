@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks.Sources;
@@ -8,16 +8,22 @@ namespace MNet.LTSQL.SqlTokens
     /// <summary>
     /// 一个元组概念
     /// </summary>
-    public class TupleToken : BogusToken
+    public class TupleToken : ValueToken
     {
-        public TupleToken() { }
+        public TupleToken(Type type)
+        {
+            this.ValueType = type;
+        }
 
         private List<(LTSQLToken, string)> _props;
 
         /// <summary>
-        /// tuple 表示的类型
+        /// 返回属性名
         /// </summary>
-        public Type Type { get; set; }
+        public string[] PropNames => this._props?.Select(p => p.Item2)?.ToArray() ?? new string[0];
+        /// <summary>
+        /// 返回属性值
+        /// </summary>
         public LTSQLToken[] Props => this._props?.Select(p => p.Item1)?.ToArray() ?? new LTSQLToken[0];
         public IEnumerable<(LTSQLToken, string)> Items => this._props ?? new List<(LTSQLToken, string)>(0);
 

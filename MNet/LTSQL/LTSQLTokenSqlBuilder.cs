@@ -230,13 +230,13 @@ namespace MNet.LTSQL
                     nxt(t.Tokens[i]);
                     if (i + 1 < t.Tokens.Length)
                     {
-                        ctx.Writer.Write(",");
+                        ctx.Writer.Write(", ");
                         if(newLineFlag)
                             ctx.Writer.WriteLine();
                     }
                     else
                     {
-                        ctx.Writer.WriteWhite();
+                        //ctx.Writer.WriteWhite();
                     }
                 }
 
@@ -289,6 +289,19 @@ namespace MNet.LTSQL
                         ctx.Writer.WriteWhite();
                     }
                 }
+            })
+            .UseTokenBuilder<TupleToken>((t, ctx, nxt) =>
+            {
+                ctx.Writer.Write("(");
+                bool flag = false;
+                foreach (LTSQLToken item in t.Props)
+                {
+                    if (flag)
+                        ctx.Writer.Write(", ");
+                    flag = true;
+                    nxt(item);
+                }
+                ctx.Writer.Write(")");
             });
 
             return builder;

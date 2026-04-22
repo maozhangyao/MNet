@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
@@ -230,6 +230,58 @@ namespace MNet.LTSQL
                     }
 
                     ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right);
+                }
+
+                // in 操作，支持元组匹配
+                else if (typeof(ExpressionFunctionExtensions) == ctx.OwnerType
+                && ctx.Member.Name == nameof(ExpressionFunctionExtensions.In)
+                && ctx.MethodParameterTokenList.Length == 2)
+                {
+                    TupleToken tuple = ctx.MethodParameterTokenList[0] as TupleToken;
+                    LTSQLToken token = ctx.MethodParameterTokenList[1];
+                    ILTSQLObjectQueryable query =  (token is SqlParameterToken p1) ? p1.Value as ILTSQLObjectQueryable : null;;
+                    IEnumerable list = (token is SqlParameterToken p2) ? p2.Value as IEnumerable : null;
+                    if(tuple == null)
+                        throw new NotSupportedException("In操作符号进行元组匹配时，必须是元组。");
+                    if(query == null && list == null)
+                        throw new NotSupportedException("In操作符号进行元组匹配时，参数不正确，必须时子查询或者参数列表。");
+
+                    //子查询
+                    if (query != null)
+                    {
+                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple, token);
+                    }
+                    //参数硬编码
+                    else if (list != null)
+                    {
+                        List<TupleToken> tokens = new List<TupleToken>();
+                        foreach (object para in list)
+                        {
+                            Type t = para.GetType();
+                            TupleToken tupleItem = new TupleToken(t);
+                            foreach (string prop in tuple.PropNames)
+                            {
+                                MemberInfo[] members = t.GetMember(prop).Where(p => p is PropertyInfo || p is FieldInfo).ToArray();
+                                if (members == null || members.Length <= 0)
+                                    throw new Exception($"In操作符号进行元组匹配时，无法获取参数的属性信息或者字段信息，成员名称为：{prop}");
+                                if (members.Length > 1)
+                                    throw new Exception($"In操作符号进行元组匹配时，获取到了多个同名成员，成员名称为：{prop}");
+
+                                MemberInfo member = members[0];
+                                PropertyInfo memberProp = member as PropertyInfo;
+                                FieldInfo memberField = member as FieldInfo;
+
+                                //string propName = member.Name;
+                                object propValue = memberProp?.GetValue(para) ?? memberField?.GetValue(para);
+                                SqlParameterToken parameter = ctx.TokenSqlParameter(propValue, memberProp?.PropertyType ?? memberField?.FieldType);
+                                tupleItem.Add(parameter, member.Name);
+                            }
+                            tokens.Add(tupleItem);
+                        }
+                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple,
+                                LTSQLTokenFactory.CreatePriorityCalcToken(LTSQLTokenFactory.CreateListToken(tokens.ToArray()))
+                            );
+                    }
                 }
             });
 

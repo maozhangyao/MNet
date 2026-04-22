@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlQueryStructs;
+using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
@@ -964,7 +964,7 @@ namespace MNet.LTSQL
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
-            TupleToken tuple = new TupleToken();
+            TupleToken tuple = new TupleToken(node.Type);
             LTSQLToken[] paras = this.PopAsParamters(node.Arguments.Count);
             if (node.Members.IsNotEmpty())
             {

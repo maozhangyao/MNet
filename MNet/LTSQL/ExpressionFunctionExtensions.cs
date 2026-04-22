@@ -12,15 +12,16 @@ namespace MNet.LTSQL
             src.Take(1);
             return default(T);
         }
-
-        public static bool In<T>(this T tuple, IEnumerable<object> items)
-        {
-            return false;
-        }
+        //in操作之，元组匹配
         public static bool In<T>(this T tuple, params object[] items)
         {
             return tuple.In(items);
         }
+        //in操作之，元组匹配
+        public static bool In<T>(this T tuple, IEnumerable<object> items)
+        {
+            return false;
+        }   
     }
 
 }
