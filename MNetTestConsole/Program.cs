@@ -10,7 +10,7 @@ using System.Linq.Expressions;
  接收参数的Dictionary容器替换掉，避免大量参数生成的情况             [ok]
  IN 操作考虑支持元组匹配                                          [ok]
  
- select 独立语句支持：如 select 1， 无需from子句
+ select 独立语句支持：如 select 1， 无需from子句                   [ok]
  select union all 支持
  withAny逻辑优化，直接selet 1 或者 select 0
  ?? 运算符支持
