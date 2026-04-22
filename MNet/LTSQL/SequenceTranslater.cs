@@ -145,21 +145,27 @@ namespace MNet.LTSQL
             string root = "p" + this._context.TableNameGenerator.Next();
             TableAliasMapping mapping = new TableAliasMapping(root);
 
-            //涉及联表
-            if (query.From is JoinPart join)
+            if (query.From != null)
             {
-                ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinObject).Body.Type, root);
-                this.AssignFromJoinAlias(mapping, query.From, joinObj, joinObj);
+                //涉及联表
+                if (query.From is JoinPart join)
+                {
+                    ParameterExpression joinObj = Expression.Parameter(((LambdaExpression)join.JoinObject).Body.Type, root);
+                    this.AssignFromJoinAlias(mapping, query.From, joinObj, joinObj);
+                }
+                //单表
+                else
+                {
+                    this.AssignFromJoinAlias(mapping, query.From, null, null);
+                }
             }
-            //单表
             else
             {
-                this.AssignFromJoinAlias(mapping, query.From, null, null);
+                mapping.Alias = root;
             }
 
-
-            //统一根参数名
-            Type rootParameterType = query.From.MappingType;
+            //统一根参数名(select 字段硬编码查询)
+            Type rootParameterType = query?.From?.MappingType ?? query.MappingType;
             ExpressionModifier exprModifier = new ExpressionModifier();
             ParameterExpression newRootParameter = Expression.Parameter(rootParameterType, root);
             if (query.Wheres.IsNotEmpty())
@@ -234,8 +240,9 @@ namespace MNet.LTSQL
             //投影（仅在不存在分组的情况下才有替换参数的意义）
             if (query.SelectKey != null && !query.GroupFlag)
             {
+                LambdaExpression lambda = query.SelectKey as LambdaExpression;
                 ParameterExpression _old = (query.SelectKey as LambdaExpression).Parameters[0];
-                query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
+                    query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
             }
 
 
@@ -364,7 +371,7 @@ namespace MNet.LTSQL
                 {
                     //from 中的内联接查询
                     //拆包，使其在同一范围内
-                    if(query1 is ListToken list)
+                    if (query1 is ListToken list)
                         return LTSQLTokenFactory.CreateListToken(list.Tokens, query2);
                     return LTSQLTokenFactory.CreateListToken(query1, query2);
                 }
@@ -472,6 +479,7 @@ namespace MNet.LTSQL
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 throw;
             }
         }
@@ -550,6 +558,7 @@ namespace MNet.LTSQL
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 throw;
             }
             finally
@@ -569,7 +578,10 @@ namespace MNet.LTSQL
             List<FieldInfoToken> fields = new List<FieldInfoToken>();
 
             //from
-            sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, ref fields));
+            if (query.From != null)
+            {
+                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, ref fields));
+            }
 
             //where
             if (query.Wheres.IsNotEmpty())
@@ -618,7 +630,7 @@ namespace MNet.LTSQL
             }
 
             //distict
-             LTSQLToken distinckClause = null;
+            LTSQLToken distinckClause = null;
             if (query.Distinct)
                 distinckClause = LTSQLTokenFactory.CreateClauseToken("DISTINCT");
 
@@ -639,8 +651,8 @@ namespace MNet.LTSQL
                 }
             }
 
-            sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT", 
-                new []{ distinckClause, topLimitClause, selectFieldsToken}.Where(p => p != null).ToArray()
+            sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT",
+                new[] { distinckClause, topLimitClause, selectFieldsToken }.Where(p => p != null).ToArray()
             );
             sqlToken.DefaultFields = fields;
             sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);

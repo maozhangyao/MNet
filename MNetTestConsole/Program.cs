@@ -13,6 +13,8 @@ using System.Linq.Expressions;
  select 独立语句支持：如 select 1， 无需from子句
  select union all 支持
  withAny逻辑优化，直接selet 1 或者 select 0
+ ?? 运算符支持
+ 子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
  表名，字段名的自定义映射
 
  检查对主流数据库的支持情况                      
@@ -24,31 +26,39 @@ var arr1 = new[] { new { age = 1, name = "ymz" }, new { age = 35, name = "金刚
 
 
 c_persion_t p = new c_persion_t();
+p.Id = 1000;
+
 var query1 = (from p1 in p.AsLTSQL()
-             from p2 in p.AsLTSQL()
-             from p3 in p.AsLTSQL()
-             where new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName}).Take(1))
-             select new { first = p1.Id, second = p2.Id, thrid = p3.Id,
-                 dateTime = DateTime.Now.ToString("%Y %m-%H"),
-                 year = DateTime.Now.Year,
-                 month = DateTime.Now.Month,
-                 day = DateTime.Now.Day,
-                 hour = DateTime.Now.Hour,
-                 minute = DateTime.Now.Minute,
-                 second1 = DateTime.Now.Second
-             });
+              from p2 in p.AsLTSQL()
+              from p3 in p.AsLTSQL()
+              where new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName }).Take(1))
+              select new
+              {
+                  first = p1.Id,
+                  second = p2.Id,
+                  thrid = p3.Id,
+                  dateTime = DateTime.Now.ToString("%Y %m-%H"),
+                  year = DateTime.Now.Year,
+                  month = DateTime.Now.Month,
+                  day = DateTime.Now.Day,
+                  hour = DateTime.Now.Hour,
+                  minute = DateTime.Now.Minute,
+                  second1 = DateTime.Now.Second
+              });
 
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
              join p3 in p.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
-             group new {Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id} by new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } into gs
+             group new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } by new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } into gs
              where gs.Key.Id1 + gs.Key.Id2 + gs.Key.Id3 > 0
              orderby gs.Key.Id1 + gs.Key.Id3
-             select new {
+             select new
+             {
                  Min = gs.Min(p => p.Id1),
                  Max = gs.Min(p => p.Id3)
              };
 
+var query3 = p.AsSelect(p => new {age = p.Age, name = p.SelfName});
 
 LTSQLOptions options = new LTSQLOptions
 {
@@ -58,7 +68,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query3.Query, options);
 
 try
 {
@@ -69,7 +79,7 @@ try
     ctx.UseParameter = options.UseSqlParameter;
     ctx.SqlWriterFactory = () => new LTSQLWriter(true);
     sqlBuilder.Build(token, ctx);
-    
+
     ConsoleHelper.WriteLineWithYellow(ctx.Sql);
 }
 catch (Exception ex)

@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
 
@@ -35,7 +36,7 @@ namespace MNet.LTSQL
             {
                 if (p.ParameterType.IsClass)
                     return (object)null;
-                if(p.ParameterType.IsValueType && !p.ParameterType.IsEnum && !p.ParameterType.IsPrimitive)
+                if (p.ParameterType.IsValueType && !p.ParameterType.IsEnum && !p.ParameterType.IsPrimitive)
                     return Activator.CreateInstance(p.ParameterType); //结构体，直接构造
                 return (object)0;
             }).ToArray();
@@ -67,7 +68,7 @@ namespace MNet.LTSQL
             sequence.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
         }
         //将序列直接转换为分组模式(不带group by 子句)
-        private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey,T>(this ILTSQLObjectQueryable<T> src)
+        private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey, T>(this ILTSQLObjectQueryable<T> src)
         {
             src = src.AsLTSQL();
             src.Query = src.Query.SetNextStep(QueryStepSeq.GroupBy);
@@ -108,6 +109,82 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
+
+        // 硬编码select字段进行查询如：
+        // SELECT 'Mr. liu' as name, 18 as age, 'like books' as Description
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T obj) where T : new()
+        {
+            Type t = typeof(T);
+            if (t.IsPrimitive || obj is string)
+            {
+                //对于基元类型和string类型，无需解析字段，直接使用其值
+                return AsSelect(() => obj);
+            }
+
+            ConstructorInfo construct = typeof(T).GetConstructor(new Type[0]);
+            if (construct == null)
+                throw new Exception($"无法获取类型{t.Name}的公共无参构造函数");
+
+            List<MemberBinding> binds = new List<MemberBinding>();
+            FieldInfo[] fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
+            foreach (FieldInfo field in fields)
+            {
+                var value = field.GetValue(obj);
+                var bind = Expression.Bind(field, Expression.Constant(value, field.FieldType));
+                binds.Add(bind);
+            }
+
+            PropertyInfo[] props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty);
+            foreach (PropertyInfo prop in props)
+            {
+                var value = prop.GetValue(obj);
+                
+                var bind = Expression.Bind(prop, Expression.Constant(value, prop.PropertyType));
+                binds.Add(bind);
+            }
+
+            if (binds.Count <= 0)
+                throw new Exception($"未能获取类型{t.Name}的任何公共属性或者字段");
+            
+            NewExpression _new = Expression.New(construct);
+            MemberInitExpression init = Expression.MemberInit(_new, binds.ToArray());
+            Expression<Func<T>> expr = Expression.Lambda<Func<T>>(init);
+            return AsSelect(expr);
+        }
+        public static ILTSQLOrderedQueryable<TResult> AsSelect<T, TResult>(this T obj, Expression<Func<T, TResult>> expr)
+        {
+            ParameterExpression parameter = expr.Parameters[0];
+            ConstantExpression constant = Expression.Constant(obj, typeof(T));
+            ExpressionModifier modifier = new ExpressionModifier();
+
+            Expression newBody = modifier.VisitParameter(expr.Body, p => parameter == p ? constant : p);
+            return Expression.Lambda<Func<TResult>>(newBody).AsSelect();
+        }        
+        public static ILTSQLOrderedQueryable<TResult> AsSelect<T, TResult>(this T obj, Func<T, Expression<Func<TResult>>> getNewExpr)
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+            if (getNewExpr == null)
+                throw new ArgumentNullException(nameof(getNewExpr));
+
+            var expr = getNewExpr(obj);
+            return AsSelect(expr);
+        }
+        public static ILTSQLOrderedQueryable<TResult> AsSelect<TResult>(this Expression<Func<TResult>> expr)
+        {
+            if(expr == null)
+                throw new ArgumentNullException(nameof(expr));
+
+            SqlQueryPart query = new SqlQueryPart();
+            query.Step = QueryStepSeq.Select;
+            query.MappingType = typeof(TResult);
+            query.SelectKey = Expression.Lambda<Func<TResult, TResult>>(expr.Body, Expression.Parameter(typeof(TResult)));
+
+            return new LTSQLObject<TResult>(query);
+        }
+        
+
+
         public static ILTSQLOrderedQueryable<T> WithJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
         {
             return new LTSQLObject<T>(src.Query) { JoinFlag = flag };
@@ -215,7 +292,7 @@ namespace MNet.LTSQL
         {
             var query = src.Query.CopyNew() as SqlQueryPart;
             AddOrder(ref query, keyExpr, false);
-;
+            ;
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLOrderedQueryable<T> ThenByDescending<T, TKey>(this ILTSQLOrderedQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
@@ -228,7 +305,7 @@ namespace MNet.LTSQL
         }
 
         //group
-        public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T,TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
+        public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
             //默认的分组元素为整个对象
             return GroupBy(src, keyExpr, p => p);
@@ -237,7 +314,7 @@ namespace MNet.LTSQL
         {
             var query = (src.Query.CopyNew() as SqlQueryPart)
                 .SetNextStep(QueryStepSeq.GroupBy, false);
-            
+
             query.GroupFlag = true;
             query.GroupKey = keyExpr;
             query.GroupElement = elementExpr;
@@ -250,13 +327,13 @@ namespace MNet.LTSQL
         {
             var query = (src.Query.CopyNew() as SqlQueryPart)
                 .SetNextStep(QueryStepSeq.Select, false);
-            
+
             query.SelectKey = expr;
             query.MappingType = typeof(TResult);
 
             return new LTSQLObject<TResult>(query);
         }
-        
+
         //join
         public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(this ILTSQLObjectQueryable<TOuter> outer
             , ILTSQLObjectQueryable<TInner> inner
@@ -404,7 +481,7 @@ namespace MNet.LTSQL
         }
 
 
-        public static ILTSQLObjectQueryable<int> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T,int>> selector)
+        public static ILTSQLObjectQueryable<int> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
         {
             return WithGroup(nameof(Enumerable.Sum), src, selector);
         }
@@ -532,7 +609,7 @@ namespace MNet.LTSQL
 
         public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
         {
-            return WithGroup<T,int, double>(nameof(Enumerable.Average), src, selector);
+            return WithGroup<T, int, double>(nameof(Enumerable.Average), src, selector);
         }
         public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
         {
@@ -595,7 +672,7 @@ namespace MNet.LTSQL
                 .First();
             return m;
         }
-        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TResult,TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TResult>> exprOfGroup)
+        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TResult>> exprOfGroup)
         {
             ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
             Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(

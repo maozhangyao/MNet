@@ -10,6 +10,9 @@ namespace MNet.LTSQL.SqlQueryStructs
     //可命名的数据序列
     public class QueryPart
     {
+        protected QueryPart()
+        {}
+
         //命名
         public string Alias { get; set; }
         //an object type that mappting to table in a database
@@ -115,22 +118,19 @@ namespace MNet.LTSQL.SqlQueryStructs
 
         //from
         public QueryPart From { get; set; }
-
         //where
         // 由于存在连表查询的情况，条件是一个表达式列表，默认是AND关系
         public List<Expression> Wheres { get; set; }
-
         //group by
         public Expression GroupKey { get; set; }
         public Expression GroupElement { get; set; }
         //having
         public List<Expression> Havings { get; set; }
-        
         //order by
         public List<OrderKeyPart> Orders { get; set; }
         public Expression SelectKey { get; set; }
-        
 
+        
         public override QueryPart CopyNew()
         {
             SqlQueryPart part = new SqlQueryPart();
@@ -149,7 +149,6 @@ namespace MNet.LTSQL.SqlQueryStructs
             part.Havings = this.Havings?.ToList();
             part.Orders = this.Orders?.ToList();
             part.SelectKey = this.SelectKey;
-            //part.NewType = this.NewType;
 
             part.From = this.From?.CopyNew();
             return part;
