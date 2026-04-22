@@ -43,6 +43,7 @@ namespace MNet.LTSQL
 
             return minParameters.Invoke(objs);
         }
+        
 
         private static SqlQueryPart SetNextStep(this SqlQueryPart query, QueryStepSeq step, bool equals = true)
         {
@@ -458,10 +459,10 @@ namespace MNet.LTSQL
 
 
         //直接聚合函数
-        public static ILTSQLObjectQueryable<int> WithAny<T>(this ILTSQLObjectQueryable<T> src)
+        public static ILTSQLObjectQueryable<bool> WithAny<T>(this ILTSQLObjectQueryable<T> src)
         {
-            //new {flag = 1}.AsLTSQL().Where(p => src.Any())
-            return src.AsLTSQL().Where(p => src.Any()).Take(1).Select(p => 1);
+            src = new LTSQLObject<T>(src.Query.CopyNew() as SqlQueryPart);
+            return AsSelect(() => src.Any());
         }
         public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
         {

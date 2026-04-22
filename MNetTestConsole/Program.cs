@@ -11,8 +11,8 @@ using System.Linq.Expressions;
  IN 操作考虑支持元组匹配                                          [ok]
  
  select 独立语句支持：如 select 1， 无需from子句                   [ok]
- select union all 支持
  withAny逻辑优化，直接selet 1 或者 select 0
+ select union all 支持
  ?? 运算符支持
  子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
  表名，字段名的自定义映射
@@ -68,7 +68,7 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query3.Query, options);
+LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
 
 try
 {

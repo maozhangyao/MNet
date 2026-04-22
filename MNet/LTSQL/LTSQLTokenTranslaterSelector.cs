@@ -313,7 +313,7 @@ namespace MNet.LTSQL
                         foreach (object item in list)
                             paras.Add(ctx.TokenSqlParameter(item));
 
-                        //非法的，处分能够转换成 select 
+                        //非法的，除非能够转换成 select 
                         inner = LTSQLTokenFactory.CreateListToken(paras.ToArray());
                     }
 
