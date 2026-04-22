@@ -11,7 +11,7 @@ using System.Linq.Expressions;
  IN 操作考虑支持元组匹配                                          [ok]
  
  select 独立语句支持：如 select 1， 无需from子句                   [ok]
- withAny逻辑优化，直接selet 1 或者 select 0
+ withAny逻辑优化，直接selet 1 或者 select 0                       [ok]
  select union all 支持
  ?? 运算符支持
  子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
