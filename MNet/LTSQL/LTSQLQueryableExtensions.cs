@@ -177,7 +177,7 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(expr));
 
             SqlQueryPart query = new SqlQueryPart();
-            query.Step = QueryStepSeq.Select;
+            query.Step = QueryStepSeq.End;
             query.MappingType = typeof(TResult);
             query.SelectKey = Expression.Lambda<Func<TResult, TResult>>(expr.Body, Expression.Parameter(typeof(TResult)));
 
