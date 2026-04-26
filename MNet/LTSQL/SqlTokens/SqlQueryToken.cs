@@ -2,10 +2,11 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using MNet.LTSQL.SqlTokenExtends;
 
 namespace MNet.LTSQL.SqlTokens
 {
-    public class SqlQueryToken : SqlValueToken
+    public class SqlQueryToken : SqlValueToken, ISelectable
     {
         public List<FieldInfoToken> DefaultFields { get; set; }
 
@@ -18,8 +19,9 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken Select { get; set; }
         //分页子句
         public LTSQLToken Page { get; set; }
-
-
+        
+        public Type MappingType => base.ValueType;
+        public IEnumerable<FieldInfoToken> Fields => this.DefaultFields;
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

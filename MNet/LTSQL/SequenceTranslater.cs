@@ -20,13 +20,13 @@ using System.Xml.Linq;
 namespace MNet.LTSQL
 {
     //开启翻译
-    public class SequenceTranslater : ExpressionVisitor
+    public class SequenceTranslater : ExpressionVisitor, IQueryTranslater
     {
         public SequenceTranslater()
         { }
 
 
-        private LTSQLScope _scope;
+        private LTSQLTranslateScope _scope;
         private LTSQLContext _context;
         //生成的SQL令牌栈
         private Stack<LTSQLToken> _tokens;
@@ -91,7 +91,7 @@ namespace MNet.LTSQL
         private TableAliasMapping GetRootTableAliasMapping(string parameterName)
         {
             LTSQLContext context = this._context;
-            LTSQLScope scope = this._scope;
+            LTSQLTranslateScope scope = this._scope;
             while (context.TableAliasMapping.PropName != parameterName)
             {
                 if (scope.Parent == null || scope.Parent.Context == null)
@@ -242,7 +242,7 @@ namespace MNet.LTSQL
             {
                 LambdaExpression lambda = query.SelectKey as LambdaExpression;
                 ParameterExpression _old = (query.SelectKey as LambdaExpression).Parameters[0];
-                    query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
+                query.SelectKey = exprModifier.VisitParameter(query.SelectKey, p => object.ReferenceEquals(_old, p) ? newRootParameter : p);
             }
 
 
@@ -376,25 +376,6 @@ namespace MNet.LTSQL
                     return LTSQLTokenFactory.CreateListToken(query1, query2);
                 }
             }
-            else if (from is SqlQueryPart query)
-            {
-                var qry = new SequenceTranslater().Translate(query, this._scope.NewScope());
-                //解析字段
-                if (qry is SqlQueryToken sqlquery)
-                {
-                    foreach (FieldInfoToken field in sqlquery.DefaultFields)
-                    {
-                        string fieldAlias = field.Field ?? "transparentField";
-                        fields.Add(new FieldInfoToken(
-                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(query.Alias, query.MappingType), fieldAlias, field.AccessType),
-                                fieldAlias,
-                                field.AccessType
-                            ));
-                    }
-                }
-                qry = LTSQLTokenFactory.CreatePriorityCalcToken(qry);
-                src = qry;
-            }
             else if (from is TablePart table)
             {
                 var qry = LTSQLTokenFactory.CreateTableObjectToken(table.TableName ?? table.MappingType.Name, table.MappingType);
@@ -415,7 +396,27 @@ namespace MNet.LTSQL
             }
             else
             {
-                throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
+                IQueryTranslater translater = new QueryTranslaterFactory().Create(from);
+                if(translater == null)
+                    throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
+
+                var qry = src = translater.Translate(from, this._scope.NewScope());
+                //解析字段
+                if (qry is ISelectable select)
+                {
+                    foreach (FieldInfoToken field in select.Fields)
+                    {
+                        string fieldAlias = field.Field ?? "transparentField";
+                        fields.Add(new FieldInfoToken(
+                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(from.Alias, from.MappingType), fieldAlias, field.AccessType),
+                                fieldAlias,
+                                field.AccessType
+                            ));
+                    }
+                }
+
+                qry = LTSQLTokenFactory.CreatePriorityCalcToken(qry);
+                src = qry;
             }
 
             return LTSQLTokenFactory.CreateAliasToken(src, from.Alias);
@@ -1152,24 +1153,26 @@ namespace MNet.LTSQL
 
 
 
-        public LTSQLToken Translate(SqlQueryPart query, LTSQLOptions options)
+        public LTSQLToken Translate(QueryPart query, LTSQLOptions options)
         {
-            return this.Translate(query, new LTSQLScope()
+            var ctx = new LTSQLContext()
             {
-                Context = new LTSQLContext()
-                {
-                    Options = options,
-                    TableNameGenerator = new NameGenerator(i => $"t{i}"),
-                    ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
-                    LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
-                }
-            });
+                Options = options,
+                TableNameGenerator = new NameGenerator(i => $"t{i}"),
+                ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
+                LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
+            };
+
+            return this.Translate(query, new LTSQLTranslateScope(ctx));
         }
-        internal LTSQLToken Translate(SqlQueryPart query, LTSQLScope scope)
+        public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
+            if(query as SqlQueryPart == null)
+                 throw new Exception($"不支持的查询类型：{query.GetType().Name}; 当前翻译器{nameof(SequenceTranslater)}只支持查询类型{nameof(SqlQueryPart)}");
+
             this._scope = scope;
             this._context = scope.Context;
-            this._context.Root = query;
+            this._context.Root = query as SqlQueryPart;
             this._tokens = new Stack<LTSQLToken>();
             this._parameTokens = new Stack<(Expression expr, LTSQLToken token)>();
 

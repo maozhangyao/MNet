@@ -68,7 +68,8 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-LTSQLToken token = new SequenceTranslater().Translate(query1.Query, options);
+IQueryTranslater translater = new QueryTranslaterFactory().Create(query1.Query);
+LTSQLToken token = translater.Translate(query1.Query, options);
 
 try
 {
