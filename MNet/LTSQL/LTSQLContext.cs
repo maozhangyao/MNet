@@ -21,6 +21,17 @@ namespace MNet.LTSQL
 
         public LTSQLToken GroupKey { get; set; }
         public LTSQLToken GroupElement { get; set; }
+
+        public static LTSQLContext Create(LTSQLOptions options)
+        {
+            return new LTSQLContext()
+            {
+                Options = options,
+                TableNameGenerator = new NameGenerator(i => $"t{i}"),
+                ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
+                LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
+            };
+        }
     }
 
     /// <summary>

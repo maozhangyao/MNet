@@ -5,18 +5,24 @@ using MNet.LTSQL.SqlQueryStructs;
 
 namespace MNet.LTSQL
 {
-    internal class LTSQLObject<T> : ILTSQLOrderedQueryable<T>
+    internal class LTSQLObject<T> : ILTSQLOrderedQueryable<T>, ILTSQLObjectSetable<T>
     {
-        public LTSQLObject() 
-        { }
         public LTSQLObject(SqlQueryPart query)
         {
             this.Query = query;
         }
 
+        public LTSQLObject(QuerySetPart query)
+        {
+            this.Query = query;
+        }
+
+
         //默认左外链接
         public JoinType JoinFlag { get; set; } = JoinType.LeftJoin;
-        public SqlQueryPart Query { get; set; }
+        public QueryPart Query { get; set; }
+        public SqlQueryPart SqlQuery => Query as SqlQueryPart;
+        public QuerySetPart SetQuery => Query as QuerySetPart;
 
         public IEnumerator<T> GetEnumerator()
         {
@@ -28,13 +34,20 @@ namespace MNet.LTSQL
         }
     }
 
+
     public interface ILTSQLObjectQueryable
     {
         //保存查询的结构
-        public SqlQueryPart Query { get; set; }
+        public QueryPart Query { get; set; }
+    }
+    public interface ILTSQLObjectSetable<T> : ILTSQLObjectQueryable
+    {
+        public QuerySetPart SetQuery { get; }
     }
     public interface ILTSQLObjectQueryable<T> : IEnumerable<T>, ILTSQLObjectQueryable
-    { }
+    {
+        public SqlQueryPart SqlQuery { get; }
+    }
     public interface ILTSQLOrderedQueryable<T> : ILTSQLObjectQueryable<T>
     { }
 }

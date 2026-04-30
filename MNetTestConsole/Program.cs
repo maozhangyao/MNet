@@ -12,7 +12,7 @@ using System.Linq.Expressions;
  
  select 独立语句支持：如 select 1， 无需from子句                   [ok]
  withAny逻辑优化，直接selet 1 或者 select 0                       [ok]
- select union all 支持
+ select union all 支持(支持交集，并集，差集)
  ?? 运算符支持
  子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
  表名，字段名的自定义映射
@@ -58,7 +58,7 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
                  Max = gs.Min(p => p.Id3)
              };
 
-var query3 = p.AsSelect(p => new {age = p.Age, name = p.SelfName});
+var query3 = p.AsSelect(p => new {age = p.Age, name = p.SelfName}).UnionSet(false, p.AsSelect(p => new {age = p.Age, name = p.SelfName}));
 
 LTSQLOptions options = new LTSQLOptions
 {
@@ -68,8 +68,8 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-IQueryTranslater translater = new QueryTranslaterFactory().Create(query1.Query);
-LTSQLToken token = translater.Translate(query1.Query, options);
+IQueryTranslater translater = new QueryTranslaterFactory().Create(query3.Query);
+LTSQLToken token = translater.Translate(query3.Query, options);
 
 try
 {

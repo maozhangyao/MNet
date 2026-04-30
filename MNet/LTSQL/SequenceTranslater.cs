@@ -1155,15 +1155,7 @@ namespace MNet.LTSQL
 
         public LTSQLToken Translate(QueryPart query, LTSQLOptions options)
         {
-            var ctx = new LTSQLContext()
-            {
-                Options = options,
-                TableNameGenerator = new NameGenerator(i => $"t{i}"),
-                ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
-                LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
-            };
-
-            return this.Translate(query, new LTSQLTranslateScope(ctx));
+            return this.Translate(query, new LTSQLTranslateScope(LTSQLContext.Create(options)));
         }
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {

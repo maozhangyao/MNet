@@ -302,8 +302,30 @@ namespace MNet.LTSQL
                     nxt(item);
                 }
                 ctx.Writer.Write(")");
+            })
+            .UseTokenBuilder<DataSetToken>((t, ctx, nxt) =>
+            {
+                for(int i = 0; i < t.Querys.Length; i++)
+                {
+                    if(i >  0)
+                    {
+                        ctx.Writer.WriteLine();
+                        if(t.SetType == DbSetType.Union)
+                            ctx.Writer.Write("UNION ");
+                        else if(t.SetType == DbSetType.Intersect)
+                            ctx.Writer.Write("INTERSECT ");
+                        else if(t.SetType == DbSetType.Except)
+                            ctx.Writer.Write(ctx.DbType == DbType.Oracle ? "MINUS " : "EXCEPT ");
+                        else 
+                            throw new Exception($"不支持的SetOperatorType:{t.SetType}");
+                        if(!t.Distinct)
+                            ctx.Writer.Write("ALL ");
+                        ctx.Writer.WriteWhite();
+                    }
+                    nxt(t.Querys[i]);
+                }
             });
-
+            
             return builder;
         }
 
