@@ -8,9 +8,11 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class DataSetToken : SqlValueToken, ISelectable
     {
-        public DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType type, bool distinct)
+        public DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
         {
             this.Querys = querys.ToArray();
+            this.SetType = settype;
+            this.Distinct = distinct;
         }
 
         //数组形式表示，而不是使用树结构表示节点，是为了避免递归时栈溢出

@@ -82,6 +82,7 @@ namespace MNet.LTSQL
         }
 
 
+
         //初始化查询对象，以支持LINQ语法
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class, new()
         {
@@ -120,7 +121,6 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
-
 
 
         // 硬编码select字段进行查询如：
@@ -196,21 +196,55 @@ namespace MNet.LTSQL
             return new LTSQLObject<TResult>(query);
         }
 
+
+        //集合化
+        public static ILTSQLObjectSetable<T> AsSet<T>(this ILTSQLObjectQueryable<T> src, DbSetType setType, bool distinct = false)
+        {
+            if (src == null)
+                throw new ArgumentNullException(nameof(src));
+
+            QuerySetPart set = new QuerySetPart(typeof(T), new QueryPart[] { src.Query.CopyNew() }, setType, distinct);
+            return new LTSQLObject<T>(set);
+        }
+        public static ILTSQLObjectSetable<T> AsSet<T>(this ILTSQLObjectSetable<T> src, DbSetType setType, bool distinct = false)
+        {
+            if (src == null)
+                throw new ArgumentNullException(nameof(src));
+
+            QuerySetPart set = new QuerySetPart(typeof(T), new QueryPart[] { src.Query.CopyNew() }, setType, distinct);
+            return new LTSQLObject<T>(set);
+        }
+
         //多集合共同取并集
-        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectQueryable<T> src, bool distinct = false, params ILTSQLObjectQueryable[] others)
+        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
         {
-            return AsSet(src, DbSetType.Union, distinct, others);
+            return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
         }
+        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        {
+            return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
+        }
+        
         //多集合共同取交集
-        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, bool distinct = false, params ILTSQLObjectQueryable[] others)
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
         {
-            return AsSet(src, DbSetType.Intersect, distinct, others);
+            return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        {
+            return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
+        }
+        
         //多集合共同取差集
-        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, bool distinct = false, params ILTSQLObjectQueryable[] others)
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
         {
-            return AsSet(src, DbSetType.Except, distinct, others);
+            return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        {
+            return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
+        }
+        
         //向当前集合追加相同集合操作, 比如：
         //向并集集合，在追加集合做并集
         //向交集集合，在追加集合做并集
@@ -220,7 +254,7 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(src));
             if (other == null || other.Length <= 0)
                 throw new ArgumentNullException(nameof(other));
-            
+
             List<QueryPart> querys = new List<QueryPart>();
             querys.AddRange(src.SetQuery.Querys.Select(p => p.CopyNew()));
             querys.AddRange(other.Select(p => p.Query.CopyNew()));
@@ -228,17 +262,8 @@ namespace MNet.LTSQL
             QuerySetPart set = new QuerySetPart(typeof(T), querys, src.SetQuery.SetType, src.SetQuery.Distinct);
             return new LTSQLObject<T>(set);
         }
-        public static ILTSQLObjectSetable<T> AsSet<T>(this ILTSQLObjectQueryable<T> src, DbSetType setType, bool distinct = false, params ILTSQLObjectQueryable[] other)
-        {
-            if (src == null)
-                throw new ArgumentNullException(nameof(src));
-            if (other == null || other.Length <= 0)
-                throw new ArgumentNullException(nameof(other));
-
-            QuerySetPart set = new QuerySetPart(typeof(T), other.Select(p => p.Query.CopyNew()), setType, distinct);
-            return new LTSQLObject<T>(set);
-        }
         
+
 
         public static ILTSQLOrderedQueryable<T> WithJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
         {

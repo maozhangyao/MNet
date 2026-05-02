@@ -1,3 +1,4 @@
+using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
@@ -161,9 +162,12 @@ namespace MNet.LTSQL
             .UseTokenBuilder<SqlQueryToken>((t, ctx, nxt) =>
             {
                 nxt(t.Select);
-                ctx.Writer.WriteLine();
-                nxt(t.From);
-
+                
+                if (t.From != null)
+                {
+                    ctx.Writer.WriteLine();
+                    nxt(t.From);
+                }
                 if (t.Where != null)
                 {
                     ctx.Writer.WriteLine();
@@ -194,12 +198,12 @@ namespace MNet.LTSQL
             .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
-                if (t.Value is SqlQueryToken)
+                if (t.Value is ISelectable)
                     ctx.Writer.BeginScope();
 
                 nxt(t.Value);
 
-                if (t.Value is SqlQueryToken)
+                if (t.Value is ISelectable)
                     ctx.Writer.EndScope();
                 ctx.Writer.Write(')');
             })
@@ -214,24 +218,25 @@ namespace MNet.LTSQL
                     return;
 
                 ClauseToken parent = ctx.ParentToken as ClauseToken;
-                bool newLineFlag = parent != null && parent.ClauseName.ToLower() switch { 
-                        "from" => true,
-                        "select" => true,
-                        "order by" => true,
-                        "group by" => true,
-                        _ => false
-                    };
+                bool newLineFlag = parent != null && parent.ClauseName.ToLower() switch
+                {
+                    "from" => true,
+                    "select" => true,
+                    "order by" => true,
+                    "group by" => true,
+                    _ => false
+                };
 
                 if (newLineFlag)
                     ctx.Writer.BeginScope("  ");
-                
+
                 for (int i = 0; i < t.Tokens.Length; i++)
                 {
                     nxt(t.Tokens[i]);
                     if (i + 1 < t.Tokens.Length)
                     {
                         ctx.Writer.Write(", ");
-                        if(newLineFlag)
+                        if (newLineFlag)
                             ctx.Writer.WriteLine();
                     }
                     else
@@ -305,27 +310,27 @@ namespace MNet.LTSQL
             })
             .UseTokenBuilder<DataSetToken>((t, ctx, nxt) =>
             {
-                for(int i = 0; i < t.Querys.Length; i++)
+                for (int i = 0; i < t.Querys.Length; i++)
                 {
-                    if(i >  0)
+                    if (i > 0)
                     {
                         ctx.Writer.WriteLine();
-                        if(t.SetType == DbSetType.Union)
+                        if (t.SetType == DbSetType.Union)
                             ctx.Writer.Write("UNION ");
-                        else if(t.SetType == DbSetType.Intersect)
+                        else if (t.SetType == DbSetType.Intersect)
                             ctx.Writer.Write("INTERSECT ");
-                        else if(t.SetType == DbSetType.Except)
+                        else if (t.SetType == DbSetType.Except)
                             ctx.Writer.Write(ctx.DbType == DbType.Oracle ? "MINUS " : "EXCEPT ");
-                        else 
+                        else
                             throw new Exception($"不支持的SetOperatorType:{t.SetType}");
-                        if(!t.Distinct)
+                        if (!t.Distinct)
                             ctx.Writer.Write("ALL ");
-                        ctx.Writer.WriteWhite();
+                        ctx.Writer.WriteLine();
                     }
                     nxt(t.Querys[i]);
                 }
             });
-            
+
             return builder;
         }
 

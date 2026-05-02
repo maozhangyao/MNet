@@ -6,13 +6,13 @@ using System.Linq;
 using System.Linq.Expressions;
 
 /*
- 实现sql格式化输出接口，屏蔽直接对sql字符串的拼接                   [ok] 
- 接收参数的Dictionary容器替换掉，避免大量参数生成的情况             [ok]
- IN 操作考虑支持元组匹配                                          [ok]
+ 实现sql格式化输出接口，屏蔽直接对sql字符串的拼接               [ok] 
+ 接收参数的Dictionary容器替换掉，避免大量参数生成的情况         [ok]
+ IN 操作考虑支持元组匹配                                        [ok]
  
  select 独立语句支持：如 select 1， 无需from子句                   [ok]
  withAny逻辑优化，直接selet 1 或者 select 0                       [ok]
- select union all 支持(支持交集，并集，差集)
+ select union all 支持(支持交集，并集，差集)                      [ok]
  ?? 运算符支持
  子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
  表名，字段名的自定义映射
@@ -58,7 +58,9 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
                  Max = gs.Min(p => p.Id3)
              };
 
-var query3 = p.AsSelect(p => new {age = p.Age, name = p.SelfName}).UnionSet(false, p.AsSelect(p => new {age = p.Age, name = p.SelfName}));
+var query3 = p.AsSelect(p => new {age = p.Age, name = p.SelfName})
+.AsSet(DbSetType.Union, true).AppendSet(p.AsSelect(p => new {age = p.Age, name = p.SelfName}));
+
 
 LTSQLOptions options = new LTSQLOptions
 {
