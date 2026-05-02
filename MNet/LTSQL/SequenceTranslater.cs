@@ -15,6 +15,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Permissions;
+using System.Xml;
 using System.Xml.Linq;
 
 namespace MNet.LTSQL
@@ -397,7 +398,7 @@ namespace MNet.LTSQL
             else
             {
                 IQueryTranslater translater = new QueryTranslaterFactory().Create(from);
-                if(translater == null)
+                if (translater == null)
                     throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
 
                 var qry = src = translater.Translate(from, this._scope.NewScope());
@@ -1120,11 +1121,18 @@ namespace MNet.LTSQL
                 case ExpressionType.OrElse:
                     binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_OR, sqll, sqlr);
                     break;
+                case ExpressionType.Coalesce:
+                    {
+                        var f = SqlFunctionHelper.CoalesceFunction(this._context.Options.DbType, node.Type, sqll, sqlr)
+                                .Builder();
+                        this.PushToken(f);
+                        break;
+                    }
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
-
-            this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(binary));
+            if (binary != null)
+                this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(binary));
             return expr;
         }
         //一元表达式：主要是取反操作，not exists 以及 not in 等
@@ -1159,8 +1167,8 @@ namespace MNet.LTSQL
         }
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
-            if(query as SqlQueryPart == null)
-                 throw new Exception($"不支持的查询类型：{query.GetType().Name}; 当前翻译器{nameof(SequenceTranslater)}只支持查询类型{nameof(SqlQueryPart)}");
+            if (query as SqlQueryPart == null)
+                throw new Exception($"不支持的查询类型：{query.GetType().Name}; 当前翻译器{nameof(SequenceTranslater)}只支持查询类型{nameof(SqlQueryPart)}");
 
             this._scope = scope;
             this._context = scope.Context;

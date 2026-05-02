@@ -334,5 +334,14 @@ namespace MNet.LTSQL
 
         //     return builder;
         // }
+
+        public static FunctionTokenBuilder CoalesceFunction(DbType db, Type fReturn, params LTSQLToken[] args)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            builder.WithFunctionName("COALESCE", fReturn)
+            .WithFunctionArgs(args);
+
+            return builder;
+        }
     }
 }
