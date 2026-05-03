@@ -14,7 +14,8 @@ using System.Linq.Expressions;
  withAny逻辑优化，直接selet 1 或者 select 0                       [ok]
  select union all 支持(支持交集，并集，差集)                      [ok]
  ?? 运算符支持                                                    [ok]
- 子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断
+ 子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断       【ok]
+exists 应该算函数范围                                             [ok]
  表名，字段名的自定义映射
 
  检查对主流数据库的支持情况                      
@@ -31,7 +32,10 @@ p.Id = 1000;
 var query1 = (from p1 in p.AsLTSQL()
               from p2 in p.AsLTSQL()
               from p3 in p.AsLTSQL()
-              where new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName ?? "NUA" }).Take(1))
+              where 
+              //!new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName ?? "NUA" }).Take(1))
+              //&& 
+              !p.AsSelect().Any()
               select new
               {
                   first = p1.Id,
@@ -68,8 +72,8 @@ LTSQLOptions options = new LTSQLOptions
 };
 
 //token 化
-IQueryTranslater translater = new QueryTranslaterFactory().Create(query3.Query);
-LTSQLToken token = translater.Translate(query3.Query, options);
+IQueryTranslater translater = new QueryTranslaterFactory().Create(query1.Query);
+LTSQLToken token = translater.Translate(query1.Query, options);
 
 try
 {

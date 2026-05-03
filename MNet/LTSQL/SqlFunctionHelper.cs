@@ -6,6 +6,10 @@ namespace MNet.LTSQL
 {
     public class SqlFunctionHelper
     {
+        // 函数名称
+        public const string F_EXISTS = "EXISTS";
+
+
         private static Exception UnknownDb(DbType db)
         {
             return new Exception($"未知的数据库类型枚举值：{db}");
@@ -95,7 +99,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken year = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%Y", db)).Builder();
+                    LTSQLToken year = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%Y", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -136,7 +140,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken month = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%m", db)).Builder();
+                    LTSQLToken month = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%m", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -177,7 +181,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken day = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%d", db)).Builder();
+                    LTSQLToken day = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%d", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -221,7 +225,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken hour = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%H", db)).Builder();
+                    LTSQLToken hour = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%H", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -265,7 +269,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken minute = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%M", db)).Builder();
+                    LTSQLToken minute = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%M", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -309,7 +313,7 @@ namespace MNet.LTSQL
                     break;
                 case DbType.SQLLite:
 
-                    LTSQLToken minute = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%S", db)).Builder();
+                    LTSQLToken minute = DateFormatFunction(db, datetime, LTSQLTokenFactory.CreateConstantToken("%S", db)).Build();
                     builder.WithFunctionName("CAST", typeof(int))
                         .WithFunctionArgs(SequenceToken.CreateWithJoin(
                             new LTSQLToken[]
@@ -326,14 +330,14 @@ namespace MNet.LTSQL
 
             return builder;
         }
-        // public static FunctionTokenBuilder ExistsFunction(DbType db, LTSQLToken query)
-        // {
-        //     FunctionTokenBuilder builder = new FunctionTokenBuilder();
-        //     builder.WithFunctionName("EXISTS", typeof(bool))
-        //     .WithFunctionArgs(query);
+        public static FunctionTokenBuilder ExistsFunction(DbType db, LTSQLToken query)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            builder.WithFunctionName(F_EXISTS, typeof(bool))
+            .WithFunctionArgs(query);
 
-        //     return builder;
-        // }
+            return builder;
+        }
 
         public static FunctionTokenBuilder CoalesceFunction(DbType db, Type fReturn, params LTSQLToken[] args)
         {

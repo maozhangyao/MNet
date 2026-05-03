@@ -39,7 +39,7 @@ namespace MNet.LTSQL.SqlTokens
             for (int i = 0; i < this.Parameters.Length; i++)
                 args[i] = this.Parameters[i].Visit(visitor);
 
-            return new FunctionCallToken(fObj, args, this.ValueType);
+            return new FunctionCallToken(fObj, args, this.ValueType, this.IsNot);
         }
     }
 }

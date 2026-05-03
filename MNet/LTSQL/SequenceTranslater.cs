@@ -676,6 +676,18 @@ namespace MNet.LTSQL
                 return t;
             }) as SqlQueryToken;
 
+            //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
+            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
+            {
+                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.Alias == SqlFunctionHelper.F_EXISTS)
+                {
+                    LTSQLToken parameter = c.Parameters[0];
+                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this._context.Options.DbType, parameter.UnPriorityIfSubQuery())
+                    .Build() as FunctionCallToken;
+                    return c.IsNot ? fcall.Not() : fcall;
+                }
+                return t;
+            }) as SqlQueryToken;
 
             //null 等式处理
             if (!this._context.Options.DisNullable)
@@ -1020,8 +1032,8 @@ namespace MNet.LTSQL
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
-            LTSQLToken right = this.PopToken();
-            LTSQLToken left = this.PopToken();
+            LTSQLToken right = this.PopToken().PriorityIfSubQuery();
+            LTSQLToken left = this.PopToken().PriorityIfSubQuery();
             if (!(right is ValueToken && left is ValueToken))
                 throw new Exception($"二元表达式左右两边的子节点无法正常表示:{node}");
 
@@ -1064,7 +1076,7 @@ namespace MNet.LTSQL
                     if (tupl.Props.Length != tupr.Props.Length)
                         throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
-                    //元组中的各个属性做相等操作，用AND操作连接
+                    //元组中的各个属性做相等操作，用AND操作连接（join 操作会出现元组对比）
                     BoolCalcToken cur = null;
                     for (int i = 0; i < tupl.Props.Length; i++)
                     {
@@ -1082,7 +1094,7 @@ namespace MNet.LTSQL
             if (sqll == null || sqlr == null)
                 throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
-            BinaryToken binary = null;
+            LTSQLToken binary = null;
             switch (node.NodeType)
             {
                 case ExpressionType.Add:
@@ -1123,14 +1135,15 @@ namespace MNet.LTSQL
                     break;
                 case ExpressionType.Coalesce:
                     {
-                        var f = SqlFunctionHelper.CoalesceFunction(this._context.Options.DbType, node.Type, sqll, sqlr)
-                                .Builder();
-                        this.PushToken(f);
+                        //空值合并符处理： a ?? b
+                        binary = SqlFunctionHelper.CoalesceFunction(this._context.Options.DbType, node.Type, sqll, sqlr)
+                                .Build();
                         break;
                     }
                 default:
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
+
             if (binary != null)
                 this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(binary));
             return expr;

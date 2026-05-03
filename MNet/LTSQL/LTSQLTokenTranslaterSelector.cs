@@ -189,7 +189,8 @@ namespace MNet.LTSQL
                       || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType)
                     )
                     && typeof(string) != ctx.OwnerType
-                    && (ctx.Member.Name == nameof(Enumerable.Contains)))
+                    && (ctx.Member.Name == nameof(Enumerable.Contains))
+                )
                 {
                     // A Container B
                     // B IN A
@@ -229,13 +230,14 @@ namespace MNet.LTSQL
                         }
                     }
 
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right.PriorityIfSubQuery());
                 }
 
                 // in 操作，支持元组匹配
                 else if (typeof(ExpressionFunctionExtensions) == ctx.OwnerType
                 && ctx.Member.Name == nameof(ExpressionFunctionExtensions.In)
-                && ctx.MethodParameterTokenList.Length == 2)
+                && ctx.MethodParameterTokenList.Length == 2
+                )
                 {
                     TupleToken tuple = ctx.MethodParameterTokenList[0] as TupleToken;
                     LTSQLToken token = ctx.MethodParameterTokenList[1];
@@ -317,8 +319,7 @@ namespace MNet.LTSQL
                         inner = LTSQLTokenFactory.CreateListToken(paras.ToArray());
                     }
 
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_EXISTS, null, inner);
-                    //ctx.ResultToken = SqlFunctionHelper.ExistsFunction(ctx.Options.DbType, inner).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.ExistsFunction(ctx.Options.DbType, inner.UnPriorityIfSubQuery()).Build();
                 }
             });
 
@@ -487,31 +488,31 @@ namespace MNet.LTSQL
                 DbType db = ctx.Options.DbType;
                 if (ctx.Member.Name == nameof(DateTime.Year))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateYearFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateYearFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.Month))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateMonthFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateMonthFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.Day))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateDayFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateDayFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.Hour))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateHourFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateHourFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.Minute))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateMinuteFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateMinuteFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.Second))
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateSecondFunction(db, ctx.OwnerToken).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateSecondFunction(db, ctx.OwnerToken).Build();
                 }
                 else if (ctx.Member.Name == nameof(DateTime.ToString) && ctx.Member is MethodInfo method && method.GetParameters().Length == 1)
                 {
-                    ctx.ResultToken = SqlFunctionHelper.DateFormatFunction(db, ctx.OwnerToken, ctx.MethodParameterTokenList[0]).Builder();
+                    ctx.ResultToken = SqlFunctionHelper.DateFormatFunction(db, ctx.OwnerToken, ctx.MethodParameterTokenList[0]).Build();
                 }
             });
 

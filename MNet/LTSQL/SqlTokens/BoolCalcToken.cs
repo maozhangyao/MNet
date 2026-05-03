@@ -27,8 +27,6 @@ namespace MNet.LTSQL.SqlTokens
         public readonly static string OPT_IS_NOT = "IS NOT";
         public readonly static string OPT_BETWEEN = "BETWEEN"; 
         public readonly static string OPT_NOT_BETWEEN = "NOT BETWEEN";
-        public readonly static string OPT_EXISTS = "EXISTS";
-        public readonly static string OPT_NOT_EXISTS = "NOT EXISTS";
 
         public bool IsNot {  get; private set; }
 
@@ -72,12 +70,7 @@ namespace MNet.LTSQL.SqlTokens
                 return OPT_NOT_BETWEEN;
             if (opt == OPT_NOT_BETWEEN)
                 return OPT_BETWEEN;
-
-            if (opt == OPT_EXISTS)
-                return OPT_NOT_EXISTS;
-            if (opt == OPT_NOT_EXISTS)
-                return OPT_EXISTS;
-
+                
             throw new Exception($"操作符：{opt}不支持Not取反操作。");
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)

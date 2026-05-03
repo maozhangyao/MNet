@@ -64,7 +64,7 @@ namespace MNet.LTSQL
             return this;
         }
 
-        public LTSQLToken Builder()
+        public LTSQLToken Build()
         {
             LTSQLToken func = LTSQLTokenFactory.CreateFunctionCallToken(this._funcName, null, _typeOfValue); 
             Queue<LTSQLToken> use = new Queue<LTSQLToken>();
