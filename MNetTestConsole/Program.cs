@@ -4,18 +4,10 @@ using MNetTestConsole.Utils;
 using System.Reflection;
 using System.Linq;
 using System.Linq.Expressions;
+using System.ComponentModel.DataAnnotations.Schema;
+using MNet.LTSQL.Attributes;
 
 /*
- 实现sql格式化输出接口，屏蔽直接对sql字符串的拼接               [ok] 
- 接收参数的Dictionary容器替换掉，避免大量参数生成的情况         [ok]
- IN 操作考虑支持元组匹配                                        [ok]
- 
- select 独立语句支持：如 select 1， 无需from子句                   [ok]
- withAny逻辑优化，直接selet 1 或者 select 0                       [ok]
- select union all 支持(支持交集，并集，差集)                      [ok]
- ?? 运算符支持                                                    [ok]
- 子查询的作用域范围优化，对于是否需要包裹括号, 进一步判断       【ok]
-exists 应该算函数范围                                             [ok]
  表名，字段名的自定义映射
 
  检查对主流数据库的支持情况                      
@@ -33,9 +25,7 @@ var query1 = (from p1 in p.AsLTSQL()
               from p2 in p.AsLTSQL()
               from p3 in p.AsLTSQL()
               where 
-              //!new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName ?? "NUA" }).Take(1))
-              //&& 
-              !p.AsSelect().Any()
+              !new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName ?? "NUA" }).Take(1))
               select new
               {
                   first = p1.Id,
@@ -58,6 +48,7 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              orderby gs.Key.Id1 + gs.Key.Id3
              select new
              {
+                 A = gs.Key.Id1,
                  Min = gs.Min(p => p.Id1),
                  Max = gs.Min(p => p.Id3)
              };
@@ -68,12 +59,14 @@ LTSQLOptions options = new LTSQLOptions
 {
     DbType = DbType.SQLLite,
     UseSqlParameter = false, //是否参数化
-    DisNullable = false
+    DisNullable = false,
+    //GetColumnName = (ctx) => ctx.Member.Name + "1",
+    //GetTableName = (ctx) => ctx.Owner.Name + "_2",
 };
 
 //token 化
-IQueryTranslater translater = new QueryTranslaterFactory().Create(query1.Query);
-LTSQLToken token = translater.Translate(query1.Query, options);
+IQueryTranslater translater = new QueryTranslaterFactory().Create(query2.Query);
+LTSQLToken token = translater.Translate(query2.Query, options);
 
 try
 {
@@ -96,12 +89,19 @@ catch (Exception ex)
 return 0;
 
 
+[Table("c_persion_t")]
 public class c_persion_t
 {
+    [Column("id")]
     public int Id { get; set; }
+
+    //[NonFiled]
     public int Age { get; set; }
 
     public string SelfName { get; set; }
+    //[Column("FId")]
     public int FatherId { get; set; }
+
+    //[Column("MId")]
     public int MotherId { get; set; }
 }

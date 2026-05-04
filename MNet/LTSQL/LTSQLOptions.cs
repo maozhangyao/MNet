@@ -16,5 +16,9 @@ namespace MNet.LTSQL
         public bool DisNullable { get; set; }
 
         public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
+        //获取表名称
+        public Func<LTSQLMemberContext, string> GetTableName { get; set; }
+        //获取表字段名称
+        public Func<LTSQLMemberContext, string> GetColumnName { get; set; }
     }
 }

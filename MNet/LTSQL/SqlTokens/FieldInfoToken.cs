@@ -14,6 +14,7 @@ namespace MNet.LTSQL.SqlTokens
             this.AccessType = accessType;
         }
 
+        //字段命名
         public string Field { get; set; }
         public LTSQLToken Access { get; set; }
         public Type AccessType { get; set; }

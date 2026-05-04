@@ -1,3 +1,4 @@
+using MNet.LTSQL.Attributes;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
@@ -5,7 +6,9 @@ using MNet.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Common;
+using System.Diagnostics.Tracing;
 using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -35,6 +38,22 @@ namespace MNet.LTSQL
         private TranslateContext _templateContext;
         private Stack<(Expression expr, LTSQLToken token)> _parameTokens;
 
+        private static string GetTableName(LTSQLMemberContext ctx)
+        {
+            if (ctx.Owner == null)
+                throw new Exception("表名称获取异常， 未传入实体类型，无法获取。");
+
+            TableAttribute attr = ctx.Owner.GetCustomAttribute<TableAttribute>();
+            return attr?.Name ?? ctx.Owner.Name;
+        }
+        private static string GetColumnName(LTSQLMemberContext ctx)
+        {
+            if (ctx.Member == null)
+                throw new Exception("表字段获取异常， 未传入属性或者字段信息，无法获取。");
+
+            ColumnAttribute attr = ctx.Member.GetCustomAttribute<ColumnAttribute>();
+            return attr?.Name ?? ctx.Member.Name;
+        }
 
         private LTSQLToken PopToken()
         {
@@ -143,7 +162,7 @@ namespace MNet.LTSQL
             if (query == null)
                 return;
 
-            string root = "p" + this._context.TableNameGenerator.Next();
+            string root = "root_" + this._context.TableNameGenerator.Next();
             TableAliasMapping mapping = new TableAliasMapping(root);
 
             if (query.From != null)
@@ -342,7 +361,21 @@ namespace MNet.LTSQL
 
             return this.OnTranslateMember(ctx);
         }
-
+        private string OnGetTableName(Type owner, string alias)
+        {
+            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
+            memberCtx.Owner = owner;
+            memberCtx.OwnerName = alias;
+            return this._context.Options.GetTableName(memberCtx);
+        }
+        private string OnGetColumnName(Type owner, string alias, MemberInfo member)
+        {
+            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
+            memberCtx.Owner = owner;
+            memberCtx.OwnerName = alias;
+            memberCtx.Member = member;
+            return this._context.Options.GetColumnName(memberCtx);
+        }
 
         private LTSQLToken TranslateLambda(LambdaExpression lambda)
         {
@@ -379,18 +412,27 @@ namespace MNet.LTSQL
             }
             else if (from is TablePart table)
             {
-                var qry = LTSQLTokenFactory.CreateTableObjectToken(table.TableName ?? table.MappingType.Name, table.MappingType);
+                string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, table.Alias);
+                var qry = LTSQLTokenFactory.CreateTableObjectToken(tableName, table.MappingType);
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), prop.Name, prop.PropertyType);
+                    if(prop.IsDefined(typeof(NonFiledAttribute)))
+                        continue;
+
+                    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), fieldName, prop.PropertyType);
                     fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.PropertyType));
                 }
                 //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), prop.Name, prop.FieldType);
+                    if(prop.IsDefined(typeof(NonFiledAttribute)))
+                        continue;
+
+                    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
+                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), fieldName, prop.FieldType);
                     fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.FieldType));
                 }
                 src = qry;
@@ -870,11 +912,12 @@ namespace MNet.LTSQL
 
                     if (objToken is GroupObjToken groupToken && memberName == nameof(IGrouping<object, object>.Key))
                     {
-                        //IGrouping.Key 的方位转换为分组依据
+                        //IGrouping.Key 的访问转换为分组依据元组的访问
                         this.PushToken(groupToken.GroupKey);
                     }
                     else if (objToken is TupleToken tuple)
                     {
+                        //string fieldName = this.OnGetColumnName(tuple.ValueType, null, node.Member);
                         LTSQLToken prop = tuple.GetProp(memberName);
                         if (prop == null)
                             throw new Exception($"没有找到对应属性的解析结果, 表达式解析失败: {node}");
@@ -885,7 +928,8 @@ namespace MNet.LTSQL
                     else
                     {
                         //对象访问
-                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, memberName, node.Type));
+                        string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
+                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
                     }
                 }
             }
@@ -996,7 +1040,9 @@ namespace MNet.LTSQL
             {
                 for (int i = 0; i < node.Members.Count; i++)
                 {
+                    //string fieldName = this.OnGetColumnName(node.Type, null, node.Members[i]);
                     tuple.Add(paras[i], node.Members[i].Name);
+                    //Console.WriteLine($"Prop: {node.Members[i].Name}");
                 }
             }
 
@@ -1019,6 +1065,7 @@ namespace MNet.LTSQL
                 for (int i = 0; i < node.Bindings.Count; i++)
                 {
                     tuple.Add(bindProps[i], node.Bindings[i].Member.Name);
+                    //Console.WriteLine($"bindProp: {node.Bindings[i].Member.Name}");
                 }
 
                 this.PushToken(tuple);
@@ -1182,6 +1229,9 @@ namespace MNet.LTSQL
         {
             if (query as SqlQueryPart == null)
                 throw new Exception($"不支持的查询类型：{query.GetType().Name}; 当前翻译器{nameof(SequenceTranslater)}只支持查询类型{nameof(SqlQueryPart)}");
+
+            scope.Context.Options.GetTableName ??= GetTableName;
+            scope.Context.Options.GetColumnName ??= GetColumnName;
 
             this._scope = scope;
             this._context = scope.Context;
