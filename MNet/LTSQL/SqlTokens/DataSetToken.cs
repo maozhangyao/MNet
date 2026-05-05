@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using MNet.LTSQL.SqlTokenExtends;
+using System.Collections.Generic;
 
 namespace MNet.LTSQL.SqlTokens
 {

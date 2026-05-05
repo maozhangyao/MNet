@@ -1,4 +1,6 @@
-﻿namespace MNet.LTSQL
+using System;
+
+namespace MNet.LTSQL
 {
     //sql 作用域
     public class LTSQLTranslateScope

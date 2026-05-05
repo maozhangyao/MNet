@@ -1,9 +1,6 @@
 using System;
 using System.Linq;
 using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace MNet.Utils
 {
@@ -14,7 +11,18 @@ namespace MNet.Utils
         {
             public bool IsEmpty()
             {
-                return list == null || !list.OfType<object>().Any();
+                if (list == null)
+                    return true;
+                if (list is Array arr)
+                    return arr.Length <= 0;
+                if (list is IList l)
+                    return l.Count <= 0;
+                if (list is string str)
+                    return str.Length <= 0;
+                if (list is IDictionary dic)
+                    return dic.Count <= 0;
+
+                return list.GetEnumerator().MoveNext();
             }
             public bool IsNotEmpty()
             {
@@ -22,9 +30,22 @@ namespace MNet.Utils
             }
         }
 #else
+
+
         public static bool IsEmpty(this IEnumerable list)
         {
-            return list == null || !list.OfType<object>().Any();
+            if (list == null)
+                return true;
+            if (list is Array arr)
+                return arr.Length <= 0;
+            if (list is IList l)
+                return l.Count <= 0;
+            if (list is string str)
+                return str.Length <= 0;
+            if (list is IDictionary dic)
+                return dic.Count <= 0;
+
+            return list.GetEnumerator().MoveNext();
         }
         public static bool IsNotEmpty(this IEnumerable list)
         {

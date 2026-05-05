@@ -21,6 +21,7 @@ using System.Security.Permissions;
 using System.Xml;
 using System.Xml.Linq;
 
+
 namespace MNet.LTSQL
 {
     //开启翻译

@@ -8,7 +8,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using MNet.LTSQL.Attributes;
 
 /*
- 表名，字段名的自定义映射
 
  检查对主流数据库的支持情况                      
 
@@ -55,30 +54,11 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
 
 var query3 = query1.UnionSet(query2);
 
-LTSQLOptions options = new LTSQLOptions
-{
-    DbType = DbType.SQLLite,
-    UseSqlParameter = false, //是否参数化
-    DisNullable = false,
-    //GetColumnName = (ctx) => ctx.Member.Name + "1",
-    //GetTableName = (ctx) => ctx.Owner.Name + "_2",
-};
-
-//token 化
-IQueryTranslater translater = new QueryTranslaterFactory().Create(query2.Query);
-LTSQLToken token = translater.Translate(query2.Query, options);
 
 try
 {
-    //sql化
-    ISqlBuilder sqlBuilder = LTSQLTokenSqlBuilder.Default;
-    SqlBuilderContext ctx = new SqlBuilderContext();
-    ctx.DbType = options.DbType;
-    ctx.UseParameter = options.UseSqlParameter;
-    ctx.SqlWriterFactory = () => new LTSQLWriter(true);
-    sqlBuilder.Build(token, ctx);
-
-    ConsoleHelper.WriteLineWithYellow(ctx.Sql);
+    (string sql, var parameters) = query3.ToSql(DbType.SQLLite, false);
+    ConsoleHelper.WriteLineWithYellow(sql);
 }
 catch (Exception ex)
 {

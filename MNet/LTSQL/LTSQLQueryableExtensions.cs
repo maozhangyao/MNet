@@ -1,4 +1,5 @@
-﻿using MNet.LTSQL.SqlQueryStructs;
+using MNet.LTSQL.SqlQueryStructs;
+using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -759,5 +760,39 @@ namespace MNet.LTSQL
                );
             return expr;
         }
+
+
+        #region sql格式化
+        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, DbType db, bool useSqlParameter = true)
+        {
+            return ToSql(src, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
+        }
+        public static string ToSql(this ILTSQLObjectQueryable src, DbType db, out List<(string key, object val)> sqlargs, bool useSqlParameter = true)
+        {
+            return ToSql(src, out sqlargs, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
+        }
+        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, LTSQLOptions options = null, SqlBuilderContext ctx = null)
+        {
+            List<(string key, object val)> list = null;
+            string sql = ToSql(src, out list, options, ctx);
+            return (sql, list);
+        }
+        public static string ToSql(this ILTSQLObjectQueryable src, out List<(string key, object val)> sqlargs, LTSQLOptions options = null, SqlBuilderContext ctx = null)
+        {
+            options ??= LTSQLOptionsSetting.GetOptions() ?? throw new Exception($"请指定{nameof(LTSQLOptions)}配置，可以考虑设置{nameof(LTSQLOptionsSetting)}配置类。");
+
+            QueryPart q = src.Query.CopyNew();
+            IQueryTranslaterFactory factory = new QueryTranslaterFactory();
+            IQueryTranslater tranlator = factory.Create(q);
+            
+            LTSQLToken token = tranlator.Translate(q, options);
+            SqlBuilderContext bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildContext(options);
+            ISqlBuilder builder = LTSQLTokenSqlBuilder.Default;
+
+            builder.Build(token, bCtx);
+            sqlargs = bCtx.SqlParameters;
+            return bCtx.Sql.ToString();
+        }
+        #endregion
     }
 }
