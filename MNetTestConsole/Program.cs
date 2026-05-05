@@ -6,6 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.ComponentModel.DataAnnotations.Schema;
 using MNet.LTSQL.Attributes;
+using UnitTestModel;
 
 /*
 
@@ -17,7 +18,7 @@ var arr = new List<int>() { 1, 2, 3 };
 var arr1 = new[] { new { age = 1, name = "ymz" }, new { age = 35, name = "金刚" } };
 
 
-c_persion_t p = new c_persion_t();
+CPersionT p = new CPersionT();
 p.Id = 1000;
 
 var query1 = (from p1 in p.AsLTSQL()
@@ -67,21 +68,3 @@ catch (Exception ex)
 }
 
 return 0;
-
-
-[Table("c_persion_t")]
-public class c_persion_t
-{
-    [Column("id")]
-    public int Id { get; set; }
-
-    //[NonFiled]
-    public int Age { get; set; }
-
-    public string SelfName { get; set; }
-    //[Column("FId")]
-    public int FatherId { get; set; }
-
-    //[Column("MId")]
-    public int MotherId { get; set; }
-}

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MNet\MNet.csproj" />
+    <ProjectReference Include="..\UnitTestModel\UnitTestModel.csproj" />
   </ItemGroup>
 
 </Project>
