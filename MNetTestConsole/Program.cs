@@ -8,24 +8,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 using MNet.LTSQL.Attributes;
 using UnitTestModel;
 
-/*
-
- 检查对主流数据库的支持情况                      
-
- */
-
-var arr = new List<int>() { 1, 2, 3 };
-var arr1 = new[] { new { age = 1, name = "ymz" }, new { age = 35, name = "金刚" } };
-
-
 CPersionT p = new CPersionT();
-p.Id = 1000;
 
+// 基础内连接查询 + 子查询 + 元组in匹配
 var query1 = (from p1 in p.AsLTSQL()
               from p2 in p.AsLTSQL()
               from p3 in p.AsLTSQL()
-              where 
-              !new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName ?? "NUA" }).Take(1))
+              where !new { age = p1.Age, name = p1.SelfName }.In(p.AsLTSQL().Select(p => new { age = p.Age, name = p.SelfName }).Take(1))
               select new
               {
                   first = p1.Id,
@@ -40,6 +29,11 @@ var query1 = (from p1 in p.AsLTSQL()
                   second1 = DateTime.Now.Second
               });
 
+Console.WriteLine("基础内连接查询 + 子查询 + 元组in匹配：");
+ConsoleHelper.WriteLineWithYellow(query1.ToSql(DbType.SQLLite, out _, false));
+
+
+// 右外联接+左外联接+多维度group by + having + order by
 var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
              join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
              join p3 in p.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
@@ -53,18 +47,15 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
                  Max = gs.Min(p => p.Id3)
              };
 
-var query3 = query1.UnionSet(query2);
+Console.WriteLine();
+Console.WriteLine("右外联接+左外联接+多维度group by + having + order by：");
+ConsoleHelper.WriteLineWithYellow(query2.ToSql(DbType.SQLLite, out _, false));
 
 
-try
-{
-    (string sql, var parameters) = query3.ToSql(DbType.SQLLite, false);
-    ConsoleHelper.WriteLineWithYellow(sql);
-}
-catch (Exception ex)
-{
-    ConsoleHelper.WriteLineWithRed(ex);
-    throw;
-}
+// 联合查询操作(union all)
+var query3 = query1.UnionSet(query2, distinct: false);
+Console.WriteLine();
+Console.WriteLine("联合查询操作(union all)：");
+ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbType.SQLLite, out _, false));
 
 return 0;

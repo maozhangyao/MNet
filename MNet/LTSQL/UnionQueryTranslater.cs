@@ -26,8 +26,8 @@ namespace MNet.LTSQL
             foreach (QueryPart sub in set.Querys)
             {
                 IQueryTranslater translater = factory.Create(sub);
-                LTSQLToken ret = translater.Translate(sub, scope.NewScope());
-                if(sub is QuerySetPart)
+                LTSQLToken ret = translater.Translate(sub, scope.NewScope())?.UnPriorityIfSubQuery();
+                if (sub is QuerySetPart)
                 {
                     //如果子查询时集合操作，则需要添加优先级计算(sqllite好像不支持集合操作时加优先级运算，有点坑)
                     ret = LTSQLTokenFactory.CreatePriorityCalcToken(ret);

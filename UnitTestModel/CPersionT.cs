@@ -18,4 +18,10 @@ namespace UnitTestModel
         //[Column("MId")]
         public int MotherId { get; set; }
     }
+
+    public class CPersionSelect1
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+    }
 }
