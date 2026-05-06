@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Text;
@@ -7,18 +7,18 @@ namespace MNet.LTSQL
 {
     public static class DbUtils
     {
-        public static string Escape(string word, DbType dbType)
+        public static string Escape(string word, DbTypes dbType)
         {
             return dbType switch
             {
-                DbType.MySQL => $"`{word}`",
-                DbType.MSSQL => $"[{word}]",
-                DbType.PGSQL | DbType.Oracle | DbType.SQLLite => $"\"{word}\"",
+                DbTypes.MySQL => $"`{word}`",
+                DbTypes.MSSQL => $"[{word}]",
+                DbTypes.PGSQL | DbTypes.Oracle | DbTypes.SQLLite => $"\"{word}\"",
                 _ => $"\"{word}\""
             };
         }
 
-        public static string ToSqlPart(object ob, DbType dbType)
+        public static string ToSqlPart(object ob, DbTypes dbType)
         {
             if (ob == null)
                 return "NULL";

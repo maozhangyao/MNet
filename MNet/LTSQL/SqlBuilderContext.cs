@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -9,7 +9,7 @@ namespace MNet.LTSQL
     /// </summary>
     public class SqlBuilderContext
     {
-        public DbType DbType { get; set; }
+        public DbTypes DbType { get; set; }
         public bool UseParameter { get; set; }
         //生成的sql结果
         public StringBuilder Sql { get; set; }

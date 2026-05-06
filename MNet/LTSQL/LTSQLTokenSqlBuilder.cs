@@ -250,7 +250,7 @@ namespace MNet.LTSQL
             })
             .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
             {
-                if (ctx.DbType == DbType.MySQL || ctx.DbType == DbType.SQLLite)
+                if (ctx.DbType == DbTypes.MySQL || ctx.DbType == DbTypes.SQLLite)
                 {
                     // 使用 limit 子句分页
                     if (t.Take != null)
@@ -320,7 +320,7 @@ namespace MNet.LTSQL
                         else if (t.SetType == DbSetType.Intersect)
                             ctx.Writer.Write("INTERSECT ");
                         else if (t.SetType == DbSetType.Except)
-                            ctx.Writer.Write(ctx.DbType == DbType.Oracle ? "MINUS " : "EXCEPT ");
+                            ctx.Writer.Write(ctx.DbType == DbTypes.Oracle ? "MINUS " : "EXCEPT ");
                         else
                             throw new Exception($"不支持的SetOperatorType:{t.SetType}");
                         if (!t.Distinct)

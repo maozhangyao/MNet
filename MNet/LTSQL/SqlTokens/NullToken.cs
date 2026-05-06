@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -15,7 +15,7 @@ namespace MNet.LTSQL.SqlTokens
             return visitor.VisitNullToken(this);
         }
 
-        public static NullToken Create(Type valueTypeOfNull, DbType db)
+        public static NullToken Create(Type valueTypeOfNull, DbTypes db)
         {
             return new NullToken(valueTypeOfNull)
             {

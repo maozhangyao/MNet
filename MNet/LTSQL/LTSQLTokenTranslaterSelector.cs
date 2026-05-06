@@ -355,9 +355,9 @@ namespace MNet.LTSQL
             {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Length))
                 {
-                    if (ctx.Options?.DbType == DbType.MSSQL)
+                    if (ctx.Options?.DbType == DbTypes.MSSQL)
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LEN", new[] { ctx.OwnerToken }, typeof(int));
-                    else if (ctx.Options?.DbType == DbType.MySQL)
+                    else if (ctx.Options?.DbType == DbTypes.MySQL)
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CHAR_LENGTH", new[] { ctx.OwnerToken }, typeof(int));
                     else
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("LENGTH", new[] { ctx.OwnerToken }, typeof(int));
@@ -370,12 +370,12 @@ namespace MNet.LTSQL
             {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Concat))
                 {
-                    DbType db = ctx.Options.DbType;
-                    if (db == DbType.SQLLite || db == DbType.MSSQL || db == DbType.PGSQL)
+                    DbTypes db = ctx.Options.DbType;
+                    if (db == DbTypes.SQLLite || db == DbTypes.MSSQL || db == DbTypes.PGSQL)
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT", ctx.MethodParameterTokenList, typeof(string));
-                    else if (db == DbType.MySQL)
+                    else if (db == DbTypes.MySQL)
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("CONCAT_WS", new[] { LTSQLTokenFactory.CreateConstantToken("", db, typeof(string)) }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
-                    else if (db == DbType.Oracle)
+                    else if (db == DbTypes.Oracle)
                     {
                         LTSQLToken concat = null;
                         foreach (var token in ctx.MethodParameterTokenList)
@@ -397,12 +397,12 @@ namespace MNet.LTSQL
             {
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Substring))
                 {
-                    DbType db = ctx.Options.DbType;
-                    if (db == DbType.Oracle || db == DbType.SQLLite)
+                    DbTypes db = ctx.Options.DbType;
+                    if (db == DbTypes.Oracle || db == DbTypes.SQLLite)
                     {
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUBSTR", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     }
-                    else if (db == DbType.MySQL || db == DbType.MSSQL || db == DbType.PGSQL)
+                    else if (db == DbTypes.MySQL || db == DbTypes.MSSQL || db == DbTypes.PGSQL)
                     {
                         ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUBSTRING", new[] { ctx.OwnerToken }.Concat(ctx.MethodParameterTokenList).ToArray(), typeof(string));
                     }
@@ -485,7 +485,7 @@ namespace MNet.LTSQL
                 if (ctx.OwnerType != typeof(DateTime))
                     return;
 
-                DbType db = ctx.Options.DbType;
+                DbTypes db = ctx.Options.DbType;
                 if (ctx.Member.Name == nameof(DateTime.Year))
                 {
                     ctx.ResultToken = SqlFunctionHelper.DateYearFunction(db, ctx.OwnerToken).Build();

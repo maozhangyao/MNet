@@ -30,7 +30,7 @@ var query1 = (from p1 in p.AsLTSQL()
               });
 
 Console.WriteLine("基础内连接查询 + 子查询 + 元组in匹配：");
-ConsoleHelper.WriteLineWithYellow(query1.ToSql(DbType.SQLLite, out _, false));
+ConsoleHelper.WriteLineWithYellow(query1.ToSql(DbTypes.SQLLite, out _, false));
 
 
 // 右外联接+左外联接+多维度group by + having + order by
@@ -49,13 +49,13 @@ var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
 
 Console.WriteLine();
 Console.WriteLine("右外联接+左外联接+多维度group by + having + order by：");
-ConsoleHelper.WriteLineWithYellow(query2.ToSql(DbType.SQLLite, out _, false));
+ConsoleHelper.WriteLineWithYellow(query2.ToSql(DbTypes.SQLLite, out _, false));
 
 
 // 联合查询操作(union all)
 var query3 = query1.UnionSet(query2, distinct: false);
 Console.WriteLine();
 Console.WriteLine("联合查询操作(union all)：");
-ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbType.SQLLite, out _, false));
+ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite, out _, false));
 
 return 0;

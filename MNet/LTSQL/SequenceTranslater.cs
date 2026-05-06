@@ -683,7 +683,7 @@ namespace MNet.LTSQL
             LTSQLToken topLimitClause = null;
             if (query.Skip != null || query.Take != null)
             {
-                if (query.Skip == null && this._context.Options?.DbType == DbType.MSSQL)
+                if (query.Skip == null && this._context.Options?.DbType == DbTypes.MSSQL)
                 {
                     //sql server 的 top 语法
                     topLimitClause = LTSQLTokenFactory.CreateClauseToken("TOP",

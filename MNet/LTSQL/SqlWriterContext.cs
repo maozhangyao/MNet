@@ -12,7 +12,7 @@ namespace MNet.LTSQL
         public LTSQLToken ParentToken{ get; set; }
         public Stack<LTSQLToken> TokenStack{ get; } = new Stack<LTSQLToken>();
         //目标数据库
-        public DbType DbType { get; set; }
+        public DbTypes DbType { get; set; }
         //是否使用参数化
         public bool UseParameter { get; set; }
         //sql写入器

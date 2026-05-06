@@ -8,7 +8,7 @@ namespace MNet.LTSQL
     public class LTSQLOptions
     {
         //数据库类型
-        public DbType DbType { get; set; }
+        public DbTypes DbType { get; set; }
         //是否参数化， 默认true
         public bool UseSqlParameter { get; set; } = true;
         //当识别到null参数时，是否禁止自动处理null值等式，比如：

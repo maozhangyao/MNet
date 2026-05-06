@@ -763,11 +763,11 @@ namespace MNet.LTSQL
 
 
         #region sql格式化
-        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, DbType db, bool useSqlParameter = true)
+        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, DbTypes db, bool useSqlParameter = true)
         {
             return ToSql(src, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
         }
-        public static string ToSql(this ILTSQLObjectQueryable src, DbType db, out List<(string key, object val)> sqlargs, bool useSqlParameter = true)
+        public static string ToSql(this ILTSQLObjectQueryable src, DbTypes db, out List<(string key, object val)> sqlargs, bool useSqlParameter = true)
         {
             return ToSql(src, out sqlargs, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
         }

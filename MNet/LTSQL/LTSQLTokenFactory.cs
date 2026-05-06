@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
@@ -153,7 +153,7 @@ namespace MNet.LTSQL
         /// <param name="typeOfValue"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public static ConstantToken CreateConstantToken(object val, DbType db, Type typeOfValue = null)
+        public static ConstantToken CreateConstantToken(object val, DbTypes db, Type typeOfValue = null)
         {
             if (val == null && typeOfValue == null)
                 throw new Exception($"值为null，无法推测出值的类型，请指定{nameof(typeOfValue)}参数");
@@ -161,7 +161,7 @@ namespace MNet.LTSQL
             string str = DbUtils.ToSqlPart(val, db);
             return new ConstantToken(str, typeOfValue ?? val.GetType());
         }
-        public static NullToken CreateNullToken(Type valueTypeOfNull, DbType db)
+        public static NullToken CreateNullToken(Type valueTypeOfNull, DbTypes db)
         {
             return new NullToken(valueTypeOfNull)
             {

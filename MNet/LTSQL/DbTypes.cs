@@ -1,6 +1,6 @@
-﻿namespace MNet.LTSQL
+namespace MNet.LTSQL
 {
-    public enum DbType
+    public enum DbTypes
     {
         MySQL,
         MSSQL,
