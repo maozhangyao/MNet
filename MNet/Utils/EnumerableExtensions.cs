@@ -21,8 +21,14 @@ namespace MNet.Utils
                     return str.Length <= 0;
                 if (list is IDictionary dic)
                     return dic.Count <= 0;
+                    
+                IEnumerator ator = list.GetEnumerator();
+                bool flag = ator.MoveNext();
 
-                return list.GetEnumerator().MoveNext();
+                if (ator is IDisposable disp)
+                    disp.Dispose();
+
+                return flag;
             }
             public bool IsNotEmpty()
             {
@@ -45,7 +51,13 @@ namespace MNet.Utils
             if (list is IDictionary dic)
                 return dic.Count <= 0;
 
-            return list.GetEnumerator().MoveNext();
+            IEnumerator ator = list.GetEnumerator();
+            bool flag = ator.MoveNext();
+
+            if (ator is IDisposable disp)
+                disp.Dispose();
+
+            return flag;
         }
         public static bool IsNotEmpty(this IEnumerable list)
         {

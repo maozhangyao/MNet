@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq.Expressions;
 
 namespace MNet.LTSQL
@@ -14,7 +14,7 @@ namespace MNet.LTSQL
             if (_parameterModifier != null)
             {
                 expr = _parameterModifier(node);
-                base.VisitParameter(node);
+                //base.VisitParameter(node);
             }
             else
             {
@@ -32,6 +32,23 @@ namespace MNet.LTSQL
             this._parameterModifier = null;
 
             return updated;
+        }
+
+
+        public Expression ModifyParameter(Expression expr, ParameterExpression oldParameter, Expression newExpr)
+        {
+            this._parameterModifier = (p) =>
+            {
+                if (object.ReferenceEquals(p, oldParameter))
+                    return newExpr;
+                return p;
+            };
+
+            expr = this.Visit(expr);
+
+            this._parameterModifier = null;
+
+            return expr;
         }
     }
 }

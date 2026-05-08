@@ -1,6 +1,8 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using MNet.LTSQL;
+using System.Collections;
 using System.Data;
 using UnitTestModel;
 using Xunit;
@@ -25,7 +27,7 @@ namespace LTSQLXUnitTest
         /// 基础查询：select * from xxx
         /// </summary>
         [Fact]
-        public void Query001()
+        public void Query001SimplySelect()
         {
             using IDbConnection connection = DbConnectionFactory.Sqllite();
 
@@ -33,10 +35,16 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL().ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
 
-            Assert.NotNull(sql);
+            this._outp.WriteLine(sql);
             List<CPersionT> list = connection.Query<CPersionT>(sql).ToList();
             Assert.NotNull(list);
             Assert.True(list.Count > 0, sql);
+
+            foreach(CPersionT item in list)
+            {
+                this._outp.WriteLine($"{item.Id} - {item.SelfName}");
+                Assert.NotNull(item.SelfName);
+            }
         }
 
         /// <summary>
@@ -166,7 +174,62 @@ namespace LTSQLXUnitTest
             }
         }
 
+        //基础查询 inner join（默认）
+        [Fact]
+        public void Query007InnerJoin()
+        {
+            using IDbConnection connection = DbConnectionFactory.Sqllite();
+            CPersionT persion = new CPersionT();
+            CTeacherT teacher = new CTeacherT();
+            CCourseT course = new CCourseT();
 
+            string sql = (from p in persion.AsLTSQL()
+                          from t in teacher.AsLTSQL()
+                          from c in course.AsLTSQL()
+                          where p.Id == t.PersionId && t.CourseId == c.Id
+                          select new CPersionSelect1
+                          {
+                              Id = p.Id,
+                              Name = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
+                          }).ToSql(DbTypes.SQLLite, out _, false);
+
+            var list = connection.Query<CPersionSelect1>(sql).ToList();
+            this._outp.WriteLine(sql);
+            Assert.NotEmpty(list);
+            foreach (var item in list)
+            {
+                Assert.NotNull(item.Name);
+                this._outp.WriteLine($"{item.Id} - {item.Name}");
+            }
+        }
+
+        //基础查询 inner join（显示）
+        [Fact]
+        public void Query008InnerJoin()
+        {
+            using IDbConnection connection = DbConnectionFactory.Sqllite();
+            CPersionT persion = new CPersionT();
+            CTeacherT teacher = new CTeacherT();
+            CCourseT course = new CCourseT();
+
+            string sql = (from p in persion.AsLTSQL()
+                          join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
+                          join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                          select new CPersionSelect1
+                          {
+                              Id = p.Id,
+                              Name = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
+                          }).ToSql(DbTypes.SQLLite, out _, false);
+
+            var list = connection.Query<CPersionSelect1>(sql).ToList();
+            this._outp.WriteLine(sql);
+            Assert.NotEmpty(list);
+            foreach (var item in list)
+            {
+                Assert.NotNull(item.Name);
+                this._outp.WriteLine($"{item.Id} - {item.Name}");
+            }
+        }
     }
 }
 

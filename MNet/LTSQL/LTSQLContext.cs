@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using System.Linq;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlQueryStructs;
@@ -52,8 +52,9 @@ namespace MNet.LTSQL
             this.PropName = prop;
         }
 
-
-
+        //表示虚假的结构, 实际并不存在该表，用于整合两个联表对象，
+        //比如在join 条件中，可能会涉及到两个表，但是没有统一成一个匿名对象
+        public bool Fake { get; set; }
         //表命名
         public string Alias { get; set; }
         //属性名

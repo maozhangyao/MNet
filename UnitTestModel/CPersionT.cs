@@ -19,9 +19,18 @@ namespace UnitTestModel
         public int MotherId { get; set; }
     }
 
-    public class CPersionSelect1
+    [Table("c_course_t")]
+    public class CCourseT
     {
+        [Column("id")]
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string Course { get; set; }
+    }
+
+    [Table("c_teacher_t")]
+    public class CTeacherT
+    {
+        public int PersionId { get; set; }
+        public int CourseId { get; set; }
     }
 }

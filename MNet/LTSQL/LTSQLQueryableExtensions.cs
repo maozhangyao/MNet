@@ -400,7 +400,6 @@ namespace MNet.LTSQL
 
             query.SelectKey = expr;
             query.MappingType = typeof(TResult);
-
             return new LTSQLObject<TResult>(query);
         }
 
