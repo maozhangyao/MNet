@@ -236,22 +236,47 @@ namespace LTSQLXUnitTest
             CTeacherT teacher = new CTeacherT();
             CCourseT course = new CCourseT();
 
-            string sql = (from p in persion.AsLTSQL()
-                          join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                          join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
-                          select new CPersionSelect1
-                          {
-                              Id = p.Id,
-                              Name = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
-                          }).ToSql(DbTypes.SQLLite, out _, false);
-
-            var list = connection.Query<CPersionSelect1>(sql).ToList();
-            this._outp.WriteLine(sql);
-            Assert.NotEmpty(list);
-            foreach (var item in list)
             {
-                Assert.NotNull(item.Name);
-                this._outp.WriteLine($"{item.Id} - {item.Name}");
+                this._outp.WriteLine("不带条件的 inner join:");
+                string sql = (from p in persion.AsLTSQL()
+                              join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
+                              join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                              select new CPersionSelect1
+                              {
+                                  Id = p.Id,
+                                  Name = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
+                              }).ToSql(DbTypes.SQLLite, out _, false);
+
+                var list = connection.Query<CPersionSelect1>(sql).ToList();
+                this._outp.WriteLine(sql);
+                Assert.NotEmpty(list);
+                foreach (var item in list)
+                {
+                    Assert.NotNull(item.Name);
+                    this._outp.WriteLine($"{item.Id} - {item.Name}");
+                }
+            }
+
+            {
+                this._outp.WriteLine("带条件的 inner join:");
+                string sql = (from p in persion.AsLTSQL()
+                              join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
+                              join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                              where p.Id < 100
+                              select new CPersionSelect1
+                              {
+                                  Id = p.Id,
+                                  Name = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
+                              }).ToSql(DbTypes.SQLLite, out _, false);
+
+                var list = connection.Query<CPersionSelect1>(sql).ToList();
+                this._outp.WriteLine(sql);
+                Assert.NotEmpty(list);
+                foreach (var item in list)
+                {
+                    Assert.NotNull(item.Name);
+                    this._outp.WriteLine($"{item.Id} - {item.Name}");
+                }
             }
         }
     }
