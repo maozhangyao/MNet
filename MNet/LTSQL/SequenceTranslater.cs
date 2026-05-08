@@ -203,28 +203,7 @@ namespace MNet.LTSQL
                         if (query.SelectKey == null)
                             query.SelectKey = join.JoinObject;
 
-                        LambdaExpression joinObjectLambda = join.JoinObject.AsLambda();
-                        string p1 = joinObjectLambda.TakeParamter(0).Name;
-                        string p2 = joinObjectLambda.TakeParamter(1).Name;
-
-                        ParameterExpression pExpr1 = joinObjectLambda.TakeParamter(0);
-                        ParameterExpression pExpr2 = joinObjectLambda.TakeParamter(1);
-                        Expression joinKey1 = exprModifier.ModifyParameter(join.JoinKey1.AsLambda().Body, join.JoinKey1.AsLambda().TakeParamter(0), pExpr1);
-                        Expression joinKey2 = exprModifier.ModifyParameter(join.JoinKey2.AsLambda().Body, join.JoinKey2.AsLambda().TakeParamter(0), pExpr2);
-                        Expression joinOn = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), pExpr1, pExpr2);
-                        
-                        //继续联表(也可能是单表了)
-                        TableAliasMapping m1 = new TableAliasMapping(p1);
-                        ParameterExpression mainJoinObj = Expression.Parameter(joinObjectLambda.TakeParamter(0).Type, p1);
-                        this.AssignFromJoinAlias(m1, join.MainQuery, mainJoinObj, mainJoinObj, joinSelectFlag);
-
-                        //一定是单表了
-                        TableAliasMapping m2 = new TableAliasMapping(p2);
-                        this.AssignFromJoinAlias(m2, join.JoinQuery, null, null, joinSelectFlag);
-
-                        join.JoinKeyOn = joinOn;
-                        mapping.Props.Add(m1);
-                        mapping.Props.Add(m2);
+                        this.AssignFromJoinAlias(mapping, query.From, null, null, joinSelectFlag);
                     }
                     else
                     {
@@ -243,7 +222,7 @@ namespace MNet.LTSQL
                 mapping.Alias = root;
             }
 
-            //统一根参数名(select 字段硬编码查询)
+            //统一根参数名(存在select 字段硬编码查询)
             if (query.Wheres.IsNotEmpty())
             {
                 //where 多条件合并
@@ -326,11 +305,47 @@ namespace MNet.LTSQL
         {
             if (from is JoinPart join)
             {
+                ExpressionModifier modifier = new ExpressionModifier();
                 LambdaExpression joinObject = join.JoinObject.AsLambda();
                 string p1 = joinObject.TakeParamter(0).Name;
                 string p2 = joinObject.TakeParamter(1).Name;
 
-                if (join.JoinKey1 != null)
+                //默认的inner join, 不带有 join on 条件
+                if (join.JoinKey1 == null)
+                {
+                    TableAliasMapping mapping1 = new TableAliasMapping(p1);
+                    this.AssignFromJoinAlias(mapping1, join.MainQuery, null, null, false);
+
+                    TableAliasMapping mapping2 = new TableAliasMapping(p2);
+                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, null, null, false);
+
+                    mapping.Props.Add(mapping1);
+                    mapping.Props.Add(mapping2);
+                }
+                //join select
+                else if (joinSelect)
+                {
+                    ParameterExpression pExpr1 = joinObject.TakeParamter(0);
+                    ParameterExpression pExpr2 = joinObject.TakeParamter(1);
+                    Expression joinKey1 = modifier.ModifyParameter(join.JoinKey1.AsLambda().Body, join.JoinKey1.AsLambda().TakeParamter(0), pExpr1);
+                    Expression joinKey2 = modifier.ModifyParameter(join.JoinKey2.AsLambda().Body, join.JoinKey2.AsLambda().TakeParamter(0), pExpr2);
+                    Expression joinOn = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), pExpr1, pExpr2);
+
+                    //继续联表(也可能是单表了)
+                    TableAliasMapping m1 = new TableAliasMapping(p1);
+                    ParameterExpression mainJoinObj = Expression.Parameter(joinObject.TakeParamter(0).Type, p1);
+                    this.AssignFromJoinAlias(m1, join.MainQuery, mainJoinObj, mainJoinObj, false);
+
+                    //一定是单表了
+                    TableAliasMapping m2 = new TableAliasMapping(p2);
+                    this.AssignFromJoinAlias(m2, join.JoinQuery, null, null, false);
+
+                    join.JoinKeyOn = joinOn;
+                    mapping.Props.Add(m1);
+                    mapping.Props.Add(m2);
+                }
+                //正常的join
+                else
                 {
                     //构造 join
                     LambdaExpression getJoinKey1 = join.JoinKey1.AsLambda();
@@ -339,36 +354,19 @@ namespace MNet.LTSQL
                     Expression accessJoinKey1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(p1)[0]);
                     Expression accessJoinKey2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(p2)[0]);
 
-                    ExpressionModifier modifier = new ExpressionModifier();
-                    Expression newJoinKey1 = modifier.ModifyParameter(getJoinKey1.Body, getJoinKey1.TakeParamter(0), accessJoinKey1); //modifier.VisitParameter(getJoinKey1.Body, p => object.ReferenceEquals(p, getJoinKey1.Parameters[0]) ? accessJoinKey1 : p);
-                    Expression newJoinKey2 = modifier.ModifyParameter(getJoinKey2.Body, getJoinKey2.TakeParamter(0), accessJoinKey2); //modifier.VisitParameter(getJoinKey2.Body, p => object.ReferenceEquals(p, getJoinKey2.Parameters[0]) ? accessJoinKey2 : p);
+
+                    Expression newJoinKey1 = modifier.ModifyParameter(getJoinKey1.Body, getJoinKey1.TakeParamter(0), accessJoinKey1);
+                    Expression newJoinKey2 = modifier.ModifyParameter(getJoinKey2.Body, getJoinKey2.TakeParamter(0), accessJoinKey2);
                     Expression joinEqual = Expression.Lambda(Expression.Equal(newJoinKey1, newJoinKey2), root);
 
                     //next
                     TableAliasMapping mapping1 = new TableAliasMapping(p1);
-                    this.AssignFromJoinAlias(mapping1, join.MainQuery, accessJoinKey1, root, joinSelect);
+                    this.AssignFromJoinAlias(mapping1, join.MainQuery, accessJoinKey1, root, false);
 
                     TableAliasMapping mapping2 = new TableAliasMapping(p2);
-                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, accessJoinKey1, root, joinSelect);
+                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, accessJoinKey1, root, false);
 
                     join.JoinKeyOn = joinEqual;
-                    mapping.Props.Add(mapping1);
-                    mapping.Props.Add(mapping2);
-                }
-                else
-                {
-                    ////没有 joinKey, 则直接利用属性名称，解析表名
-                    //Type anonymouseType = join.JoinObject.AsLambda().Body.Type;
-                    //PropertyInfo[] props = anonymouseType.GetProperties();
-                    //PropertyInfo prop1 = props.FirstOrDefault(p => p.Name == join.JoinKey1Prop);
-                    //PropertyInfo prop2 = props.FirstOrDefault(p => p.Name == join.JoinKey2Prop);
-
-                    TableAliasMapping mapping1 = new TableAliasMapping(p1);
-                    this.AssignFromJoinAlias(mapping1, join.MainQuery, null, null, joinSelect);
-
-                    TableAliasMapping mapping2 = new TableAliasMapping(p2);
-                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, null, null, joinSelect);
-
                     mapping.Props.Add(mapping1);
                     mapping.Props.Add(mapping2);
                 }

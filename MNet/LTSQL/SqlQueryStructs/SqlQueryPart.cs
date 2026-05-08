@@ -1,4 +1,4 @@
-﻿using MNet.Utils;
+using MNet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -62,9 +62,6 @@ namespace MNet.LTSQL.SqlQueryStructs
         public Expression JoinKeyOn { get; set; }
         // 两个对象连接成一个对象： (t1, t2) => new { t1, t2 }
         public Expression JoinObject { get; set; }
-        public string JoinKey1Prop { get; set; }
-        public string JoinKey2Prop { get; set; }
-
 
         public override QueryPart CopyNew()
         {
@@ -77,8 +74,6 @@ namespace MNet.LTSQL.SqlQueryStructs
             _new.JoinKey2 = this.JoinKey2;
             _new.JoinKeyOn = this.JoinKeyOn;
             _new.JoinObject = this.JoinObject;
-            _new.JoinKey1Prop = this.JoinKey1Prop;
-            _new.JoinKey2Prop = this.JoinKey2Prop;
 
             _new.MainQuery = this.MainQuery?.CopyNew();
             _new.JoinQuery = this.JoinQuery?.CopyNew();

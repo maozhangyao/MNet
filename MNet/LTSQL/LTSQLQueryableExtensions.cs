@@ -420,8 +420,6 @@ namespace MNet.LTSQL
             joinPart.JoinKey2 = innerKeyExpr;
             joinPart.JoinObject = joinExpr;
             joinPart.MappingType = typeof(TResult);
-            joinPart.JoinKey1Prop = outerKeyExpr.Parameters[0].Name;
-            joinPart.JoinKey2Prop = innerKeyExpr.Parameters[0].Name;
 
             //直接作为子查询
             joinPart.MainQuery = qOuter;
@@ -449,27 +447,6 @@ namespace MNet.LTSQL
             , Expression<Func<TSource, ILTSQLObjectQueryable<TCollection>>> collectionSelector
             , Expression<Func<TSource, TCollection, TResult>> resultSelector)
         {
-            TSource defSrc = default;
-            TCollection defClt = Active<TCollection>();
-            try
-            {
-                defSrc = Active<TSource>();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"{nameof(SelectMany)}: {nameof(TSource)} 无法正常调用构造函数，请检查构造函数是否存在特定逻辑。", ex);
-            }
-            try
-            {
-                defClt = Active<TCollection>();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"{nameof(SelectMany)}: {nameof(TCollection)} 无法正常调用构造函数，请检查构造函数是否存在特定逻辑。", ex);
-            }
-
-
-            TResult defRls = resultSelector.Compile().Invoke(defSrc, defClt);
             ILTSQLObjectQueryable<TCollection> inner = collectionSelector.Compile().Invoke(default(TSource));
 
             SqlQueryPart qOuter = source.SqlQuery.CopyNew() as SqlQueryPart;
@@ -478,27 +455,6 @@ namespace MNet.LTSQL
             JoinPart join = new JoinPart();
             join.MappingType = typeof(TResult);
             join.JoinObject = resultSelector;
-
-            Type anonymouseType = typeof(TResult);
-            PropertyInfo[] props = anonymouseType.GetProperties();
-            foreach (PropertyInfo prop in props)
-            {
-                object val = prop.GetValue(defRls);
-                if (object.ReferenceEquals(defSrc, val))
-                {
-                    join.JoinKey1Prop = prop.Name;
-                }
-                else if (object.ReferenceEquals(defClt, val))
-                {
-                    join.JoinKey2Prop = prop.Name;
-                }
-                else
-                {
-                    throw new Exception($"{nameof(SelectMany)}: 元素无法匹配到属性。");
-                }
-            }
-
-
             join.MainQuery = qOuter.From;
             //非连续join
             if (qOuter.Step > QueryStepSeq.Join)
