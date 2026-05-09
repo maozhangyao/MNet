@@ -607,6 +607,9 @@ namespace MNet.LTSQL
                     groupKeyTokens.Add(groupKeyToken);
             }
 
+            if (groupKeyTokens.Count <= 0)
+                return null; //不是直接group by操作，可能是直接做单一的聚合查询，如 select count(1) from xxx
+
             return LTSQLTokenFactory.CreateListToken(groupKeyTokens.ToArray());
         }
         private LTSQLToken TranslateHaving(LambdaExpression havings)
@@ -716,7 +719,8 @@ namespace MNet.LTSQL
                 LambdaExpression lambda2 = query.GroupElement.AsLambda();
 
                 LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, out LTSQLToken groupKey, out LTSQLToken groupEle);
-                sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
+                if (groupKeys != null)
+                    sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
 
                 this._context.GroupKey = groupKey;
                 this._context.GroupElement = groupEle;
@@ -1272,12 +1276,31 @@ namespace MNet.LTSQL
         {
             // not int 支持
             // not exists 支持
+            Expression expr = base.VisitUnary(node);
 
             // (int?)val; 类型转换也是一元表达式，需要过滤下
-            if (node.NodeType != ExpressionType.Not)
-                return base.VisitUnary(node);
+            if (node.NodeType == ExpressionType.Convert)
+            {
+                //类型转换
+                LTSQLToken value = this.PopToken();
+                if (value is SqlParameterToken p)
+                {
+                    p = LTSQLTokenFactory.CreateSqlParameterToken(p.ParameterName, Convert.ChangeType(p.Value, node.Type), node.Type);
+                    this.PushToken(p);
+                }
+                else if (value is ValueToken v)
+                {
+                    v.ValueType = node.Type;
+                    this.PushToken(value);
+                }
+                else
+                {
+                    this.PushToken(value);
+                }
+            }
 
-            Expression expr = base.VisitUnary(node);
+            if (node.NodeType != ExpressionType.Not)
+                return expr;
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
