@@ -103,6 +103,7 @@ namespace LTSQLXUnitTest
                         join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
                         join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
                         where c.Course.Contains("数学")
+                        // TODO 暂不支持 三元表达式
                         group new { p, c } by new { c.Course, AgeRange = p.Age > 30 ? "Senior" : "Junior" } into g
                         where g.Count() >= 1
                         orderby g.Key.Course, g.Count() descending
@@ -153,7 +154,7 @@ namespace LTSQLXUnitTest
                 .WithAverage(p => p.Age);
 
             var query = persion.AsLTSQL()
-                .Where(p => hasTeacher.ToList().Contains(p.Id))
+                .Where(p => hasTeacher.Contains(p.Id))
                 .Where(p => p.Age > avgAgeQuery.FirstOrDefault())
                 .Select(p => new
                 {
@@ -193,6 +194,8 @@ namespace LTSQLXUnitTest
         [Fact]
         public void Complex_CombinedSetOperations()
         {
+            //注意：sqllite 不支持 INTERSECT ALL ，也不支优先级运算符
+            //这里测试的逻辑是： (年轻人 UNION 年老人) INTERSECT 高ID人员， sqllite会报错，生成的SQL语法没啥问题
             using IDbConnection connection = DbConnectionFactory.Sqllite();
             CPersionT persion = new CPersionT();
 
@@ -314,6 +317,7 @@ namespace LTSQLXUnitTest
             using IDbConnection connection = DbConnectionFactory.Sqllite();
             CPersionT persion = new CPersionT();
 
+            // 目前暂时不支持 let 语法操作
             var query = from p in persion.AsLTSQL()
                         where p.Age > 20
                         group p by p.SelfName into g
@@ -418,8 +422,9 @@ namespace LTSQLXUnitTest
                     p.Id,
                     p.SelfName,
                     p.Age,
-                    AgeCategory = p.Age < 25 ? "Young" : (p.Age < 35 ? "Middle" : "Old"),
-                    DisplayName = p.SelfName + "(" + p.Age.ToString() + ")",
+                    AgeCategory = p.Age < 25 ? "Young" : (p.Age < 35 ? "Middle" : "Old"), // TODO 暂时不支持 三元表达式
+                    // DisplayName = p.SelfName + "(" + p.Age.ToString() + ")",  // 不支持直接对字符串做 '+'操作，因为没这个sql标准，需要替换成 string.Concat 函数，如下更正：
+                    DisplayName = string.Concat(p.SelfName, string.Concat("(", string.Concat(p.Age, ")"))),  // 注意：string.Concat 函数不支持两个以上的参数，所以需要嵌套调用，因为不同的数据参数个数支持不一定一样
                     IsYoung = p.Age < 30
                 });
 
