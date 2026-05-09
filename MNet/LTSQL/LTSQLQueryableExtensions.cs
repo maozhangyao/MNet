@@ -1,5 +1,6 @@
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokens;
+using MNet.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +9,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
@@ -126,7 +128,25 @@ namespace MNet.LTSQL
 
         // 硬编码select字段进行查询如：
         // SELECT 'Mr. liu' as name, 18 as age, 'like books' as Description
-        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T obj) where T : new()
+        // 批量版本：将使用 union all 连接
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this List<T> list)
+        {
+            if (list.IsEmpty())
+                throw new ArgumentNullException(nameof(list));
+
+            return AsSelect(list.ToArray());
+        }
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T[] list)
+        {
+            if (list.IsEmpty())
+                throw new ArgumentNullException(nameof(list));
+
+            ILTSQLOrderedQueryable<T> query = AsSelect(list[0]);
+            if(list.Length > 1)
+                query = query.AsSet(DbSetType.Union, false).AppendSet(list.Select(p => AsSelect(p)).ToArray()).AsLTSQL();
+            return query;
+        }
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T obj)
         {
             Type t = typeof(T);
             if (t.IsPrimitive || obj is string)
@@ -135,35 +155,71 @@ namespace MNet.LTSQL
                 return AsSelect(() => obj);
             }
 
-            ConstructorInfo construct = typeof(T).GetConstructor(new Type[0]);
-            if (construct == null)
-                throw new Exception($"无法获取类型{t.Name}的公共无参构造函数");
+            ConstructorInfo[] cstrs = t.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+            if (cstrs.IsEmpty())
+                throw new Exception($"无法获取类型{t.Name}的构造函数");
+            if (cstrs.Length > 1 && !cstrs.Any(x => x.GetParameters().Length == 0))
+                throw new Exception($"类型{t.Name}的公共构造函数超过1个，无法确定使用哪个构造函数");
 
-            List<MemberBinding> binds = new List<MemberBinding>();
-            FieldInfo[] fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
-            foreach (FieldInfo field in fields)
+            ConstructorInfo construct = cstrs.FirstOrDefault(x => x.GetParameters().Length == 0) ?? cstrs[0];
+            if (construct.GetParameters().Length <= 0)
             {
-                var value = field.GetValue(obj);
-                var bind = Expression.Bind(field, Expression.Constant(value, field.FieldType));
-                binds.Add(bind);
-            }
+                //无参构造，设置成员初始化
+                List<MemberBinding> binds = new List<MemberBinding>();
+                FieldInfo[] fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
+                foreach (FieldInfo field in fields)
+                {
+                    var value = field.GetValue(obj);
+                    var bind = Expression.Bind(field, Expression.Constant(value, field.FieldType));
+                    binds.Add(bind);
+                }
 
-            PropertyInfo[] props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty);
-            foreach (PropertyInfo prop in props)
+                PropertyInfo[] props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty);
+                foreach (PropertyInfo prop in props)
+                {
+                    var value = prop.GetValue(obj);
+
+                    var bind = Expression.Bind(prop, Expression.Constant(value, prop.PropertyType));
+                    binds.Add(bind);
+                }
+
+                if (binds.Count <= 0)
+                    throw new Exception($"未能获取类型{t.Name}的任何公共属性或者字段");
+
+                NewExpression _new = Expression.New(construct);
+                MemberInitExpression init = Expression.MemberInit(_new, binds.ToArray());
+                Expression<Func<T>> expr = Expression.Lambda<Func<T>>(init);
+                return AsSelect(expr);
+            }
+            else
             {
-                var value = prop.GetValue(obj);
+                //带参构造，设置参数初始化成员(匿名对象使用)
+                List<MemberInfo> members = new List<MemberInfo>();
+                List<Expression> memberValues = new List<Expression>();
+                foreach (ParameterInfo p in construct.GetParameters())
+                {
+                    MemberInfo member = t.GetMember(p.Name)[0];
+                    object value = null;
+                    if (member is PropertyInfo prop)
+                    {
+                        value = prop.GetValue(obj);
+                    }
+                    else if (member is FieldInfo field)
+                    {
+                        value = field.GetValue(obj);
+                    }
+                    else
+                    {
+                        throw new Exception($"无法获取类型{t.Name}的成员{p.Name}");
+                    }
+                    members.Add(member);
+                    memberValues.Add(Expression.Constant(value));
+                }
 
-                var bind = Expression.Bind(prop, Expression.Constant(value, prop.PropertyType));
-                binds.Add(bind);
+                NewExpression _new = Expression.New(construct, memberValues.ToArray(), members.ToArray());
+                Expression<Func<T>> expr = Expression.Lambda<Func<T>>(_new);
+                return AsSelect(expr);
             }
-
-            if (binds.Count <= 0)
-                throw new Exception($"未能获取类型{t.Name}的任何公共属性或者字段");
-
-            NewExpression _new = Expression.New(construct);
-            MemberInitExpression init = Expression.MemberInit(_new, binds.ToArray());
-            Expression<Func<T>> expr = Expression.Lambda<Func<T>>(init);
-            return AsSelect(expr);
         }
         public static ILTSQLOrderedQueryable<TResult> AsSelect<T, TResult>(this T obj, Expression<Func<T, TResult>> expr)
         {
@@ -225,7 +281,7 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
         }
-        
+
         //多集合共同取交集
         public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
         {
@@ -235,7 +291,7 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
-        
+
         //多集合共同取差集
         public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
         {
@@ -245,7 +301,7 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
-        
+
         //向当前集合追加相同集合操作, 比如：
         //向并集集合，在追加集合做并集
         //向交集集合，在追加集合做并集
@@ -263,7 +319,7 @@ namespace MNet.LTSQL
             QuerySetPart set = new QuerySetPart(typeof(T), querys, src.SetQuery.SetType, src.SetQuery.Distinct);
             return new LTSQLObject<T>(set);
         }
-        
+
 
 
         public static ILTSQLOrderedQueryable<T> WithJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
@@ -739,7 +795,7 @@ namespace MNet.LTSQL
             QueryPart q = src.Query.CopyNew();
             IQueryTranslaterFactory factory = new QueryTranslaterFactory();
             IQueryTranslater tranlator = factory.Create(q);
-            
+
             LTSQLToken token = tranlator.Translate(q, options);
             SqlBuilderContext bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildContext(options);
             ISqlBuilder builder = LTSQLTokenSqlBuilder.Default;

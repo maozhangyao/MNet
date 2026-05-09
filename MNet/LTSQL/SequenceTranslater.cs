@@ -447,7 +447,7 @@ namespace MNet.LTSQL
                 {
                     token = this.TranslateLambda(lambda);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw;
                 }
@@ -476,7 +476,7 @@ namespace MNet.LTSQL
                 {
                     token = this.TranslateLambda(lambda);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw;
                 }
