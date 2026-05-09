@@ -451,6 +451,7 @@ namespace MNet.LTSQL
         //select
         public static ILTSQLObjectQueryable<TResult> Select<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
+            //Console.WriteLine(expr);
             var query = (src.SqlQuery.CopyNew() as SqlQueryPart)
                 .SetNextStep(QueryStepSeq.Select, false);
 

@@ -14,7 +14,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             this.Element = groupElement;
             this.GroupKey = groupKey;
+            this.ValueType = typeof(IGrouping<,>);
         }
+
 
         /// <summary>
         /// 分组元素
