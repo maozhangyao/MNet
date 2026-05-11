@@ -1,0 +1,12 @@
+﻿  姝ｅ湪纭畾瑕佽繕鍘熺殑椤圭洰鈥?
+  鎵€鏈夐」鐩潎鏄渶鏂扮殑锛屾棤娉曡繕鍘熴€?
+  MNet -> E:\workspace\SelfProject\Myself\MNet\MNet\bin\Debug\net10.0\MNet.dll
+  UnitTestModel -> E:\workspace\SelfProject\Myself\MNet\UnitTestModel\bin\Debug\net10.0\UnitTestModel.dll
+  LTSQLXUnitTest -> E:\workspace\SelfProject\Myself\MNet\Tests\LTSQLXUnitTest\bin\Debug\net10.0\LTSQLXUnitTest.dll
+E:\workspace\SelfProject\Myself\MNet\Tests\LTSQLXUnitTest\bin\Debug\net10.0\LTSQLXUnitTest.dll (.NETCoreApp,Version=v10.0)鐨勬祴璇曡繍琛?
+VSTest 鐗堟湰 18.0.1 (x64)
+
+姝ｅ湪鍚姩娴嬭瘯鎵ц锛岃绋嶅€?..
+鎬诲叡 1 涓祴璇曟枃浠朵笌鎸囧畾妯″紡鐩稿尮閰嶃€?
+
+宸查€氳繃! - 澶辫触:     0锛岄€氳繃:     1锛屽凡璺宠繃:     0锛屾€昏:     1锛屾寔缁椂闂? 299 ms - LTSQLXUnitTest.dll (net10.0)

@@ -171,25 +171,51 @@ dotnet test --filter "FullyQualifiedName~LTSQLWhereQueryTest"
 
 根据测试结果，发现以下 LTSQL 模块的限制：
 
-1. **ToString() 方法不支持**：在表达式中使用 `ToString()` 会生成无效的 SQL（`no such function: ToString`）
-   - **解决方案：** 避免在 LINQ 表达式中使用 ToString()，改用字符串字面量拼接
+1. **ToString() 方法暂不支持**：在表达式中使用 `ToString()` 会生成无效的 SQL（`no such function: ToString`）
+   - **状态**：架构上支持扩展，当前未实现翻译逻辑
+   - **解决方案**：避免在 LINQ 表达式中使用 ToString()，改用字符串字面量拼接
+   - **未来计划**：可通过添加 FunctionCallToken 映射到 CAST(... AS TEXT) 或 || '' 实现
 
-2. **某些 GROUP BY 生成不完整**：部分聚合查询生成的 GROUP BY 子句为空
-   - **影响：** 导致 SQLite 语法错误
-   - **建议：** 简化分组逻辑或手动验证生成的 SQL
+2. **ToUpper/Lower 等方法暂不支持**：类似的字符串处理方法尚未实现
+   - **状态**：待实现功能
+   - **未来计划**：可映射到 SQL 的 UPPER()/LOWER() 函数
 
-3. **GetEnumerator 未完全实现**：LTSQLObject.GetEnumerator 抛出 NotImplementedException
-   - **影响：** 在某些场景下无法直接调用 ToList()
-   - **建议：** 避免在子查询中直接使用 ToList()
+3. **某些 GROUP BY 生成不完整**：部分聚合查询生成的 GROUP BY 子句为空
+   - **影响**：导致 SQLite 语法错误
+   - **建议**：简化分组逻辑或手动验证生成的 SQL
 
-4. **动态类型断言问题**：Dapper 返回的 dynamic 对象在 xUnit 断言时可能出现类型匹配问题
-   - **解决方案：** 进行显式类型转换后再断言
+4. **GetEnumerator 未完全实现**：LTSQLObject.GetEnumerator 抛出 NotImplementedException
+   - **影响**：在某些场景下无法直接调用 ToList()
+   - **建议**：避免在子查询中直接使用 ToList()
+
+5. **动态类型断言问题**：Dapper 返回的 dynamic 对象在 xUnit 断言时可能出现类型匹配问题
+   - **解决方案**：进行显式类型转换后再断言
+
+6. **SelectMany 相关子查询限制**：在 SQLite 环境下，SelectMany 中使用相关子查询无法生成有效 SQL
+   - **原因**：SQLite 不支持 LATERAL JOIN 或 CROSS APPLY
+   - **正确做法**：使用标准 Join 语法实现数据关联
+   - **示例**：
+     ```csharp
+     // ❌ 错误：SelectMany + 相关子查询（无法翻译）
+     persons.AsLTSQL().SelectMany(p => teachers.Where(t => t.PersionId == p.Id))
+     
+     // ✅ 正确：使用标准 Join
+     from p in persons.AsLTSQL()
+     join t in teachers.AsLTSQL().WithInner() on p.Id equals t.PersionId
+     select ...
+     ```
+
+7. **GroupBy 后嵌套聚合限制**：在 GroupBy 后的 Select 中不能使用复杂的嵌套聚合表达式
+   - **错误示例**：`g.Select(x => x.Field).Distinct().Count()`
+   - **正确做法**：使用简单聚合函数 `g.Count()`、`g.Sum()` 等
+   - **如需去重统计**：应通过 COUNT(DISTINCT field) 的形式由底层 SQL 支持
 
 ### 2. 测试设计建议
 
 1. **参数空值检查**：ToSql 返回的参数列表可能为 null，使用前应做空值检查
 2. **集合操作后需转换**：UnionSet/IntersectSet/ExceptSet 返回 ILTSQLObjectSetable，需要调用 AsLTSQL() 才能继续链式查询
 3. **AsSelect 泛型约束**：必须使用具名类，不能使用匿名类型
+4. **中文排序问题**：SQLite 的默认排序可能不支持中文的正确排序，建议使用数字字段测试排序功能
 
 ## 测试覆盖率
 
