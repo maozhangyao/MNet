@@ -138,6 +138,10 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitSwitchCaseToken(SwitchCaseToken token)
+        {
+            return this._visitor(token);
+        }
     }
 }
  

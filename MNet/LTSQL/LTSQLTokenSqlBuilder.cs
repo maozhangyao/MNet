@@ -329,6 +329,26 @@ namespace MNet.LTSQL
                     }
                     nxt(t.Querys[i]);
                 }
+            })
+            .UseTokenBuilder<SwitchCaseToken>((t, ctx, nxt) => {
+
+                ctx.Writer.WriteLine();
+
+                ctx.Writer.Write("CASE ");
+                ctx.Writer.BeginScope();
+                
+                ctx.Writer.Write("WHEN ");
+                nxt(t.When);
+                ctx.Writer.Write(" THEN ");
+                nxt(t.ThenValue);
+
+                ctx.Writer.WriteLine();
+                ctx.Writer.Write("ELSE ");
+                nxt(t.ThenElse);
+                //ctx.Writer.WriteLine();
+
+                ctx.Writer.EndScope();
+                ctx.Writer.Write("END ");
             });
 
             return builder;

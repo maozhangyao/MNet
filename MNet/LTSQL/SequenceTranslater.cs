@@ -1313,7 +1313,22 @@ namespace MNet.LTSQL
             this.PushToken(token);
             return expr;
         }
+        //条件表达式：三元运算符
+        protected override Expression VisitConditional(ConditionalExpression node)
+        {
+            Expression expr = base.VisitConditional(node);
+            if (this.OnTranslateExpression(node, node.Type))
+                return expr;
+            
+            LTSQLToken thenElse = this.PopToken(); // else 的值
+            LTSQLToken thenValue = this.PopToken(); // then 的值
+            LTSQLToken then = this.PopToken(); // then 的判断
 
+            this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(
+                    LTSQLTokenFactory.CreateSwitchCase(then, thenValue, thenElse, node.Type)
+                ));
+            return expr;
+        }
 
 
         public LTSQLToken Translate(QueryPart query, LTSQLOptions options)

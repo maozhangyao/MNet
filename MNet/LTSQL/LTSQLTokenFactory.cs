@@ -223,5 +223,9 @@ namespace MNet.LTSQL
             
             return new ListToken(list);
         }
+        public static SwitchCaseToken CreateSwitchCase(LTSQLToken then, LTSQLToken thenValue, LTSQLToken thenElse, Type valueType)
+        {
+            return new SwitchCaseToken(then, thenValue, thenElse, valueType);
+        }
     }
 }
