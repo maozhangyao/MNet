@@ -12,11 +12,15 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class DataSetToken : SqlValueToken, ISelectable
     {
-        public DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+        internal DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+            : this(valueType, querys, settype, distinct, false)
+        { }
+        internal DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool prior)
         {
             this.Querys = querys.ToArray();
             this.SetType = settype;
             this.Distinct = distinct;
+            this.IsPriority = prior;
         }
 
 
@@ -44,6 +48,12 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this.Table?.GetField(key)?.FieldValueType;
         }
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new DataSetToken(this.ValueType, this.Querys, this.SetType, this.Distinct)
+            { IsPriority = isPriority };
+        }
+
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -57,8 +67,8 @@ namespace MNet.LTSQL.SqlTokens
                 arr[i] = visitor.Visit(this.Querys[i]);
             }
 
-            return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct);
-        } 
+            return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct, this.IsPriority);
+        }
     }
 }
 

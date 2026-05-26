@@ -455,7 +455,9 @@ namespace MNet.LTSQL
                     refs.AddTableRef(parameterName, descriptor);
                 }
 
-                qry = LTSQLTokenFactory.CreatePriorityCalcToken(qry);
+                if (qry is IPriorable prior)
+                    qry = prior.SetPriority(true) as LTSQLToken;
+
                 src = qry;
             }
 
@@ -688,8 +690,10 @@ namespace MNet.LTSQL
                     if (p.Value is ILTSQLObjectQueryable subquery)
                     {
                         LTSQLToken subQueryToken = new SequenceTranslater()
-                       .Translate(subquery.Query, this._scope.NewScope());
-                        return LTSQLTokenFactory.CreatePriorityCalcToken(subQueryToken as SqlQueryToken);
+                                .Translate(subquery.Query, this._scope.NewScope());
+
+                        var token = subQueryToken is IPriorable proir && !proir.IsPriority ? proir.SetPriority(true) as LTSQLToken : subQueryToken;
+                        return token;
                     }
                 }
                 return t;
@@ -701,7 +705,7 @@ namespace MNet.LTSQL
                 if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.Alias == SqlFunctionHelper.F_EXISTS)
                 {
                     LTSQLToken parameter = c.Parameters[0];
-                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this._context.Options.DbType, parameter.UnPriorityIfSubQuery())
+                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this._context.Options.DbType, parameter.TryPriority(false))
                     .Build() as FunctionCallToken;
                     return c.IsNot ? fcall.Not() : fcall;
                 }
@@ -1032,8 +1036,8 @@ namespace MNet.LTSQL
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
-            LTSQLToken right = this.PopToken().PriorityIfSubQuery();
-            LTSQLToken left = this.PopToken().PriorityIfSubQuery();
+            LTSQLToken right = this.PopToken().TryPriority(true);
+            LTSQLToken left  = this.PopToken().TryPriority(true);
             if (!(right is ValueToken && left is ValueToken))
                 throw new Exception($"二元表达式左右两边的子节点无法正常表示:{node}");
 
@@ -1084,7 +1088,7 @@ namespace MNet.LTSQL
                         cur = cur == null ? equals : LTSQLTokenFactory.CreateBoolCalcToken("AND", cur, equals);
                     }
 
-                    this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(cur));
+                    this.PushToken(cur.IsPriority ? cur : (cur.SetPriority(true) as LTSQLToken));
                     return expr;
                 }
             }
@@ -1144,8 +1148,11 @@ namespace MNet.LTSQL
                     throw new NotImplementedException($"暂不支持此二元表达式翻译：{node.NodeType}");
             }
 
+            if (binary is IPriorable prior)
+                binary = prior.IsPriority ? binary : (prior.SetPriority(true) as LTSQLToken);
             if (binary != null)
-                this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(binary));
+                this.PushToken(binary);
+
             return expr;
         }
         //一元表达式：主要是取反操作，not exists 以及 not in 等
@@ -1201,9 +1208,9 @@ namespace MNet.LTSQL
             LTSQLToken thenValue = this.PopToken(); // then 的值
             LTSQLToken then = this.PopToken(); // then 的判断
 
-            this.PushToken(LTSQLTokenFactory.CreatePriorityCalcToken(
-                    LTSQLTokenFactory.CreateSwitchCase(then, thenValue, thenElse, node.Type)
-                ));
+            this.PushToken(
+                LTSQLTokenFactory.CreateSwitchCase(then, thenValue, thenElse, node.Type).SetPriority(true) as LTSQLToken
+                );
             return expr;
         }
 

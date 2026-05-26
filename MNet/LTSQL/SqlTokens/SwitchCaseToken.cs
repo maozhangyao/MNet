@@ -1,3 +1,4 @@
+using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,12 +13,21 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class SwitchCaseToken : SqlValueToken
     {
-        public SwitchCaseToken(LTSQLToken then, LTSQLToken thenValue,  LTSQLToken thenElse, Type valueType)
+        internal SwitchCaseToken(LTSQLToken then, LTSQLToken thenValue,  LTSQLToken thenElse, Type valueType)
+            : this(then, thenValue, thenElse, valueType, false)
         {
             this.When = then;
             this.ThenValue = thenValue;
             this.ThenElse = thenElse;
             this.ValueType = valueType;
+        }
+        internal SwitchCaseToken(LTSQLToken then, LTSQLToken thenValue, LTSQLToken thenElse, Type valueType, bool prior)
+        {
+            this.When = then;
+            this.ThenValue = thenValue;
+            this.ThenElse = thenElse;
+            this.ValueType = valueType;
+            this.IsPriority = prior;
         }
 
         //THEN 表达式
@@ -26,8 +36,12 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken ThenValue { get; }
         //THEN ELSE 表达式(为false时)
         public LTSQLToken ThenElse { get; }
-        
 
+
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new SwitchCaseToken(this.When, this.ThenValue, this.ThenElse, this.ValueType) { IsPriority = isPriority };
+        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSwitchCaseToken(this);
@@ -37,7 +51,7 @@ namespace MNet.LTSQL.SqlTokens
             LTSQLToken then = this.When.Visit(visitor);
             LTSQLToken thenValue = this.ThenValue.Visit(visitor);
             LTSQLToken thenElse = this.ThenElse.Visit(visitor);
-            return new SwitchCaseToken(then, thenValue, thenElse, this.ValueType);
+            return new SwitchCaseToken(then, thenValue, thenElse, this.ValueType, this.IsPriority);
         }
     }
 }

@@ -172,37 +172,45 @@ namespace MNet.LTSQL
         {
             return new PageToken(skip, take);
         }
-        public static PriorityCalcToken CreatePriorityCalcToken(LTSQLToken inner)
-        {
-            if (inner == null)
-                throw new ArgumentNullException(nameof(inner));
+        //public static PriorityCalcToken CreatePriorityCalcToken(LTSQLToken inner)
+        //{
+        //    if (inner == null)
+        //        throw new ArgumentNullException(nameof(inner));
 
-            return new PriorityCalcToken(inner);
-        }
+        //    return new PriorityCalcToken(inner);
+        //}
 
         public static BinaryToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("+", left, right, typeOfValue);
+            return CreateBinaryToken("+", left, right, typeOfValue, true);
         }
         public static BinaryToken CreateSubtract(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("-", left, right, typeOfValue);
+            return CreateBinaryToken("-", left, right, typeOfValue, true);
         }
         public static BinaryToken CreateDivide(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("/", left, right, typeOfValue);
+            return CreateBinaryToken("/", left, right, typeOfValue, true);
         }
         public static BinaryToken CreateMultiply(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("*", left, right, typeOfValue);
+            return CreateBinaryToken("*", left, right, typeOfValue, true);
         }
         public static BinaryToken CreateBinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return new BinaryToken(opt, left, right, typeOfValue);
+            return CreateBinaryToken(opt, left, right, typeOfValue, true);
+        }
+        public static BinaryToken CreateBinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue, bool priority)
+        {
+            return new BinaryToken(opt, left, right, typeOfValue, priority);
         }
         public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right)
         {
-            return new BoolCalcToken(left, right, opt);
+            return CreateBoolCalcToken(opt, left, right, false);
+        }
+        public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right, bool priority)
+        {
+            return new BoolCalcToken(left, right, opt, false, priority);
         }
         public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
         {
@@ -214,7 +222,11 @@ namespace MNet.LTSQL
         }
         public static ListToken CreateListToken(params LTSQLToken[] tokens)
         {
-            return new ListToken(tokens);
+            return CreateListToken(false, tokens);
+        }
+        public static ListToken CreateListToken(bool priority, params LTSQLToken[] tokens)
+        {
+            return new ListToken(tokens, priority);
         }
         public static ListToken CreateListToken(IEnumerable<LTSQLToken> tokens, LTSQLToken append)
         {

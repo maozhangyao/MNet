@@ -12,7 +12,7 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class TupleToken : ValueToken, ITupleable
     {
-        public TupleToken(Type type)
+        internal TupleToken(Type type)
         {
             this.ValueType = type;
         }

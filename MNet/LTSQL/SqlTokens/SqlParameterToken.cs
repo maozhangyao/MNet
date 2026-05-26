@@ -1,3 +1,4 @@
+using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections.Generic;
 
@@ -19,7 +20,10 @@ namespace MNet.LTSQL.SqlTokens
         //参数名
         public readonly string ParameterName;
 
-
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new SqlParameterToken(this.ParameterName, this.Value, this.ValueType) { IsPriority = isPriority };
+        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSqlParameterToken(this);

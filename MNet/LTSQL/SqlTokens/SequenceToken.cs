@@ -24,6 +24,7 @@ namespace MNet.LTSQL.SqlTokens
 
         public readonly LTSQLToken[] Tokens;
 
+
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
@@ -58,7 +59,7 @@ namespace MNet.LTSQL.SqlTokens
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return base.Visit(visitor);
+            return visitor.VisitSequenceToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {

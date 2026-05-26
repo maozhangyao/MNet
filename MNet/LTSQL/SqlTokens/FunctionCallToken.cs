@@ -17,15 +17,20 @@ namespace MNet.LTSQL.SqlTokens
             this.ValueType = typeOfValue;
         }
 
-        public readonly LTSQLToken FunctionObject;
-        public readonly LTSQLToken[] Parameters;
-        public LTSQLToken FunctionName => !this.IsNot ? this.FunctionObject : SequenceToken.Create( SyntaxToken.Create("NOT "), this.FunctionObject);
 
         public bool IsNot { get; }
+        public LTSQLToken FunctionObject { get; }
+        public LTSQLToken[] Parameters { get; }
+        public LTSQLToken FunctionName => !this.IsNot ? this.FunctionObject : SequenceToken.Create(SyntaxToken.Create("NOT "), this.FunctionObject);
+        
 
         public LTSQLToken Not()
         {
             return new FunctionCallToken(this.FunctionObject, this.Parameters, this.ValueType, !this.IsNot);
+        }
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new FunctionCallToken(this.FunctionObject, this.Parameters, this.ValueType, this.IsNot) { IsPriority = isPriority };
         }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -39,7 +44,7 @@ namespace MNet.LTSQL.SqlTokens
             for (int i = 0; i < this.Parameters.Length; i++)
                 args[i] = this.Parameters[i].Visit(visitor);
 
-            return new FunctionCallToken(fObj, args, this.ValueType, this.IsNot);
+            return new FunctionCallToken(fObj, args, this.ValueType, this.IsNot) { IsPriority = this.IsPriority };
         }
     }
 }

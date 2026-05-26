@@ -2,23 +2,29 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using MNet.LTSQL.SqlTokenExtends;
 
 namespace MNet.LTSQL.SqlTokens
 {
     /// <summary>
     /// 二元操作
     /// </summary>
-    public class BinaryToken : SqlValueToken
+    public class BinaryToken : SqlValueToken, IPriorable
     {
         internal BinaryToken()
         { }
         internal BinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
+            : this(opt, left, right, typeOfValue, false)
+        { }
+        internal BinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue, bool priority)
         {
             this.Opration = opt;
             this.Left = left;
             this.Right = right;
             this.ValueType = typeOfValue;
+            this.IsPriority = priority;
         }
+
 
         public readonly string Opration;
         //exists 运算没有 left
@@ -34,6 +40,10 @@ namespace MNet.LTSQL.SqlTokens
         public readonly static string OPT_LESS_OR_EQUAL = "<=";
 
 
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new BinaryToken(this.Opration, this.Left, this.Right, this.ValueType, isPriority);
+        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -41,9 +51,9 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            LTSQLToken left = this.Left?.Visit(visitor); // 比如 exists 就没有 left
+            LTSQLToken left = this.Left?.Visit(visitor);
             LTSQLToken right = this.Right?.Visit(visitor);
-            return new BinaryToken(this.Opration, left, right, this.ValueType);
+            return new BinaryToken(this.Opration, left, right, this.ValueType, this.IsPriority);
         }
     }
 }

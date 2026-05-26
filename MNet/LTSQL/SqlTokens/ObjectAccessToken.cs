@@ -1,3 +1,4 @@
+using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections.Generic;
 
@@ -17,6 +18,10 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken Object { get; }
 
 
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new ObjectAccessToken(this.Object, this.Prop, this.ValueType) { IsPriority = isPriority };
+        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitObjectAccessToken(this);
@@ -26,8 +31,8 @@ namespace MNet.LTSQL.SqlTokens
             var newObject = this.Object.Visit(visitor);
             if (newObject == this.Object)
                 return this;
-            
-            return new ObjectAccessToken(newObject, this.Prop, this.ValueType);
+
+            return new ObjectAccessToken(newObject, this.Prop, this.ValueType) { IsPriority = this.IsPriority };
         }
     }
 }

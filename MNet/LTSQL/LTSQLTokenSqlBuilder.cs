@@ -2,6 +2,7 @@ using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Text;
 
 namespace MNet.LTSQL
@@ -13,37 +14,59 @@ namespace MNet.LTSQL
     {
         public LTSQLTokenSqlBuilder()
         {
-            this._builders = new List<(Type, Action<LTSQLToken, SqlWriterContext, Action<LTSQLToken>>)>(32);
+            this._commons = new List<(Type, Action<LTSQLToken, SqlWriterContext, Action>)>(8);
+            this._specials = new List<(Type, Action<LTSQLToken, SqlWriterContext, Action<LTSQLToken>>)>(32);
         }
 
 
-        private List<(Type, Action<LTSQLToken, SqlWriterContext, Action<LTSQLToken>>)> _builders;
+        private List<(Type, Action<LTSQLToken, SqlWriterContext, Action>)> _commons;
+        private List<(Type, Action<LTSQLToken, SqlWriterContext, Action<LTSQLToken>>)> _specials;
 
         //默认的
         public static LTSQLTokenSqlBuilder Default => UseDefault();
 
 
+
+        private void NextAtCommon(LTSQLToken token, SqlWriterContext context, int pos)
+        {
+            Type tokenType = token.GetType();
+            //顺序执行
+            int index = pos >= this._commons.Count ? -1 : this._commons.FindIndex(pos + 1, p => tokenType.IsAssignableTo(p.Item1));
+            if (index < 0)
+            {
+                this.NextAtSpecial(token, context);
+            }
+            else
+            {
+                this._commons[index].Item2(token, context, () => this.NextAtCommon(token, context, index));
+            }
+        }
+        private void NextAtSpecial(LTSQLToken token, SqlWriterContext context)
+        {
+            Type type = token.GetType();
+            foreach (var item in this._specials)
+            {
+                if (item.Item1 == type)
+                {
+                    item.Item2(token, context, t => this.Next(t, context));
+                    return;
+                }
+            }
+        }
         //执行 builder
         private void Next(LTSQLToken token, SqlWriterContext context)
         {
             if (token == null)
                 return;
 
-            Type type = token.GetType();
-            foreach (var item in this._builders)
-            {
-                if (item.Item1 == type)
-                {
-                    if (context.TokenStack.Count > 0)
-                        context.ParentToken = context.TokenStack.Peek();
+            if (context.TokenStack.Count > 0)
+                context.ParentToken = context.TokenStack.Peek();
 
-                    context.TokenStack.Push(token);
-                    item.Item2(token, context, t => this.Next(t, context));
-                    context.TokenStack.Pop();
-                    return;
-                }
-            }
+            context.TokenStack.Push(token);
+            this.NextAtCommon(token, context, -1);
+            context.TokenStack.Pop();
         }
+
 
         //初始化默认的 sql 生成器
         private static LTSQLTokenSqlBuilder UseDefault()
@@ -51,29 +74,37 @@ namespace MNet.LTSQL
             LTSQLTokenSqlBuilder builder = new LTSQLTokenSqlBuilder();
 
             builder
-            .UseTokenBuilder<ObjectToken>((t, ctx, nxt) =>
+            .UseCommonToken<IPriorable>((t, ctx, nxt) => {
+                if (t.IsPriority)
+                    ctx.Writer.Write('(');
+
+                nxt();
+
+                if (t.IsPriority)
+                    ctx.Writer.Write(')');
+            })
+            .UseSpecialToken<ObjectToken>((t, ctx, nxt) =>
             {
                 if (t.ObjectType == SqlObjectType.Table)
                     ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
                 else
                     ctx.Writer.Write(t.Alias);
             })
-            .UseTokenBuilder<AliasToken>((t, ctx, nxt) =>
+            .UseSpecialToken<AliasToken>((t, ctx, nxt) =>
             {
                 nxt(t.Object);
                 ctx.Writer.Write(" AS ");
                 ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
             })
-            .UseTokenBuilder<BoolCalcToken>((t, ctx, nxt) =>
+            .UseSpecialToken<BoolCalcToken>((t, ctx, nxt) =>
             {
                 nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
                 ctx.Writer.WriteWhite();
                 ctx.Writer.Write(t.Opration);
                 ctx.Writer.WriteWhite();
                 nxt(t.Right);
-
             })
-            .UseTokenBuilder<BinaryToken>((t, ctx, nxt) =>
+            .UseSpecialToken<BinaryToken>((t, ctx, nxt) =>
             {
                 nxt(t.Left);
                 ctx.Writer.WriteWhite();
@@ -82,20 +113,20 @@ namespace MNet.LTSQL
                 nxt(t.Right);
 
             })
-            .UseTokenBuilder<ConstantToken>((t, ctx, nxt) =>
+            .UseSpecialToken<ConstantToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write(t.Value);
             })
-            .UseTokenBuilder<SyntaxToken>((t, ctx, nxt) =>
+            .UseSpecialToken<SyntaxToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write(t.EscapeKey ? ctx.SqlKeyWordEscape(t.Text, ctx) : t.Text);
 
             })
-            .UseTokenBuilder<NullToken>((t, ctx, nxt) =>
+            .UseSpecialToken<NullToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write(t.Value);
             })
-            .UseTokenBuilder<JoinToken>((t, ctx, nxt) =>
+            .UseSpecialToken<JoinToken>((t, ctx, nxt) =>
             {
                 nxt(t.MainQuery);
 
@@ -117,7 +148,7 @@ namespace MNet.LTSQL
 
                 nxt(t.JoinKeys);
             })
-            .UseTokenBuilder<FunctionCallToken>((t, ctx, nxt) =>
+            .UseSpecialToken<FunctionCallToken>((t, ctx, nxt) =>
             {
                 nxt(t.FunctionName);
                 ctx.Writer.Write("(");
@@ -136,13 +167,13 @@ namespace MNet.LTSQL
                 ctx.Writer.Write(")");
 
             })
-            .UseTokenBuilder<ObjectAccessToken>((t, ctx, nxt) =>
+            .UseSpecialToken<ObjectAccessToken>((t, ctx, nxt) =>
             {
                 nxt(t.Object);
                 ctx.Writer.Write('.');
                 ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Prop, ctx));
             })
-            .UseTokenBuilder<SqlParameterToken>((t, ctx, nxt) =>
+            .UseSpecialToken<SqlParameterToken>((t, ctx, nxt) =>
             {
                 //是否参数化
                 if (ctx.UseParameter)
@@ -159,7 +190,7 @@ namespace MNet.LTSQL
                 }
 
             })
-            .UseTokenBuilder<SqlQueryToken>((t, ctx, nxt) =>
+            .UseSpecialToken<SqlQueryToken>((t, ctx, nxt) =>
             {
                 nxt(t.Select);
                 
@@ -195,7 +226,7 @@ namespace MNet.LTSQL
                 }
 
             })
-            .UseTokenBuilder<PriorityCalcToken>((t, ctx, nxt) =>
+            .UseSpecialToken<PriorityCalcToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write('(');
                 if (t.Value is ISelectable)
@@ -207,12 +238,12 @@ namespace MNet.LTSQL
                     ctx.Writer.EndScope();
                 ctx.Writer.Write(')');
             })
-            .UseTokenBuilder<SequenceToken>((t, ctx, nxt) =>
+            .UseSpecialToken<SequenceToken>((t, ctx, nxt) =>
             {
                 foreach (LTSQLToken token in t)
                     nxt(token);
             })
-            .UseTokenBuilder<ListToken>((t, ctx, nxt) =>
+            .UseSpecialToken<ListToken>((t, ctx, nxt) =>
             {
                 if (t.Tokens == null)
                     return;
@@ -248,7 +279,7 @@ namespace MNet.LTSQL
                 if (newLineFlag)
                     ctx.Writer.EndScope();
             })
-            .UseTokenBuilder<PageToken>((t, ctx, nxt) =>
+            .UseSpecialToken<PageToken>((t, ctx, nxt) =>
             {
                 if (ctx.DbType == DbTypes.MySQL || ctx.DbType == DbTypes.SQLLite)
                 {
@@ -283,7 +314,7 @@ namespace MNet.LTSQL
                 }
 
             })
-            .UseTokenBuilder<ClauseToken>((t, ctx, nxt) =>
+            .UseSpecialToken<ClauseToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.WriteWhite(t.ClauseName);
                 if (t.SubClause != null)
@@ -295,7 +326,7 @@ namespace MNet.LTSQL
                     }
                 }
             })
-            .UseTokenBuilder<TupleToken>((t, ctx, nxt) =>
+            .UseSpecialToken<TupleToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write("(");
                 bool flag = false;
@@ -308,7 +339,7 @@ namespace MNet.LTSQL
                 }
                 ctx.Writer.Write(")");
             })
-            .UseTokenBuilder<DataSetToken>((t, ctx, nxt) =>
+            .UseSpecialToken<DataSetToken>((t, ctx, nxt) =>
             {
                 for (int i = 0; i < t.Querys.Length; i++)
                 {
@@ -330,9 +361,7 @@ namespace MNet.LTSQL
                     nxt(t.Querys[i]);
                 }
             })
-            .UseTokenBuilder<SwitchCaseToken>((t, ctx, nxt) => {
-
-                ctx.Writer.WriteLine();
+            .UseSpecialToken<SwitchCaseToken>((t, ctx, nxt) => {
 
                 ctx.Writer.Write("CASE ");
                 ctx.Writer.BeginScope();
@@ -376,19 +405,41 @@ namespace MNet.LTSQL
             //生成sql
             context.Sql = writerCxt.Writer.GetSqlBuilder();
         }
+        
+        public LTSQLTokenSqlBuilder UseCommonToken<T>(Action<T, SqlWriterContext, Action> builder)
+        {
+            if (builder == null)
+                return this;
+
+            Type type = typeof(T);
+            int index = this._commons.FindIndex(p => p.Item1 == type);
+            (Type, Action<LTSQLToken, SqlWriterContext, Action>) item = (type, (t, b, nxt) =>
+            {
+                if (t is T t1)
+                    builder(t1, b, nxt);
+            }
+            );
+
+            if (index >= 0)
+                this._commons[index] = item;
+            else
+                this._commons.Add(item);
+
+            return this;
+        }
         /// <summary>
         /// 使用对应的token的builder
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="builder"></param>
         /// <returns></returns>
-        public LTSQLTokenSqlBuilder UseTokenBuilder<T>(Action<T, SqlWriterContext, Action<LTSQLToken>> builder) where T : LTSQLToken
+        public LTSQLTokenSqlBuilder UseSpecialToken<T>(Action<T, SqlWriterContext, Action<LTSQLToken>> builder) where T : LTSQLToken
         {
             if (builder == null)
                 return this;
 
             Type type = typeof(T);
-            int index = this._builders.FindIndex(p => p.Item1 == type);
+            int index = this._specials.FindIndex(p => p.Item1 == type);
             (Type, Action<LTSQLToken, SqlWriterContext, Action<LTSQLToken>>) item = (type, (t, b, nxt) =>
             {
                 if (t is T t1)
@@ -397,9 +448,9 @@ namespace MNet.LTSQL
             );
 
             if (index >= 0)
-                this._builders[index] = item;
+                this._specials[index] = item;
             else
-                this._builders.Add(item);
+                this._specials.Add(item);
 
             return this;
         }

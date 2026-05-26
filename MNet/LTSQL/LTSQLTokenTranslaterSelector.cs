@@ -226,11 +226,11 @@ namespace MNet.LTSQL
                             foreach (object item in list)
                                 paras.Add(ctx.TokenSqlParameter(item));
 
-                            right = LTSQLTokenFactory.CreatePriorityCalcToken(LTSQLTokenFactory.CreateListToken(paras.ToArray()));
+                            right = LTSQLTokenFactory.CreateListToken(paras.ToArray()).SetPriority(true) as ListToken;
                         }
                     }
 
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right.PriorityIfSubQuery());
+                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right.TryPriority(true));
                 }
 
                 // in 操作，支持元组匹配
@@ -241,9 +241,9 @@ namespace MNet.LTSQL
                 {
                     TupleToken tuple = ctx.MethodParameterTokenList[0] as TupleToken;
                     LTSQLToken token = ctx.MethodParameterTokenList[1];
-                    ILTSQLObjectQueryable query =  (token is SqlParameterToken p1) ? p1.Value as ILTSQLObjectQueryable : null;;
+                    ILTSQLObjectQueryable query = (token is SqlParameterToken p1) ? p1.Value as ILTSQLObjectQueryable : null;
                     IEnumerable list = (token is SqlParameterToken p2) ? p2.Value as IEnumerable : null;
-                    if(tuple == null)
+                    if (tuple == null)
                         throw new NotSupportedException("In操作符号进行元组匹配时，必须是元组。");
                     if(query == null && list == null)
                         throw new NotSupportedException("In操作符号进行元组匹配时，参数不正确，必须时子查询或者参数列表。");
@@ -251,7 +251,7 @@ namespace MNet.LTSQL
                     //子查询
                     if (query != null)
                     {
-                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple, token);
+                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple, token, true);
                     }
                     //参数硬编码
                     else if (list != null)
@@ -281,7 +281,7 @@ namespace MNet.LTSQL
                             tokens.Add(tupleItem);
                         }
                         ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple,
-                                LTSQLTokenFactory.CreatePriorityCalcToken(LTSQLTokenFactory.CreateListToken(tokens.ToArray()))
+                                LTSQLTokenFactory.CreateListToken(true, tokens.ToArray()), true
                             );
                     }
                 }
@@ -319,7 +319,7 @@ namespace MNet.LTSQL
                         inner = LTSQLTokenFactory.CreateListToken(paras.ToArray());
                     }
 
-                    ctx.ResultToken = SqlFunctionHelper.ExistsFunction(ctx.Options.DbType, inner.UnPriorityIfSubQuery()).Build();
+                    ctx.ResultToken = SqlFunctionHelper.ExistsFunction(ctx.Options.DbType, inner.TryPriority(false)).Build();
                 }
             });
 
@@ -387,7 +387,7 @@ namespace MNet.LTSQL
                                 concat = new BinaryToken("||", concat, token, typeof(string));
                         }
 
-                        ctx.ResultToken = concat != null ? LTSQLTokenFactory.CreatePriorityCalcToken(concat as SqlValueToken) : null;
+                        ctx.ResultToken = concat != null ? concat.TryPriority(true) : null;
                     }
                 }
             });

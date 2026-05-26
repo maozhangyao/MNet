@@ -7,7 +7,7 @@ namespace MNet.LTSQL.SqlTokens
     //直接表示SQL语法编码的一部分
     public class SyntaxToken : LTSQLToken
     {
-        public SyntaxToken(string text)
+        internal SyntaxToken(string text)
         {
             this.Text = text;
         }
@@ -17,6 +17,11 @@ namespace MNet.LTSQL.SqlTokens
         //是否需要关键字转义
         public readonly bool EscapeKey;
 
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitSyntaxToken(this);
+        }
 
         public static SyntaxToken Create(string text)
         {

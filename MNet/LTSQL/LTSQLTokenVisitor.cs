@@ -126,10 +126,6 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitValuesListToken(ValuesListToken token)
-        {
-            return this._visitor(token);
-        }
         public virtual LTSQLToken VisitListToken(ListToken token)
         {
             return this._visitor(token);

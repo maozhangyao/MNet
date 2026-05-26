@@ -10,7 +10,7 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class GroupObjToken : BogusToken
     {
-        public GroupObjToken(LTSQLToken groupElement, LTSQLToken groupKey)
+        internal GroupObjToken(LTSQLToken groupElement, LTSQLToken groupKey)
         {
             this.Element = groupElement;
             this.GroupKey = groupKey;

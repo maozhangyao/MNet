@@ -10,11 +10,11 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     internal class PrefixPropToken : BogusToken
     {
-        public PrefixPropToken(string prefix)
+        internal PrefixPropToken(string prefix)
         {
             this.ObjPrefix = prefix;
         }
-        public PrefixPropToken(string prefix, TableRefs refs)
+        internal PrefixPropToken(string prefix, TableRefs refs)
         {
             this.TableRefs = refs;
             this.ObjPrefix = prefix;

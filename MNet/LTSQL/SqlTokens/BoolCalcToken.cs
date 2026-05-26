@@ -9,9 +9,9 @@ namespace MNet.LTSQL.SqlTokens
     {
         // AND , RO, IN , NOT IN, LIKE , IS NULL , IS NOT NULL , BETWEEN , EXISTS
         // NOT EXISTS
-        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt) : this(left, right, opt, false)
+        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt) : this(left, right, opt, false, false)
         { }
-        private BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt, bool isNot) : base(opt, left, right, typeof(bool))
+        internal BoolCalcToken(LTSQLToken left, LTSQLToken right, string opt, bool isNot, bool priority) : base(opt, left, right, typeof(bool), priority)
         {
             this.IsNot = isNot;
         }
@@ -30,9 +30,10 @@ namespace MNet.LTSQL.SqlTokens
 
         public bool IsNot {  get; private set; }
 
+
         public LTSQLToken Not()
         {
-            return new BoolCalcToken(this.Left, this.Right, Not(this.Opration), !this.IsNot);
+            return new BoolCalcToken(this.Left, this.Right, Not(this.Opration), !this.IsNot, this.IsPriority);
         }
         public static string Not(string opt)
         {
@@ -73,9 +74,19 @@ namespace MNet.LTSQL.SqlTokens
                 
             throw new Exception($"操作符：{opt}不支持Not取反操作。");
         }
+        public override IPriorable SetPriority(bool isPriority)
+        {
+            return new BoolCalcToken(this.Left, this.Right, this.Opration, this.IsNot, isPriority);
+        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitBoolCalcToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            LTSQLToken left = this.Left?.Visit(visitor);
+            LTSQLToken right = this.Right?.Visit(visitor);
+            return new BoolCalcToken(left, right, this.Opration, this.IsNot, this.IsPriority);
         }
     }
 }

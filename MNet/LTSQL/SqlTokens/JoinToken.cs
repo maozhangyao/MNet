@@ -5,7 +5,7 @@ namespace MNet.LTSQL.SqlTokens
     // 联表
     public class JoinToken : LTSQLToken 
     {
-        public JoinToken(JoinType joinType, LTSQLToken mainQuery, LTSQLToken joinQuery, LTSQLToken joinKeys)
+        internal JoinToken(JoinType joinType, LTSQLToken mainQuery, LTSQLToken joinQuery, LTSQLToken joinKeys)
         {
             this.JoinType = joinType;
             this.MainQuery = mainQuery;

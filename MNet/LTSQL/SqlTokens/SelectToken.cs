@@ -6,7 +6,7 @@ namespace MNet.LTSQL.SqlTokens
 {
     public class SelectToken : LTSQLToken
     {
-        public SelectToken()
+        internal SelectToken()
         { }
 
 
