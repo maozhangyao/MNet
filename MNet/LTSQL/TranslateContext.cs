@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
@@ -43,27 +43,6 @@ namespace MNet.LTSQL
         public LTSQLToken ResultToken { get; set; }
 
 
-        public LTSQLToken PopToken()
-        {
-            return this.Tokens == null || this.Tokens.Count < 1 ? null : this.Tokens.Pop();
-        }
-        public LTSQLToken PeekToken()
-        {
-            return this.Tokens?.Peek();
-        }
-        public LTSQLToken[] PopParameters(int argsCnt)
-        {
-            if (argsCnt < 1)
-                throw new Exception($"无效参数{nameof(argsCnt)}");
-            if (this.Tokens == null || argsCnt > this.Tokens.Count)
-                throw new Exception($"参数{nameof(argsCnt)}:{argsCnt} 值超过实际token数量");
-
-            Stack<LTSQLToken> args = new Stack<LTSQLToken>(argsCnt);
-            for (int i = 0; i < argsCnt; i++)
-                args.Push(this.Tokens.Pop());
-
-            return args.ToArray();
-        }
         public SqlParameterToken TokenSqlParameter(object value, Type type = null)
         {
             return LTSQLTokenFactory.CreateSqlParameterToken(this.ParameterNameGenerator.Next(), value, type ?? value.GetType());

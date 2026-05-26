@@ -1,4 +1,5 @@
 using MNet.LTSQL.Attributes;
+using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
@@ -10,6 +11,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Common;
 using System.Diagnostics.Tracing;
 using System.Dynamic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Net.Http.Headers;
@@ -109,30 +111,19 @@ namespace MNet.LTSQL
             else
                 throw new Exception($"非字段或者属性无法求值：{member.Name}");
         }
-        private TableAliasMapping GetRootTableAliasMapping(string parameterName)
+        private TableDescriptor GetRootTableAliasMapping(string parameterName)
         {
             LTSQLContext context = this._context;
             LTSQLTranslateScope scope = this._scope;
-            TableAliasMapping ret = null;
+            TableDescriptor ret = null;
 
             while (true)
             {
-                bool flag = false;
-                
-                if (context.TableAliasMapping.Fake)
-                {
-                    //join select 的特殊处理，因为不存在单一的顶层参数
-                    ret = context.TableAliasMapping.GetProp(parameterName);
-                    flag = ret != null;
-                }
-                else
-                {
-                    flag = context.TableAliasMapping.PropName == parameterName;
-                    ret = context.TableAliasMapping;
-                }
-
+                ret = context.TableRefs?.GetTableRef(parameterName);
+                bool flag = ret != null; ;
                 if (flag)
                     break;
+
                 if (scope.Parent == null || scope.Parent.Context == null)
                     throw new Exception($"参数名({parameterName})无法找到对应的上下文作用域, 无法解析表命名");
 
@@ -145,20 +136,6 @@ namespace MNet.LTSQL
         private void UnUseSpecialToken()
         {
             this._bufferLayer.Pop();
-        }
-
-        private void UseProfixToken(Expression expr, string prefix, TableAliasMapping mapping)
-        {
-            PrefixPropToken token = new PrefixPropToken(prefix);
-            token.AliasMapping = mapping;
-            this.UseToken(expr, token);
-            //this._parameTokens.Push((expr, token));
-        }
-        private void UseGroupObjToken(Expression expr, LTSQLToken groupKey, LTSQLToken groupEle)
-        {
-            GroupObjToken gobj = new GroupObjToken(groupEle, groupKey);
-            //this._parameTokens.Push((expr, gobj));
-            this.UseToken(expr, gobj);
         }
         private void UseToken(Expression expr, LTSQLToken token)
         {
@@ -181,46 +158,15 @@ namespace MNet.LTSQL
         }
 
         //递归分配表命名并统一命名
-        private void AssignTableAlias()
+        private void AssignTableAlias(ref string root)
         {
             SqlQueryPart query = this._context.Root;
             if (query == null)
                 return;
 
             bool joinSelectFlag = query.Step == QueryStepSeq.Join; //join select: join之后没有后续操作，join的结果既是 select 结果
-            string root = "root_" + this._context.TableNameGenerator.Next();
-            TableAliasMapping mapping = new TableAliasMapping(root);
+            root = "root_" + this._context.TableAliasGenerator.Next();
             ExpressionModifier exprModifier = new ExpressionModifier();
-
-            if (query.From != null)
-            {
-                //涉及联表
-                if (query.From is JoinPart join)
-                {
-                    if (joinSelectFlag)
-                    {
-                        mapping.Fake = true; //虚假的结构
-                        if (query.SelectKey == null)
-                            query.SelectKey = join.JoinObject;
-
-                        this.AssignFromJoinAlias(mapping, query.From, null, null, joinSelectFlag);
-                    }
-                    else
-                    {
-                        ParameterExpression joinObj = Expression.Parameter(join.JoinObject.AsLambda().Body.Type, root);
-                        this.AssignFromJoinAlias(mapping, query.From, joinObj, joinObj, joinSelectFlag);
-                    }
-                }
-                //单表
-                else
-                {
-                    this.AssignFromJoinAlias(mapping, query.From, null, null, joinSelectFlag);
-                }
-            }
-            else
-            {
-                mapping.Alias = root;
-            }
 
             //统一根参数名(存在select 字段硬编码查询)
             if (query.Wheres.IsNotEmpty())
@@ -299,88 +245,8 @@ namespace MNet.LTSQL
                 query.SelectKey = exprModifier.ModifyParameter(lambda, _old, _new);
             }
 
-            this._context.TableAliasMapping = mapping;
         }
-        private void AssignFromJoinAlias(TableAliasMapping mapping, QueryPart from, Expression obj, ParameterExpression root, bool joinSelect)
-        {
-            if (from is JoinPart join)
-            {
-                ExpressionModifier modifier = new ExpressionModifier();
-                LambdaExpression joinObject = join.JoinObject.AsLambda();
-                string p1 = joinObject.TakeParamter(0).Name;
-                string p2 = joinObject.TakeParamter(1).Name;
-
-                //默认的inner join, 不带有 join on 条件
-                if (join.JoinKey1 == null)
-                {
-                    TableAliasMapping mapping1 = new TableAliasMapping(p1);
-                    this.AssignFromJoinAlias(mapping1, join.MainQuery, null, null, false);
-
-                    TableAliasMapping mapping2 = new TableAliasMapping(p2);
-                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, null, null, false);
-
-                    mapping.Props.Add(mapping1);
-                    mapping.Props.Add(mapping2);
-                }
-                //join select
-                else if (joinSelect)
-                {
-                    ParameterExpression pExpr1 = joinObject.TakeParamter(0);
-                    ParameterExpression pExpr2 = joinObject.TakeParamter(1);
-                    Expression joinKey1 = modifier.ModifyParameter(join.JoinKey1.AsLambda().Body, join.JoinKey1.AsLambda().TakeParamter(0), pExpr1);
-                    Expression joinKey2 = modifier.ModifyParameter(join.JoinKey2.AsLambda().Body, join.JoinKey2.AsLambda().TakeParamter(0), pExpr2);
-                    Expression joinOn = Expression.Lambda(Expression.Equal(joinKey1, joinKey2), pExpr1, pExpr2);
-
-                    //继续联表(也可能是单表了)
-                    TableAliasMapping m1 = new TableAliasMapping(p1);
-                    ParameterExpression mainJoinObj = Expression.Parameter(joinObject.TakeParamter(0).Type, p1);
-                    this.AssignFromJoinAlias(m1, join.MainQuery, mainJoinObj, mainJoinObj, false);
-
-                    //一定是单表了
-                    TableAliasMapping m2 = new TableAliasMapping(p2);
-                    this.AssignFromJoinAlias(m2, join.JoinQuery, null, null, false);
-
-                    join.JoinKeyOn = joinOn;
-                    mapping.Props.Add(m1);
-                    mapping.Props.Add(m2);
-                }
-                //正常的join
-                else
-                {
-                    //构造 join
-                    LambdaExpression getJoinKey1 = join.JoinKey1.AsLambda();
-                    LambdaExpression getJoinKey2 = join.JoinKey2.AsLambda();
-
-                    Expression accessJoinKey1 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(p1)[0]);
-                    Expression accessJoinKey2 = Expression.MakeMemberAccess(obj, obj.Type.GetMember(p2)[0]);
-
-
-                    Expression newJoinKey1 = modifier.ModifyParameter(getJoinKey1.Body, getJoinKey1.TakeParamter(0), accessJoinKey1);
-                    Expression newJoinKey2 = modifier.ModifyParameter(getJoinKey2.Body, getJoinKey2.TakeParamter(0), accessJoinKey2);
-                    Expression joinEqual = Expression.Lambda(Expression.Equal(newJoinKey1, newJoinKey2), root);
-
-                    //next
-                    TableAliasMapping mapping1 = new TableAliasMapping(p1);
-                    this.AssignFromJoinAlias(mapping1, join.MainQuery, accessJoinKey1, root, false);
-
-                    TableAliasMapping mapping2 = new TableAliasMapping(p2);
-                    this.AssignFromJoinAlias(mapping2, join.JoinQuery, accessJoinKey1, root, false);
-
-                    join.JoinKeyOn = joinEqual;
-                    mapping.Props.Add(mapping1);
-                    mapping.Props.Add(mapping2);
-                }
-            }
-            else
-            {
-                //
-                string alias = this._context.TableNameGenerator.Next();
-                from.Alias = alias;
-                mapping.Alias = alias;
-            }
-        }
-
-
+      
         // 调用外部翻译扩展
         private bool OnTranslateExpression(TranslateContext ctx)
         {
@@ -431,83 +297,86 @@ namespace MNet.LTSQL
             return this._context.Options.GetColumnName(memberCtx);
         }
 
-        private LTSQLToken TranslateLambda(LambdaExpression lambda)
+
+        private LTSQLToken TranslateLambda(LambdaExpression lambda, params LTSQLToken[] rets)
         {
-            this.Visit(lambda.Body);
-            return this.PopToken();
-        }
-        private LTSQLToken TranslateLambda(LambdaExpression lambda, bool group)
-        {
-            LTSQLToken token = null;
-            if (group)
+            if(rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
+                throw new Exception("替换参数个数大于实际的参数个数");
+
+            var paras = lambda.Parameters.ToArray();
+            int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
+            List<(Expression expr, LTSQLToken ret)> list = new List<(Expression expr, LTSQLToken ret)>();
+            for(int i = 0; i < len; i++)
             {
-                //分组模式
-                this.UseGroupObjToken(lambda.Parameters[0], this._context.GroupKey, this._context.GroupElement);
-                try
+                list.Add((paras[i], rets[i]));
+            }
+
+            return this.Translate(lambda.Body, list.ToArray());
+        }
+        private LTSQLToken Translate(Expression exprs, params (Expression expr, LTSQLToken ret)[] list)
+        {
+            if(list.Length > 0)
+            {
+                foreach ((Expression expr, LTSQLToken ret) in list)
                 {
-                    token = this.TranslateLambda(lambda);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-                finally
-                {
-                    this.UnUseSpecialToken();
+                    this.UseToken(expr, ret);
                 }
             }
-            else
+
+            try
             {
-                //正常参数模式
-                var list = lambda.Parameters.Select(p =>
+                this.Visit(exprs);
+                return this.PopToken();
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            finally
+            {
+                if (list.Length > 0)
                 {
-                    TableAliasMapping pm = this.GetRootTableAliasMapping(p.Name);
-                    if (pm == null)
-                        throw new Exception($"无法解析参数名{nameof(p.Name)}");
-                    return (p, pm);
-                }).ToList();
-
-
-                foreach (var item in list)
-                {
-                    this.UseProfixToken(item.p, item.p.Name, item.pm);
-                }
-                try
-                {
-                    token = this.TranslateLambda(lambda);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-                finally
-                {
-                    foreach (var item in list)
+                    foreach ((Expression expr, LTSQLToken ret) in list)
                     {
                         this.UnUseSpecialToken();
                     }
                 }
             }
-
-            return token;
         }
+        
 
-        private LTSQLToken TranslateFrom(QueryPart from, ref List<FieldInfoToken> fields)
+        private LTSQLToken TranslateFrom(QueryPart from, string root, ref TableRefs refs, out Expression fromObj)
         {
-            var src = this.TranslateQueryPart(from, ref fields);
-            return src;
+            return TranslateQueryPart(from, root, ref refs, out fromObj);
         }
-        private LTSQLToken TranslateQueryPart(QueryPart from, ref List<FieldInfoToken> fields)
+        private LTSQLToken TranslateQueryPart(QueryPart from, string parameterName, ref TableRefs refs, out Expression fromObj)
         {
             LTSQLToken src = null;
+            string tableAlias = null;
+            fromObj = null;
+
             if (from is JoinPart join)
             {
-                LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, ref fields);
-                LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, ref fields);
+                fromObj = join.JoinObject;
 
-                if (join.JoinKeyOn != null)
+                LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, join.JoinObject.AsLambda().TakeParamter(0).Name, ref refs, out _);
+                LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, join.JoinObject.AsLambda().TakeParamter(1).Name, ref refs, out _);
+
+                //透明表
+                TableDescriptor descriptor = new TableDescriptor(parameterName, true);
+                descriptor.Alias = parameterName;
+                descriptor.AddField(new FieldDescriptor(join.JoinObject.AsLambda().TakeParamter(0).Name, query1, join.MainQuery.MappingType));
+                descriptor.AddField(new FieldDescriptor(join.JoinObject.AsLambda().TakeParamter(1).Name, query1, join.JoinQuery.MappingType));
+                refs.AddTableRef(parameterName, descriptor);
+
+                //连接查询
+                //合并查询
+                if (join.JoinKey1 != null)
                 {
-                    LTSQLToken joinKeys = this.TranslateLambda(join.JoinKeyOn.AsLambda());
+                    LambdaExpression expr1 = join.JoinKey1.AsLambda();
+                    LambdaExpression expr2 = join.JoinKey2.AsLambda();
+                    LambdaExpression expr3 = Expression.Lambda(Expression.Equal(expr1.Body, expr2.Body), expr1.TakeParamter(0), expr2.TakeParamter(0));
+                    LTSQLToken joinKeys = this.TranslateLambda(expr3, new PrefixPropToken("", refs));
                     JoinToken joinToken = new JoinToken(join.JoinType, query1, query2, joinKeys);
                     return joinToken;
                 }
@@ -522,30 +391,42 @@ namespace MNet.LTSQL
             }
             else if (from is TablePart table)
             {
-                string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, table.Alias);
-                var qry = LTSQLTokenFactory.CreateTableObjectToken(tableName, table.MappingType);
+                tableAlias = this._context.TableAliasGenerator.Next();
+                string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
+                
+                LTSQLToken qry = LTSQLTokenFactory.CreateTableObjectToken(tableName, table.MappingType);
+                TableDescriptor descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
+                descriptor.Alias = tableAlias;
 
                 //解析属性
                 foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    if(prop.IsDefined(typeof(NonFiledAttribute)))
+                    if (prop.IsDefined(typeof(NonFiledAttribute)))
                         continue;
 
                     string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), fieldName, prop.PropertyType);
-                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.PropertyType));
+                    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, table.MappingType), fieldName, prop.PropertyType
+                        );
+
+                    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
                 }
                 //解析字段
                 foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
                 {
-                    if(prop.IsDefined(typeof(NonFiledAttribute)))
+                    if (prop.IsDefined(typeof(NonFiledAttribute)))
                         continue;
 
                     string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                    var fieldAccess = LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(table.Alias, table.MappingType), fieldName, prop.FieldType);
-                    fields.Add(new FieldInfoToken(fieldAccess, prop.Name, prop.FieldType));
+                    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, table.MappingType), fieldName, prop.FieldType
+                        );
+
+                    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
                 }
+
                 src = qry;
+                refs.AddTableRef(parameterName, descriptor);
             }
             else
             {
@@ -553,53 +434,58 @@ namespace MNet.LTSQL
                 if (translater == null)
                     throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
 
-                var qry = src = translater.Translate(from, this._scope.NewScope());
+                LTSQLToken qry = src = translater.Translate(from, this._scope.NewScope());
                 //解析字段
                 if (qry is ISelectable select)
                 {
-                    foreach (FieldInfoToken field in select.Fields)
+                    tableAlias = this._context.TableAliasGenerator.Next();
+                    TableDescriptor descriptor = new TableDescriptor("$temp", tableAlias, select.MappingType);
+                    descriptor.Alias = tableAlias;
+                    foreach ((string key, LTSQLToken val) in select)
                     {
-                        string fieldAlias = field.Field ?? "transparentField";
-                        fields.Add(new FieldInfoToken(
-                                LTSQLTokenFactory.CreateAccessToken(LTSQLTokenFactory.CreateTableObjectToken(from.Alias, from.MappingType), fieldAlias, field.AccessType),
+                        string fieldAlias = key ?? "field";
+                        LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                                LTSQLTokenFactory.CreateTableObjectToken(tableAlias, select.MappingType),
                                 fieldAlias,
-                                field.AccessType
-                            ));
+                                select.GetValueType(key)
+                        );
+
+                        descriptor.AddField(new FieldDescriptor(fieldAlias, fieldAccess, select.GetValueType(key)));
                     }
+                    refs.AddTableRef(parameterName, descriptor);
                 }
 
                 qry = LTSQLTokenFactory.CreatePriorityCalcToken(qry);
                 src = qry;
             }
 
-            return LTSQLTokenFactory.CreateAliasToken(src, from.Alias);
+            return LTSQLTokenFactory.CreateAliasToken(src, tableAlias);
         }
 
-        private LTSQLToken TranslateWhere(LambdaExpression wheres)
+        private LTSQLToken TranslateWhere(LambdaExpression wheres, LTSQLToken parameter)
         {
             if (wheres == null)
                 return null;
 
-            LTSQLToken token = this.TranslateLambda(wheres, false);
+            LTSQLToken token = this.TranslateLambda(wheres, parameter);
 
             return token;
         }
-        private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle, out LTSQLToken groupKeyToken, out LTSQLToken groupEleToken)
+        private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle, LTSQLToken parameters, out GroupObjToken groupToken)
         {
-            groupKeyToken = null;
-            groupEleToken = null;
+            groupToken = null;
+            LTSQLToken groupKeyToken = null;
+            LTSQLToken groupEleToken = null;
             List<LTSQLToken> groupKeyTokens = new List<LTSQLToken>();
 
             //分组元素翻译
             if (groupEle != null)
-            {
-                groupEleToken = this.TranslateLambda(groupEle);
-            }
+                groupEleToken = this.TranslateLambda(groupEle, parameters);
 
             //分组依据翻译
             if (groupKey != null)
             {
-                groupKeyToken = this.TranslateLambda(groupKey);
+                groupKeyToken = this.TranslateLambda(groupKey, parameters);
 
                 if (groupKeyToken is TupleToken tuple)
                     groupKeyTokens.AddRange(tuple.Props.ToArray());
@@ -607,20 +493,20 @@ namespace MNet.LTSQL
                     groupKeyTokens.Add(groupKeyToken);
             }
 
+            groupToken = new GroupObjToken(groupEleToken, groupKeyToken);
             if (groupKeyTokens.Count <= 0)
                 return null; //不是直接group by操作，可能是直接做单一的聚合查询，如 select count(1) from xxx
 
             return LTSQLTokenFactory.CreateListToken(groupKeyTokens.ToArray());
         }
-        private LTSQLToken TranslateHaving(LambdaExpression havings)
+        private LTSQLToken TranslateHaving(LambdaExpression havings, LTSQLToken parameters)
         {
             if (havings == null)
                 return null;
 
-            ParameterExpression parameter = havings.Parameters[0];
             try
             {
-                LTSQLToken token = this.TranslateLambda(havings, true);
+                LTSQLToken token = this.TranslateLambda(havings, parameters);
                 return token;
             }
             catch (Exception ex)
@@ -629,7 +515,7 @@ namespace MNet.LTSQL
                 throw;
             }
         }
-        private LTSQLToken TranslateOrder(List<OrderKeyPart> orders)
+        private LTSQLToken TranslateOrder(List<OrderKeyPart> orders, LTSQLToken parameters)
         {
             if (orders.IsEmpty())
                 return null;
@@ -639,7 +525,7 @@ namespace MNet.LTSQL
             foreach (OrderKeyPart getKey in orders)
             {
                 LambdaExpression lambda = getKey.Key.AsLambda();
-                LTSQLToken token = this.TranslateLambda(lambda, group);
+                LTSQLToken token = this.TranslateLambda(lambda, parameters);
                 orderKeyTokens.Add(
                     SequenceToken.Create(
                         token,
@@ -651,36 +537,38 @@ namespace MNet.LTSQL
 
             return LTSQLTokenFactory.CreateListToken(orderKeyTokens.ToArray());
         }
-        private LTSQLToken TranslateSelect(LambdaExpression selectKey, out List<FieldInfoToken> fieldInfos)
+        private LTSQLToken TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, ref TableDescriptor descriptor)
         {
             bool group = this._context.Root.GroupFlag;
-            fieldInfos = new List<FieldInfoToken>();
-            ParameterExpression parameter = selectKey.Parameters[0];
 
             try
             {
-                LTSQLToken token = this.TranslateLambda(selectKey, group);
+                LTSQLToken[] parameterObjs = new LTSQLToken[selectKey.Parameters.Count];
+                Array.Fill(parameterObjs, parameters);
+
+                TupleToken selectNew = new TupleToken(selectKey.ReturnType);
+                LTSQLToken token = this.TranslateLambda(selectKey, parameterObjs);
                 List<LTSQLToken> fields = new List<LTSQLToken>();
                 if (token is TupleToken tuple)
                 {
-                    var select = tuple.Items.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item1, p.Item2));
+                    fields.AddRange(tuple.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item2, p.Item1)));
 
-                    fields.AddRange(select);
-                    fieldInfos.AddRange(
-                        tuple.Items.Select(p => new FieldInfoToken(p.Item1, p.Item2, (p.Item1 as ValueToken).ValueType))
-                    );
+                    foreach ((string key, LTSQLToken val) in tuple)
+                    {
+                        descriptor.AddField(new FieldDescriptor(key, val, tuple.GetValueType(key)));
+                    }
                 }
                 else if (token is ObjectAccessToken access)
                 {
                     fields.Add(LTSQLTokenFactory.CreateAliasToken(access, access.Prop));
-                    fieldInfos.Add(new FieldInfoToken(access, access.Prop, access.ValueType));
+                    descriptor.AddField(new FieldDescriptor(access.Prop, access, access.ValueType));
                 }
                 else
                 {
-                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, "transparentField"));
-                    fieldInfos.Add(new FieldInfoToken(token, "transparentField", (token as ValueToken).ValueType));
+                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, "field"));
+                    descriptor.AddField(new FieldDescriptor("field", token, selectKey.ReturnType));
                 }
-
+                
                 return LTSQLTokenFactory.CreateListToken(fields.ToArray());
             }
             catch (Exception ex)
@@ -692,23 +580,30 @@ namespace MNet.LTSQL
         //开始翻译
         private SqlQueryToken TranslateCore()
         {
-            //分配表名
-            this.AssignTableAlias();
+            string root = null;
+            this.AssignTableAlias(ref root);
 
+            TableRefs refs = new TableRefs();
             SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
-            List<FieldInfoToken> fields = new List<FieldInfoToken>();
+            LTSQLToken parameterObj = null;
+            Expression fromObj = null;
+
+            sqlToken.Table = new TableDescriptor("$self", null, query.MappingType);
+            this._context.TableRefs = refs;
 
             //from
             if (query.From != null)
             {
-                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, ref fields));
+                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, ref refs, out fromObj));    
             }
+
+            parameterObj = new PrefixPropToken("", refs);
 
             //where
             if (query.Wheres.IsNotEmpty())
             {
-                LTSQLToken condition = this.TranslateWhere(query.Wheres[0].AsLambda());
+                LTSQLToken condition = this.TranslateWhere(query.Wheres[0].AsLambda(), parameterObj);
                 sqlToken.Where = LTSQLTokenFactory.CreateClauseToken("WHERE", condition);
             }
 
@@ -718,38 +613,42 @@ namespace MNet.LTSQL
                 LambdaExpression lambda1 = query.GroupKey.AsLambda();
                 LambdaExpression lambda2 = query.GroupElement.AsLambda();
 
-                LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, out LTSQLToken groupKey, out LTSQLToken groupEle);
+                LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, parameterObj, out GroupObjToken groupObj);
                 if (groupKeys != null)
                     sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
 
-                this._context.GroupKey = groupKey;
-                this._context.GroupElement = groupEle;
+                parameterObj = groupObj;
             }
 
             //having
             if (query.Havings.IsNotEmpty())
             {
-                LTSQLToken condition = this.TranslateHaving(query.Havings[0].AsLambda());
+                LTSQLToken condition = this.TranslateHaving(query.Havings[0].AsLambda(), parameterObj);
                 sqlToken.Having = LTSQLTokenFactory.CreateClauseToken("HAVING", condition);
             }
 
             //order by
             if (query.Orders.IsNotEmpty())
             {
-                LTSQLToken orderKeys = this.TranslateOrder(query.Orders);
+                LTSQLToken orderKeys = this.TranslateOrder(query.Orders, parameterObj);
                 sqlToken.Order = LTSQLTokenFactory.CreateClauseToken("ORDER BY", orderKeys);
             }
 
             //select
             LTSQLToken selectFieldsToken = null;
-            if (query.SelectKey != null)
+            if (query.SelectKey != null || fromObj != null)
             {
-                selectFieldsToken = this.TranslateSelect(query.SelectKey.AsLambda(), out fields);
+                TableDescriptor descriptor = sqlToken.Table;
+                Expression selectExpr = query.SelectKey ?? fromObj;
+                selectFieldsToken = this.TranslateSelect(selectExpr.AsLambda(), parameterObj, ref descriptor);
+                sqlToken.Table = descriptor;
             }
+
             else
             {
-                var selectFields = fields.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Access, p.Field));
-                selectFieldsToken = LTSQLTokenFactory.CreateListToken(selectFields.ToArray());
+
+                sqlToken.Table = refs.BuildNewMeger(sqlToken.Table.Alias);
+                selectFieldsToken = LTSQLTokenFactory.CreateListToken(sqlToken.Table.Select(p => p.value).ToArray());
             }
 
             //distict
@@ -777,7 +676,6 @@ namespace MNet.LTSQL
             sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT",
                 new[] { distinckClause, topLimitClause, selectFieldsToken }.Where(p => p != null).ToArray()
             );
-            sqlToken.DefaultFields = fields;
             sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
 
 
@@ -845,61 +743,38 @@ namespace MNet.LTSQL
         {
             LTSQLToken token = this.PopParameterToken(node);
             PrefixPropToken prefix = token as PrefixPropToken;
+            if (prefix != null)
+            {
+                TableDescriptor tableDescriptor = prefix.TableRefs.GetTableRef(node.Name);
+                if (tableDescriptor == null)
+                    throw new Exception($"无法解析参数节点：{node}");
 
-            if (token == null)
-            {
-                //确定参数范围
-                TableAliasMapping mapping = this.GetRootTableAliasMapping(node.Name);
-                if (mapping.Alias == null)
-                {
-                    //忽略掉join 过程中的 属性前缀链
-                    this.PushToken(new PrefixPropToken(node.Name)
-                    {
-                        ValueType = node.Type,
-                        AliasMapping = mapping
-                    });
-                }
+                if (tableDescriptor.IsHide)
+                    this.PushToken(new PrefixPropToken(node.Name, prefix.TableRefs));
                 else
-                {
-                    //外部转换优先
-                    if (!this.OnTranslateExpression(node, node.Type))
-                    {
-                        //默认转换
-                        string tableName = mapping.Alias;
-                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
-                    }
-                }
-            }
-            else if (prefix != null)
-            {
-                if (prefix.AliasMapping.Alias == null)
-                {
-                    //忽略掉join 过程中的 属性前缀链
-                    this.PushToken(prefix);
-                }
-                else
-                {
-                    //外部转换优先
-                    if (!this.OnTranslateExpression(node, node.Type))
-                    {
-                        string tableName = prefix.AliasMapping.Alias;
-                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableName, node.Type));
-                    }
-                }
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, node.Type));
             }
             else if (token != null)
             {
                 //外部转换优先
                 if (!this.OnTranslateExpression(node, node.Type))
-                {
                     this.PushToken(token);
-                }
             }
             else
             {
                 //外部转换优先
                 if (!this.OnTranslateExpression(node, node.Type))
-                    throw new Exception($"无法解析参数节点：{node}");
+                {
+                    //确定参数范围
+                    TableDescriptor tableDescriptor = this.GetRootTableAliasMapping(node.Name);
+                    if (tableDescriptor == null)
+                        throw new Exception($"无法解析参数节点：{node}");
+
+                    if (tableDescriptor.IsHide)
+                        this.PushToken(new PrefixPropToken(node.Name, this._context.TableRefs));
+                    else
+                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, node.Type));
+                }
             }
 
             return base.VisitParameter(node);
@@ -946,11 +821,14 @@ namespace MNet.LTSQL
             //表名转换
             if (objToken is PrefixPropToken prefix)
             {
-                TableAliasMapping mapping = prefix.AliasMapping.GetProp(memberName);
+                TableDescriptor descriptor = prefix.TableRefs.GetTableRef(memberName);
+                if (descriptor == null)
+                    throw new Exception($"无法解析成员：{memberName}. ([{node}])");
+
                 //忽略掉 join 过程中的 属性前缀链
-                if (string.IsNullOrEmpty(mapping.Alias))
+                if (descriptor.IsHide)
                 {
-                    this.PushToken(new PrefixPropToken($"{prefix.ObjPrefix}.{memberName}") { ValueType = node.Type, AliasMapping = mapping });
+                    this.PushToken(new PrefixPropToken($"{prefix.ObjPrefix}.{memberName}", prefix.TableRefs));
                 }
                 // join 过程中的 属性前缀链 转化成表名
                 else
@@ -959,7 +837,7 @@ namespace MNet.LTSQL
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(mapping.Alias, node.Type));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias, node.Type));
                 }
             }
             //字段访问
@@ -997,7 +875,7 @@ namespace MNet.LTSQL
                     else if (objToken is TupleToken tuple)
                     {
                         //string fieldName = this.OnGetColumnName(tuple.ValueType, null, node.Member);
-                        LTSQLToken prop = tuple.GetProp(memberName);
+                        LTSQLToken prop = tuple.GetValue(memberName);
                         if (prop == null)
                             throw new Exception($"没有找到对应属性的解析结果, 表达式解析失败: {node}");
 
@@ -1093,9 +971,8 @@ namespace MNet.LTSQL
             if (token is GroupObjToken groupToken)
             {
                 //表示开始对分组对象的聚合函数作翻译，需要解析lambda表达式作为聚合函数的参数
-                this.UseToken(node.Parameters[0], this._context.GroupElement);
-                this.Visit(node.Body);
-                this.UnUseSpecialToken();
+                LTSQLToken ret = this.TranslateLambda(node.AsLambda(), groupToken.Element);
+                this.PushToken(ret);
                 return node;
             }
 
@@ -1116,9 +993,9 @@ namespace MNet.LTSQL
             {
                 for (int i = 0; i < node.Members.Count; i++)
                 {
-                    //string fieldName = this.OnGetColumnName(node.Type, null, node.Members[i]);
-                    tuple.Add(paras[i], node.Members[i].Name);
-                    //Console.WriteLine($"Prop: {node.Members[i].Name}");
+                    PropertyInfo prop = node.Members[i] as PropertyInfo;
+                    FieldInfo field = node.Members[i] as FieldInfo;
+                    tuple.Add(node.Members[i].Name, paras[i], prop?.PropertyType ?? field.FieldType);
                 }
             }
 
@@ -1140,10 +1017,10 @@ namespace MNet.LTSQL
                 tuple.ValueType = node.Type;
                 for (int i = 0; i < node.Bindings.Count; i++)
                 {
-                    tuple.Add(bindProps[i], node.Bindings[i].Member.Name);
-                    //Console.WriteLine($"bindProp: {node.Bindings[i].Member.Name}");
+                    PropertyInfo prop = node.Bindings[i].Member as PropertyInfo;
+                    FieldInfo field = node.Bindings[i].Member as FieldInfo;
+                    tuple.Add(node.Bindings[i].Member.Name, bindProps[i], prop?.PropertyType ?? field.FieldType);
                 }
-
                 this.PushToken(tuple);
             }
             return expr;

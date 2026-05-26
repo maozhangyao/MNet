@@ -276,7 +276,7 @@ namespace MNet.LTSQL
                                 //string propName = member.Name;
                                 object propValue = memberProp?.GetValue(para) ?? memberField?.GetValue(para);
                                 SqlParameterToken parameter = ctx.TokenSqlParameter(propValue, memberProp?.PropertyType ?? memberField?.FieldType);
-                                tupleItem.Add(parameter, member.Name);
+                                tupleItem.Add(member.Name, parameter, parameter.ValueType);
                             }
                             tokens.Add(tupleItem);
                         }
@@ -337,7 +337,8 @@ namespace MNet.LTSQL
                     {
                         //调用 FirstOrDefault 之后需要调整参数
                         MethodInfo method = ctx.Member as MethodInfo;
-                        method.Invoke(null, new[] { query }); //直接调用静态方法：LTSQLQueryableExtensions.FirstOrDefault, 其内部会做相关处理
+                        //直接调用静态方法：LTSQLQueryableExtensions.FirstOrDefault, 其内部会做相关处理
+                        method.Invoke(null, new[] { query });
                         ctx.ResultToken = LTSQLTokenFactory.CreateSqlParameterToken(p.ParameterName, query, method.ReturnType);
                     }
                 }

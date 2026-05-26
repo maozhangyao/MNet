@@ -362,7 +362,6 @@ namespace MNet.LTSQL
         }
         public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
         {
-            //return WithTake(src, take) as ILTSQLObjectQueryable<T>;
             SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
             query = query.SetNextStep(QueryStepSeq.Page);
             query.Take = take;

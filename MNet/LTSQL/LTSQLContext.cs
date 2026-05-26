@@ -2,7 +2,8 @@ using MNet.LTSQL.SqlTokens;
 using System.Linq;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlQueryStructs;
-
+using System.Collections;
+using MNet.LTSQL.Objects;
 namespace MNet.LTSQL
 {
     public class LTSQLContext
@@ -10,60 +11,24 @@ namespace MNet.LTSQL
         //选项
         public LTSQLOptions Options { get; set; }
         //表名生成器
-        public NameGenerator TableNameGenerator { get; set; }
+        public NameGenerator TableAliasGenerator { get; set; }
         //sql参数名生成器
         public NameGenerator ParameterNameGenerator { get; set; }
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
-        public TableAliasMapping TableAliasMapping { get; set; }
+
+        public TableRefs TableRefs { get; set; }
         public SqlQueryPart Root { get; set; }
-
-
-        public LTSQLToken GroupKey { get; set; }
-        public LTSQLToken GroupElement { get; set; }
 
         public static LTSQLContext Create(LTSQLOptions options)
         {
             return new LTSQLContext()
             {
                 Options = options,
-                TableNameGenerator = new NameGenerator(i => $"t{i}"),
+                TableAliasGenerator = new NameGenerator(i => $"t{i}"),
                 ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
                 LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)
             };
-        }
-    }
-
-    /// <summary>
-    /// 表命名映射
-    /// </summary>
-    public class TableAliasMapping
-    {
-        public TableAliasMapping() 
-        { }
-        public TableAliasMapping(string prop)
-        {
-            this.PropName = prop;
-            this.Props = new List<TableAliasMapping>(2);
-        }
-        public TableAliasMapping(string alias, string prop)
-        {
-            this.Alias = alias;
-            this.PropName = prop;
-        }
-
-        //表示虚假的结构, 实际并不存在该表，用于整合两个联表对象，
-        //比如在join 条件中，可能会涉及到两个表，但是没有统一成一个匿名对象
-        public bool Fake { get; set; }
-        //表命名
-        public string Alias { get; set; }
-        //属性名
-        public string PropName { get; set; }
-        public List<TableAliasMapping> Props { get; set; }
-
-        public TableAliasMapping GetProp(string prop)
-        {
-            return this.Props?.FirstOrDefault(p => p.PropName == prop);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
@@ -29,16 +30,25 @@ namespace MNet.LTSQL
                 LTSQLToken ret = translater.Translate(sub, scope.NewScope())?.UnPriorityIfSubQuery();
                 if (sub is QuerySetPart)
                 {
-                    //如果子查询时集合操作，则需要添加优先级计算(sqllite好像不支持集合操作时加优先级运算，有点坑)
+                    //如果子查询是集合操作，则需要添加优先级计算(sqllite好像不支持集合操作时加优先级运算，有点坑)
                     ret = LTSQLTokenFactory.CreatePriorityCalcToken(ret);
                 }
                 rts.Add(ret);
             }
 
             ISelectable select = rts[0] as ISelectable;
+            if (select == null)
+                throw new Exception($"不支持的查询类型：{rts[0].GetType().Name}，非{nameof(ISelectable)}接口");
+
+            TableDescriptor descriptor = new TableDescriptor("$temp");
+            foreach (var field in select.Table.Fields)
+            {
+                descriptor.AddField(new FieldDescriptor(field.Field, field.Value, field.FieldValueType));
+            }
+
             return new DataSetToken(query.MappingType, rts, set.SetType, set.Distinct)
             {
-                Fields = select?.Fields
+                Table = descriptor
             };
         }
     }

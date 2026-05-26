@@ -1,4 +1,5 @@
-﻿using System;
+using MNet.LTSQL.Objects;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -13,8 +14,15 @@ namespace MNet.LTSQL.SqlTokens
         {
             this.ObjPrefix = prefix;
         }
+        public PrefixPropToken(string prefix, TableRefs refs)
+        {
+            this.TableRefs = refs;
+            this.ObjPrefix = prefix;
+        }
+
 
         public string ObjPrefix { get; set; }
-        public TableAliasMapping AliasMapping { get; set; }
+
+        public TableRefs TableRefs { get; set; }
     }
 }

@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using MNet.LTSQL.SqlTokenExtends;
 using System.Collections.Generic;
+using System.Collections;
+using MNet.LTSQL.Objects;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -17,6 +19,7 @@ namespace MNet.LTSQL.SqlTokens
             this.Distinct = distinct;
         }
 
+
         //数组形式表示，而不是使用树结构表示节点，是为了避免递归时栈溢出
         //因为有可能有大量的 单 select 硬编码语句如：
         // select 1 union select 2 union select 3 .... union select 1000000
@@ -24,10 +27,23 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken[] Querys { get; }
         public DbSetType SetType { get; }
         public bool Distinct { get; }
+        public Type MappingType => this.ValueType;
+        public TableDescriptor Table { get; set; }
+        public LTSQLToken this[string key] => this.Table?.GetField(key)?.Value;
 
-        Type ISelectable.MappingType => this.ValueType;
-        public IEnumerable<FieldInfoToken> Fields { get; set; }
 
+        public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
+        {
+            return this.Table.Fields.Select(p => (p.Field, p.Value)).GetEnumerator();
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+        public Type GetValueType(string key)
+        {
+            return this.Table?.GetField(key)?.FieldValueType;
+        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -42,7 +58,7 @@ namespace MNet.LTSQL.SqlTokens
             }
 
             return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct);
-        }
+        } 
     }
 }
 

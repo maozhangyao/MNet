@@ -21,7 +21,7 @@ namespace MNet.LTSQL
         {
             var ctx = new LTSQLContext() { 
                     Options = this.Context?.Options,
-                    TableNameGenerator = this.Context?.TableNameGenerator,
+                    TableAliasGenerator = this.Context?.TableAliasGenerator,
                     ParameterNameGenerator = this.Context?.ParameterNameGenerator,
                     LTSQLTranslater = this.Context?.LTSQLTranslater,
                 };

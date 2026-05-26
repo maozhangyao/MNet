@@ -103,7 +103,6 @@ namespace LTSQLXUnitTest
                         join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
                         join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
                         where c.Course.Contains("数学")
-                        // TODO 暂不支持 三元表达式
                         group new { p, c } by new { c.Course, AgeRange = p.Age > 30 ? "Senior" : "Junior" } into g
                         where g.Count() >= 1
                         orderby g.Key.Course, g.Count() descending
@@ -420,7 +419,7 @@ namespace LTSQLXUnitTest
                     p.Age,
                     AgeCategory = p.Age < 25 ? "Young" : (p.Age < 35 ? "Middle" : "Old"), // TODO 暂时不支持 三元表达式
                     // DisplayName = p.SelfName + "(" + p.Age.ToString() + ")",  // 不支持直接对字符串做 '+'操作，因为没这个sql标准，需要替换成 string.Concat 函数，如下更正：
-                    DisplayName = string.Concat(p.SelfName, string.Concat("(", string.Concat(p.Age, ")"))),  // 注意：string.Concat 函数不支持两个以上的参数，所以需要嵌套调用，因为不同的数据参数个数支持不一定一样
+                    DisplayName = string.Concat(p.SelfName, string.Concat("(", string.Concat(p.Age, ")"))),  // 注意：string.Concat 函数不支持两个以上的参数，所以需要嵌套调用，因为不同的数据库参数个数支持不一定一样
                     IsYoung = p.Age < 30
                 });
 
@@ -436,8 +435,8 @@ namespace LTSQLXUnitTest
             dynamic list = connection.Query(sql).ToList();
             Assert.NotNull(list);
 
-            bool lastIsYoung = true;
-            int lastAge = 0;
+            long lastIsYoung = 1;
+            long lastAge = 0;
             string lastName = "";
 
             foreach (var item in list)
@@ -446,14 +445,14 @@ namespace LTSQLXUnitTest
                 string expectedDisplayName = $"{item.SelfName}({item.Age})";
                 bool expectedIsYoung = item.Age < 30;
 
-                Assert.Equal(expectedCategory, item.AgeCategory);
-                Assert.Equal(expectedDisplayName, item.DisplayName);
-                Assert.Equal(expectedIsYoung, item.IsYoung);
+                Assert.Equal<string>(expectedCategory, item.AgeCategory);
+                Assert.Equal<string>(expectedDisplayName, item.DisplayName);
+                Assert.Equal<bool>(expectedIsYoung, (item.IsYoung == 0 ? false : true));
 
                 // 验证排序
                 if (item.IsYoung != lastIsYoung)
                 {
-                    Assert.False(item.IsYoung); // IsYoung 应该从 true 到 false
+                    Assert.False(item.IsYoung == 1); // IsYoung 应该从 true 到 false
                 }
                 else if (item.Age != lastAge)
                 {

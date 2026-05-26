@@ -40,7 +40,8 @@ namespace LTSQLXUnitTest
             Assert.NotNull(list);
             Assert.True(list.Count > 0, sql);
 
-            foreach(CPersionT item in list)
+            this._outp.WriteLine("");
+            foreach (CPersionT item in list)
             {
                 this._outp.WriteLine($"{item.Id} - {item.SelfName}");
                 Assert.NotNull(item.SelfName);
@@ -60,6 +61,8 @@ namespace LTSQLXUnitTest
                 .Where(p => p.Id == 0)
                 .ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
 
+            this._outp.WriteLine(sql);
+
             Assert.NotNull(sql);
             List<CPersionT> list = connection.Query<CPersionT>(sql).ToList();
             Assert.NotNull(list);
@@ -78,6 +81,8 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .OrderByDescending(p => p.Id)
                 .ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+
+            this._outp.WriteLine(sql);
 
             Assert.NotNull(sql);
             List<CPersionT> list = connection.Query<CPersionT>(sql).ToList();
