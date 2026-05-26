@@ -51,7 +51,10 @@ namespace MNet.LTSQL.SqlTokens
         public override IPriorable SetPriority(bool isPriority)
         {
             return new DataSetToken(this.ValueType, this.Querys, this.SetType, this.Distinct)
-            { IsPriority = isPriority };
+            {
+                IsPriority = isPriority,
+                Table = this.Table
+            };
         }
 
 
@@ -67,7 +70,10 @@ namespace MNet.LTSQL.SqlTokens
                 arr[i] = visitor.Visit(this.Querys[i]);
             }
 
-            return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct, this.IsPriority);
+            return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct, this.IsPriority)
+            {
+                Table = this.Table
+            };
         }
     }
 }
