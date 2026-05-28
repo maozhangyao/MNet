@@ -65,18 +65,10 @@ namespace MNet.LTSQL.SqlQueryStructs
 
         public override QueryPart CopyNew()
         {
-            JoinPart _new = new JoinPart();
-            _new.Alias = this.Alias;
-            _new.MappingType = this.MappingType;
-            _new.JoinType = this.JoinType;
-            _new.JoinQuery = this.JoinQuery;
-            _new.JoinKey1 = this.JoinKey1;
-            _new.JoinKey2 = this.JoinKey2;
-            _new.JoinKeyOn = this.JoinKeyOn;
-            _new.JoinObject = this.JoinObject;
-
+            JoinPart _new = base.CopyNew() as JoinPart;
             _new.MainQuery = this.MainQuery?.CopyNew();
             _new.JoinQuery = this.JoinQuery?.CopyNew();
+
             return _new;
         }
     }
@@ -109,25 +101,10 @@ namespace MNet.LTSQL.SqlQueryStructs
         
         public override QueryPart CopyNew()
         {
-            SqlQueryPart part = new SqlQueryPart();
-            part.Step = this.Step;
-            part.Alias = this.Alias;
-            part.MappingType = this.MappingType;
-            part.Skip = this.Skip;
-            part.Take = this.Take;
-            part.Distinct = this.Distinct;
-            part.GroupFlag = this.GroupFlag;
-
-            part.Wheres = this.Wheres?.ToList();
-            part.GroupKey = this.GroupKey;
-            part.GroupElement = this.GroupElement;
-
-            part.Havings = this.Havings?.ToList();
-            part.Orders = this.Orders?.ToList();
-            part.SelectKey = this.SelectKey;
-
+            SqlQueryPart part = base.CopyNew() as SqlQueryPart;
             part.From = this.From?.CopyNew();
             return part;
         }
     }
+
 }

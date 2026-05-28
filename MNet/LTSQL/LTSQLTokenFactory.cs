@@ -1,3 +1,4 @@
+using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
@@ -51,16 +52,12 @@ namespace MNet.LTSQL
         /// <param name="objName">在数据库中表示的对象名称</param>
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
         /// <returns></returns>
-        public static LTSQLToken CreateTableObjectToken(string objName, Type objType)
+        public static TableObjectToken CreateTableObjectToken(string objName, TableDescriptor descriptor, Type objType)
         {
             if (objName == null)
                 throw new ArgumentNullException(nameof(objName));
 
-            return CreateObjectToken(
-                    SqlObjectType.Table
-                    , objName
-                    , objType
-                );
+            return new TableObjectToken(objName, descriptor, objType);
         }
         /// <summary>
         /// 构建一个对象名称，如：表名
@@ -68,8 +65,11 @@ namespace MNet.LTSQL
         /// <param name="obj">在数据库中表示的对象名称</param>
         /// <param name="objType">可空(如果后续支持存储过程，或者函数对象名称时)</param>
         /// <returns></returns>
-        public static LTSQLToken CreateObjectToken(SqlObjectType objType, string obj, Type typeOfObj)
+        public static ObjectToken CreateObjectToken(SqlObjectType objType, string obj, Type typeOfObj)
         {
+            if (objType == SqlObjectType.Table)
+                return new TableObjectToken(obj, null, typeOfObj);
+
             return new ObjectToken(
                     objType
                     , obj

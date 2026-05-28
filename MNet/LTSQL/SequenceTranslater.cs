@@ -394,7 +394,6 @@ namespace MNet.LTSQL
                 tableAlias = this._context.TableAliasGenerator.Next();
                 string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
                 
-                LTSQLToken qry = LTSQLTokenFactory.CreateTableObjectToken(tableName, table.MappingType);
                 TableDescriptor descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
                 descriptor.Alias = tableAlias;
 
@@ -406,7 +405,7 @@ namespace MNet.LTSQL
 
                     string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
                     LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, table.MappingType), fieldName, prop.PropertyType
+                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.PropertyType
                         );
 
                     descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
@@ -419,13 +418,13 @@ namespace MNet.LTSQL
 
                     string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
                     LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, table.MappingType), fieldName, prop.FieldType
+                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.FieldType
                         );
 
                     descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
                 }
 
-                src = qry;
+                src = LTSQLTokenFactory.CreateTableObjectToken(tableName, descriptor, table.MappingType);
                 refs.AddTableRef(parameterName, descriptor);
             }
             else
@@ -434,7 +433,9 @@ namespace MNet.LTSQL
                 if (translater == null)
                     throw new Exception($"不支持的查询结构:{from.GetType().FullName}");
 
-                LTSQLToken qry = src = translater.Translate(from, this._scope.NewScope());
+                LTSQLToken qry = src = translater.Translate(from, this._scope.NewScope())
+                    .TryPriority(true);
+
                 //解析字段
                 if (qry is ISelectable select)
                 {
@@ -443,20 +444,16 @@ namespace MNet.LTSQL
                     descriptor.Alias = tableAlias;
                     foreach ((string key, LTSQLToken val) in select)
                     {
+                        if (val is TableObjectToken t)
+                            throw new Exception("错误的select表达式，禁止引用子查询中的表格");
+                        if (val is GroupObjToken g)
+                            throw new Exception("错误的select表达式，禁止引用子查询中的分组变量");
+                        
                         string fieldAlias = key ?? "field";
-                        LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                                LTSQLTokenFactory.CreateTableObjectToken(tableAlias, select.MappingType),
-                                fieldAlias,
-                                select.GetValueType(key)
-                        );
-
-                        descriptor.AddField(new FieldDescriptor(fieldAlias, fieldAccess, select.GetValueType(key)));
+                        descriptor.AddField(new FieldDescriptor(fieldAlias, val, select.GetValueType(key)));
                     }
                     refs.AddTableRef(parameterName, descriptor);
                 }
-
-                if (qry is IPriorable prior)
-                    qry = prior.SetPriority(true) as LTSQLToken;
 
                 src = qry;
             }
@@ -541,24 +538,22 @@ namespace MNet.LTSQL
         }
         private LTSQLToken TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, ref TableDescriptor descriptor)
         {
-            bool group = this._context.Root.GroupFlag;
-
             try
             {
                 LTSQLToken[] parameterObjs = new LTSQLToken[selectKey.Parameters.Count];
                 Array.Fill(parameterObjs, parameters);
 
-                TupleToken selectNew = new TupleToken(selectKey.ReturnType);
                 LTSQLToken token = this.TranslateLambda(selectKey, parameterObjs);
                 List<LTSQLToken> fields = new List<LTSQLToken>();
-                if (token is TupleToken tuple)
-                {
-                    fields.AddRange(tuple.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item2, p.Item1)));
 
+                if (token is ITupleable tuple)
+                {
+                    //如果是元组，用于上层查询访问，需要解决key冲突问题，保持唯一性
+                    ITupleable expdTuple = tuple.ExpendTuple(selectKey.ReturnType);
+                    fields.AddRange(expdTuple.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item2, p.Item1)));
+                    //table描述中需要保持原样
                     foreach ((string key, LTSQLToken val) in tuple)
-                    {
                         descriptor.AddField(new FieldDescriptor(key, val, tuple.GetValueType(key)));
-                    }
                 }
                 else if (token is ObjectAccessToken access)
                 {
@@ -648,7 +643,7 @@ namespace MNet.LTSQL
 
             else
             {
-
+                //需要注意字段唯一命名问题
                 sqlToken.Table = refs.BuildNewMeger(sqlToken.Table.Alias);
                 selectFieldsToken = LTSQLTokenFactory.CreateListToken(sqlToken.Table.Select(p => p.value).ToArray());
             }
@@ -741,7 +736,6 @@ namespace MNet.LTSQL
         }
 
 
-
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
         {
@@ -756,7 +750,7 @@ namespace MNet.LTSQL
                 if (tableDescriptor.IsHide)
                     this.PushToken(new PrefixPropToken(node.Name, prefix.TableRefs));
                 else
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, node.Type));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
             }
             else if (token != null)
             {
@@ -777,7 +771,7 @@ namespace MNet.LTSQL
                     if (tableDescriptor.IsHide)
                         this.PushToken(new PrefixPropToken(node.Name, this._context.TableRefs));
                     else
-                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, node.Type));
+                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
                 }
             }
 
@@ -841,7 +835,7 @@ namespace MNet.LTSQL
                     if (this.OnTranslateExpression(node, node.Type))
                         return expr;
 
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias, node.Type));
+                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias, descriptor, node.Type));
                 }
             }
             //字段访问
@@ -871,10 +865,10 @@ namespace MNet.LTSQL
                     if (this.OnTranslateMember(node.Member, null, node.Expression.Type, node, node.Type, objToken, null))
                         return expr;
 
-                    if (objToken is GroupObjToken groupToken && memberName == nameof(IGrouping<object, object>.Key))
+                    if (objToken is GroupObjToken gpobj && memberName == nameof(IGrouping<object, object>.Key))
                     {
                         //IGrouping.Key 的访问转换为分组依据元组的访问
-                        this.PushToken(groupToken.GroupKey);
+                        this.PushToken(gpobj.GroupKey);
                     }
                     else if (objToken is TupleToken tuple)
                     {
@@ -888,9 +882,31 @@ namespace MNet.LTSQL
                     }
                     else
                     {
-                        //对象访问
-                        string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
-                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
+                        TableObjectToken tpb = objToken as TableObjectToken;
+                        if (tpb is not null && (tpb[memberName] is ITupleable subTuple))
+                        {
+                            //if (subTuple is GroupObjToken gp)
+                            //{
+                            //    this.PushToken(gp);
+                            //}
+                            //else
+                            {
+                                //字段收缩，跳过隐藏字段访问
+                                TableDescriptor descriptor = new TableDescriptor(tpb.Descriptor.TableName, tpb.Descriptor.Alias, subTuple.MappingType);
+                                foreach ((string key, LTSQLToken val) in subTuple)
+                                    descriptor.AddField(new FieldDescriptor(key, val, subTuple.GetValueType(key)));
+
+                                tpb = new TableObjectToken(tpb.Alias, descriptor, tpb.ValueType);
+                                this.PushToken(tpb);
+                            }
+
+                        }
+                        else
+                        {
+                            //对象访问
+                            string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
+                            this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
+                        }
                     }
                 }
             }

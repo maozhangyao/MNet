@@ -121,7 +121,7 @@ namespace LTSQLXUnitTest
                 .Select(p => p.Id);
 
             (string sql, _) = persion.AsLTSQL()
-                .Where(p => subQuery.ToList().Contains(p.Id))
+                .Where(p => subQuery.Contains(p.Id))
                 .ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -368,7 +368,7 @@ namespace LTSQLXUnitTest
                 .Select(t => t.PersionId);
 
             (string sql, _) = persion.AsLTSQL()
-                .Where(p => teacherIds.ToList().Contains(p.Id))
+                .Where(p => teacherIds.Contains(p.Id))
                 .ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");

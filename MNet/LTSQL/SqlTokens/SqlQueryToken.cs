@@ -56,10 +56,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            SqlQueryToken sub = new SqlQueryToken();
-            sub.IsPriority = this.IsPriority;
-            sub.Table = this.Table;
-            sub.ValueType = this.ValueType;
+            SqlQueryToken sub = (SqlQueryToken)this.LiteClone();
 
             sub.From = this.From?.Visit(visitor);
             sub.Where = this.Where?.Visit(visitor);

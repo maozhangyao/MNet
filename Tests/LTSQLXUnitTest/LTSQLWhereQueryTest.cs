@@ -32,7 +32,7 @@ namespace LTSQLXUnitTest
 
             (string sql, var parameters) = persion.AsLTSQL()
                 .Where(p => p.Id == 5)
-                .ToSql(DbTypes.SQLLite, true);
+                .ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
             if (parameters != null && parameters.Count > 0)

@@ -30,8 +30,6 @@ namespace MNet.LTSQL.SqlTokens
         /// </summary>
         public LTSQLToken[] Props => this._props?.Select(p => p.Item2)?.ToArray() ?? new LTSQLToken[0];
         public IEnumerable<(string, LTSQLToken)> Items => this._props?.Select(p => (p.Item1, p.Item2));
-
-
         public LTSQLToken this[string key]
         {
             get
@@ -44,17 +42,18 @@ namespace MNet.LTSQL.SqlTokens
             }
         }
 
-        public LTSQLToken GetValue(string prop)
+
+        public Type GetValueType(string key)
         {
             if (this._props == null)
                 return null;
-
-            return this._props.FirstOrDefault(p => p.Item1 == prop).Item2;
+            if (this._props.Any(p => p.Item1 == key))
+                return this._props.First(p => p.Item1 == key).Item3;
+            return null;
         }
-        public void Add(string name, LTSQLToken value, Type valueType)
+        public LTSQLToken GetValue(string prop)
         {
-            this._props ??= new List<(string, LTSQLToken, Type)>();
-            this._props.Add((name, value, valueType));
+            return this[prop];
         }
         public void Add(ITupleable tuple)
         {
@@ -66,23 +65,18 @@ namespace MNet.LTSQL.SqlTokens
                 this.Add(key, val, tuple.GetValueType(key));
             }
         }
-
-        public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
+        public void Add(string name, LTSQLToken value, Type valueType)
         {
-            return this._props.Select(p => (p.Item1, p.Item2)).GetEnumerator();
+            this._props ??= new List<(string, LTSQLToken, Type)>();
+            this._props.Add((name, value, valueType));
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
-
-        public Type GetValueType(string key)
+        public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
         {
-            if (this._props == null)
-                return null;
-            if (this._props.Any(p => p.Item1 == key))
-                return this._props.First(p => p.Item1 == key).Item3;
-            return null;
+            return this._props.Select(p => (p.Item1, p.Item2)).GetEnumerator();
         }
     }
 }

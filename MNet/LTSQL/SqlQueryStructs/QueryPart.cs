@@ -14,11 +14,7 @@ namespace MNet.LTSQL.SqlQueryStructs
         public Type MappingType { get; set; }
         public virtual QueryPart CopyNew()
         {
-            return new QueryPart()
-            {
-                Alias = Alias,
-                MappingType = MappingType
-            };
+            return this.MemberwiseClone() as QueryPart;
         }
     }
 }

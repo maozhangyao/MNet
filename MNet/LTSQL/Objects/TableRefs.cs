@@ -42,7 +42,7 @@ namespace MNet.LTSQL.Objects
                 {
                     newTable.AddField(new FieldDescriptor(field.Field,
                         LTSQLTokenFactory.CreateAccessToken(
-                                LTSQLTokenFactory.CreateTableObjectToken(tableAlias, tableDescriptor.MappingType),
+                                LTSQLTokenFactory.CreateTableObjectToken(tableAlias, tableDescriptor, tableDescriptor.MappingType),
                                 field.Field,
                                 field.FieldValueType
                             )

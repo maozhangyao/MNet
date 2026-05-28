@@ -129,7 +129,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.IntersectSet(query2).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.IntersectSet(query2, true).ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -304,7 +304,7 @@ namespace LTSQLXUnitTest
                               Count = g.Count()
                           });
 
-            (string sql, _) = query1.IntersectSet(query2).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.IntersectSet(query2, true).ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

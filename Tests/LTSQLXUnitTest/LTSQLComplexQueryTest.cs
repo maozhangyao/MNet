@@ -321,6 +321,7 @@ namespace LTSQLXUnitTest
                         let maxAge = g.Max(x => x.Age)
                         let minAge = g.Min(x => x.Age)
                         where count >= 1 && maxAge > 25
+                        //let minAge = g.Min(x => x.Age) //非法let，因为let的本质是select，g是分组变量并且属于上一层select，当前层无法对上一次的select 中的g分组变量做聚合计算
                         orderby avgAge descending
                         select new
                         {
@@ -495,8 +496,7 @@ namespace LTSQLXUnitTest
             // 主查询：结合多个条件、连接、分组和子查询
             var query = from p in persion.AsLTSQL()
                         where p.Age > 20
-                        join t in teacher.AsLTSQL().WithLeft() on p.Id equals t.PersionId into pt
-                        from t in pt.DefaultIfEmpty()
+                        join t in teacher.AsLTSQL().WithLeft() on p.Id equals t.PersionId
                         where t == null || t.CourseId > 0
                         select new
                         {

@@ -24,5 +24,10 @@ namespace MNet.LTSQL.SqlTokens
             return this;
         }
 
+        //浅克隆
+        public virtual LTSQLToken LiteClone()
+        {
+            return this.MemberwiseClone() as LTSQLToken;
+        }
     }
 }

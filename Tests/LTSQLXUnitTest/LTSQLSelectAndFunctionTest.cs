@@ -93,8 +93,9 @@ namespace LTSQLXUnitTest
                 .Select(p => new
                 {
                     p.Id,
+                    Age = p.Age == null ? 0 : p.Age,
                     p.SelfName,
-                    NextAge = p.Age + 1
+                    NextAge = (p.Age == null ? 0 : p.Age) + 1
                 })
                 .ToSql(DbTypes.SQLLite, false);
 
@@ -106,7 +107,7 @@ namespace LTSQLXUnitTest
             foreach (var item in list)
             {
                 _outp.WriteLine($"Id: {item.Id}, Name: {item.SelfName}, NextAge: {item.NextAge}");
-                Assert.Equal(item.NextAge, item.Age + 1);
+                Assert.Equal((int?)item.NextAge, (int?)item.Age + 1);
             }
         }
 
@@ -124,6 +125,7 @@ namespace LTSQLXUnitTest
                 {
                     p.Id,
                     p.SelfName,
+                    p.Age,
                     AgeGroup = p.Age > 30 ? "Old" : "Young"
                 })
                 .ToSql(DbTypes.SQLLite, false);
@@ -154,7 +156,9 @@ namespace LTSQLXUnitTest
                 .Select(p => new
                 {
                     p.Id,
-                    Info = p.SelfName + "-" + p.Age.ToString()
+                    p.SelfName,
+                    p.Age,
+                    Info = string.Concat(string.Concat(p.SelfName, "-") , p.Age)
                 })
                 .ToSql(DbTypes.SQLLite, false);
 
@@ -188,7 +192,7 @@ namespace LTSQLXUnitTest
                                select new
                                {
                                    p.Id,
-                                   Info = (p.SelfName + "-") + c.Course
+                                   Info = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
                                })
                 .ToSql(DbTypes.SQLLite, false);
 
@@ -200,7 +204,7 @@ namespace LTSQLXUnitTest
             foreach (var item in list)
             {
                 _outp.WriteLine($"Id: {item.Id}, Info: {item.Info}");
-                Assert.Contains("-", item.Info);
+                Assert.Contains("-", (string)item.Info);
             }
         }
 
@@ -470,7 +474,9 @@ namespace LTSQLXUnitTest
                 .Select(p => new
                 {
                     p.Id,
-                    DisplayName = p.SelfName + "(" + p.Age.ToString() + ")",
+                    p.Age,
+                    p.SelfName,
+                    DisplayName = string.Concat(string.Concat(string.Concat(p.SelfName, "("), p.Age), ")"),
                     AgeGroup = p.Age > 30 ? "Senior" : "Junior",
                     DoubleAge = p.Age * 2,
                     CurrentYear = DateTime.Now.Year
@@ -561,7 +567,7 @@ namespace LTSQLXUnitTest
             foreach (var item in list)
             {
                 Assert.True(item.Age > 25);
-                bool expectedIsSenior = item.Age > 30;
+                long expectedIsSenior = item.Age > 30 ? 1 : 0;
                 Assert.Equal(expectedIsSenior, item.IsSenior);
 
                 _outp.WriteLine($"Id: {item.Id}, Name: {item.SelfName}, Age: {item.Age}, IsSenior: {item.IsSenior}");

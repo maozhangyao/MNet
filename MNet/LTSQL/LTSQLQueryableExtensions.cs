@@ -283,21 +283,21 @@ namespace MNet.LTSQL
         }
 
         //多集合共同取交集
-        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
-        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
 
         //多集合共同取差集
-        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
-        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
@@ -451,12 +451,29 @@ namespace MNet.LTSQL
         public static ILTSQLObjectQueryable<TResult> Select<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
         {
             //Console.WriteLine(expr);
-            var query = (src.SqlQuery.CopyNew() as SqlQueryPart)
-                .SetNextStep(QueryStepSeq.Select, false);
+            Expression selectKeyExpr = expr;
+            SqlQueryPart _old = src.Query as SqlQueryPart;
+            if (_old.Step == QueryStepSeq.Select)
+            {
+                LambdaExpression lambda = _old.SelectKey.AsLambda();
+                if (lambda == null)
+                    throw new Exception($"在连续select过程中，未能取得上一次select的表达式(当前select:{expr})。");
+                if (lambda.ReturnType != typeof(T))
+                    throw new Exception($"在连续select过程中，上一次select返回值类型({lambda.ReturnType.FullName})与当前select入参类型不匹配({typeof(T).FullName})。");
 
-            query.SelectKey = expr;
-            query.MappingType = typeof(TResult);
-            return new LTSQLObject<TResult>(query);
+                ExpressionModifier modifier = new ExpressionModifier();
+                Expression _oldPara = lambda.TakeParamter(0);
+                Expression _newbody = modifier.ModifyParameter(expr.Body, expr.TakeParamter(0), lambda.Body);
+                Expression _newExpr = Expression.Lambda(_newbody, _oldPara as ParameterExpression);
+                selectKeyExpr = _newExpr;
+            }
+
+            SqlQueryPart _new = (src.SqlQuery.CopyNew() as SqlQueryPart)
+               .SetNextStep(QueryStepSeq.Select, true); //连续的select只需要取最后一次
+
+            _new.SelectKey = selectKeyExpr;
+            _new.MappingType = typeof(TResult);
+            return new LTSQLObject<TResult>(_new);
         }
 
         //join

@@ -90,6 +90,9 @@ namespace MNet.LTSQL
                 else
                     ctx.Writer.Write(t.Alias);
             })
+            .UseSpecialToken<TableObjectToken>((t, ctx, nxt) => {
+                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
+            })
             .UseSpecialToken<AliasToken>((t, ctx, nxt) =>
             {
                 nxt(t.Object);
@@ -405,7 +408,6 @@ namespace MNet.LTSQL
             //生成sql
             context.Sql = writerCxt.Writer.GetSqlBuilder();
         }
-        
         public LTSQLTokenSqlBuilder UseCommonToken<T>(Action<T, SqlWriterContext, Action> builder)
         {
             if (builder == null)
