@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using MNet.Utils;
 using System.Xml;
 using System.Net.Http.Headers;
+using MNet.LTSQL.SqlQueryStructs;
 
 namespace MNet.LTSQL
 {
@@ -92,10 +93,28 @@ namespace MNet.LTSQL
                     return;
 
                 // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
-                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
-                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                if (groupObj != null)
+                LTSQLToken inst = ctx.MethodParameterTokenList[0];
+                if (inst == null)
+                    return;
+
+                if (inst is GroupObjToken gpObj)
+                {
+                    LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
                     ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUM", parameters, sumMethod.ReturnType);
+                }
+                else if (inst.TryGetSqlQueryable(out ILTSQLObjectQueryable query))
+                {
+                    MethodCallExpression callExpr = ctx.TranslateExpr as MethodCallExpression;
+
+                    MethodInfo[] methods = typeof(LTSQLQueryableExtensions).GetMethods()
+                        .Where(p => p.Name == nameof(LTSQLQueryableExtensions.WithSum))
+                        .Where(p => p.ReturnType.GetGenericArguments()[0] == sumMethod.ReturnType)
+                        .ToArray();
+                    
+                    //调用 WithSum
+                    query = (ILTSQLObjectQueryable)methods[0].MakeGenericMethod(callExpr.Method.GetGenericArguments()[0]).Invoke(null, new object [] { query, callExpr.Arguments[1] });
+                    ctx.ResultToken = ctx.TokenSqlParameter(query);
+                }
             });
 
 

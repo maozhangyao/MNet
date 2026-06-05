@@ -7,8 +7,9 @@ using System.Linq.Expressions;
 using System.ComponentModel.DataAnnotations.Schema;
 using MNet.LTSQL.Attributes;
 using UnitTestModel;
+using System.Security.Cryptography.X509Certificates;
 
-//CPersionT p = new CPersionT();
+CPersionT p = new CPersionT();
 
 //// 基础内连接查询 + 子查询 + 元组in匹配
 //var query1 = (from p1 in p.AsLTSQL()
@@ -57,5 +58,12 @@ using UnitTestModel;
 //Console.WriteLine();
 //Console.WriteLine("联合查询操作(union all)：");
 //ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite, out _, false));
+
+var a = new { }.AsSelect(_ => new
+{
+    s = p.AsSelect().Sum(p => p.Age)
+});
+string sql = a.ToSql(DbTypes.SQLLite, out _, false);
+Console.WriteLine(sql);
 
 return 0;

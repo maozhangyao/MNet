@@ -29,7 +29,7 @@ namespace MNet.LTSQL
                 if (value is ITupleable innerTuple)
                 {
                     ITupleable subTuple = ExpendTuple(innerTuple, innerTuple.MappingType);
-                    foreach((string subKey, LTSQLToken subValue) in subTuple)
+                    foreach ((string subKey, LTSQLToken subValue) in subTuple)
                     {
                         _new.Add(subKey, subValue, subTuple.GetValueType(subKey));
                     }
@@ -40,6 +40,24 @@ namespace MNet.LTSQL
                 }
             }
             return _new;
+        }
+
+        public static bool IsSqlQueryable(this LTSQLToken token)
+        {
+            if (token == null)
+                throw new ArgumentNullException(nameof(token));
+            return token is ISelectable || (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable);
+        }
+        public static bool TryGetSqlQueryable(this LTSQLToken token, out ILTSQLObjectQueryable queryable)
+        {
+            if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable q)
+            {
+                queryable = q;
+                return true;
+            }
+
+            queryable = null;
+            return false;
         }
     }
 }
