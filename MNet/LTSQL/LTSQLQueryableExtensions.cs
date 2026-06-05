@@ -53,7 +53,7 @@ namespace MNet.LTSQL
             if (query.Step >= step)
             {
                 if (equals && query.Step == step)
-                    return query;
+                    return query.CopyNew() as SqlQueryPart;
 
                 return new SqlQueryPart()
                 {
@@ -63,7 +63,7 @@ namespace MNet.LTSQL
                 };
             }
             query.Step = step;
-            return query;
+            return query.CopyNew() as SqlQueryPart;
         }
         private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
         {
@@ -75,13 +75,12 @@ namespace MNet.LTSQL
         private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey, T>(this ILTSQLObjectQueryable<T> src)
         {
             src = src.AsLTSQL();
-
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-            query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
+            //query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
             query.GroupFlag = true;
             query.GroupElement = (Expression<Func<T, T>>)(p => p);
 
-            return new LTSQLObject<IGrouping<TKey, T>>(src.SqlQuery);
+            return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
 
 
@@ -354,7 +353,6 @@ namespace MNet.LTSQL
 
         public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
         {
-            //return WithSkip(src, skip) as ILTSQLObjectQueryable<T>;
             SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
             query = query.SetNextStep(QueryStepSeq.Page);
             query.Skip = skip;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -12,6 +12,13 @@ namespace MNet.LTSQL.SqlTokens
         /// <summary>
         /// 值对应的类型
         /// </summary>
-        public Type ValueType { get; set; }
+        public Type ValueType { get; protected set; }
+
+        public virtual ValueToken ChangeType(Type t)
+        {
+            ValueToken newToken = this.LiteClone() as ValueToken;
+            newToken.ValueType = t;
+            return newToken;
+        }
     }
 }

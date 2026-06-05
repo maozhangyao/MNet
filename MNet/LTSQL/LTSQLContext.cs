@@ -19,6 +19,14 @@ namespace MNet.LTSQL
 
         public TableRefs TableRefs { get; set; }
         public SqlQueryPart Root { get; set; }
+        public string RootParameterName { get; private set; }
+        public LTSQLToken RootParameterToken { get; private set; }
+
+        public void SetRootParameter(string parameterName, LTSQLToken parameterToken)
+        {
+            this.RootParameterName = parameterName;
+            this.RootParameterToken = parameterToken;
+        }
 
         public static LTSQLContext Create(LTSQLOptions options)
         {

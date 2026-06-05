@@ -33,13 +33,15 @@ namespace MNet.LTSQL
         { }
 
 
-        private LTSQLTranslateScope _scope;
         private LTSQLContext _context;
+        private LTSQLTranslateScope _scope;
         //生成的SQL令牌栈
         private Stack<LTSQLToken> _tokens;
         //复用对象，用于扩展翻译上下文，避免频繁创建对象
         private TranslateContext _templateContext;
         private Stack<(Expression expr, LTSQLToken token)> _bufferLayer;
+        private string _transparentField = "transparent_field";
+
 
         private static string GetTableName(LTSQLMemberContext ctx)
         {
@@ -111,27 +113,22 @@ namespace MNet.LTSQL
             else
                 throw new Exception($"非字段或者属性无法求值：{member.Name}");
         }
-        private TableDescriptor GetRootTableAliasMapping(string parameterName)
+        private LTSQLToken GetRootTableAliasMapping(string parameterName)
         {
             LTSQLContext context = this._context;
             LTSQLTranslateScope scope = this._scope;
-            TableDescriptor ret = null;
 
             while (true)
             {
-                ret = context.TableRefs?.GetTableRef(parameterName);
-                bool flag = ret != null; ;
-                if (flag)
-                    break;
-
-                if (scope.Parent == null || scope.Parent.Context == null)
+                if (scope == null || context == null)
                     throw new Exception($"参数名({parameterName})无法找到对应的上下文作用域, 无法解析表命名");
 
-                scope = scope.Parent;
-                context = scope.Context;
-            }
+                if (context.RootParameterName == parameterName)
+                    return context.RootParameterToken;
 
-            return ret;
+                scope = scope.Parent;
+                context = scope?.Context;
+            }
         }
         private void UnUseSpecialToken()
         {
@@ -156,97 +153,33 @@ namespace MNet.LTSQL
 
             return null;
         }
-
-        //递归分配表命名并统一命名
-        private void AssignTableAlias(ref string root)
+        //删除所有的表格token，将其转换为元组,并且调整为新的所属者
+        private TupleToken ChangePropOwner(ITupleable tuple, ObjectToken obj)
         {
-            SqlQueryPart query = this._context.Root;
-            if (query == null)
-                return;
+            if (tuple == null)
+                return null;
 
-            bool joinSelectFlag = query.Step == QueryStepSeq.Join; //join select: join之后没有后续操作，join的结果既是 select 结果
-            root = "root_" + this._context.TableAliasGenerator.Next();
-            ExpressionModifier exprModifier = new ExpressionModifier();
-
-            //统一根参数名(存在select 字段硬编码查询)
-            if (query.Wheres.IsNotEmpty())
+            TupleToken _new = new TupleToken(tuple.MappingType);
+            foreach((string key, LTSQLToken val) in tuple)
             {
-                //where 多条件合并
-                Expression merge = null;
-                ParameterExpression _old = query.Wheres[0].AsLambda().TakeParamter(0);
-                ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (Expression expr in query.Wheres)
+                LTSQLToken newVal = null;
+                if (val is ITupleable sub)
                 {
-                    LambdaExpression lambda = expr.AsLambda();
-                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
-                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
+                    newVal = this.ChangePropOwner(sub, obj);
+                }
+                else
+                {
+                    newVal = LTSQLTokenFactory.CreateAccessToken(obj, key, tuple.GetValueType(key));
                 }
 
-                query.Wheres.Clear();
-                query.Wheres.Add(Expression.Lambda(merge, _new));
+                _new.Add(key, newVal, tuple.GetValueType(key));
             }
 
-            // group by
-            if (query.GroupFlag)
-            {
-                ParameterExpression _old = null;
-                ParameterExpression _new = null;
-                if (query.GroupKey != null)
-                {
-                    _old = query.GroupKey.AsLambda().TakeParamter(0);
-                    _new = Expression.Parameter(_old.Type, root);
-                    query.GroupKey = exprModifier.ModifyParameter(query.GroupKey, _old, _new);
-                }
-
-                if (query.GroupElement != null)
-                {
-                    _old = query.GroupElement.AsLambda().TakeParamter(0);
-                    _new = Expression.Parameter(_old.Type, root);
-                    query.GroupElement = exprModifier.ModifyParameter(query.GroupElement, _old, _new);
-                }
-            }
-
-            // having
-            if (query.Havings.IsNotEmpty())
-            {
-                //多条件合并
-                Expression merge = null;
-                ParameterExpression _old = query.Havings[0].AsLambda().TakeParamter(0);
-                ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (Expression expr in query.Havings)
-                {
-                    LambdaExpression lambda = expr.AsLambda();
-                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
-                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
-                }
-
-                query.Havings.Clear();
-                query.Havings.Add(Expression.Lambda(merge, _new));
-            }
-
-            //排序（仅在不存在分组的情况下才有替换参数的意义）
-            if (query.Orders.IsNotEmpty() && !query.GroupFlag)
-            {
-                ParameterExpression _old = query.Orders[0].Key.AsLambda().TakeParamter(0);
-                ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (var orderItem in query.Orders)
-                {
-                    LambdaExpression lambda = orderItem.Key.AsLambda();
-                    orderItem.Key = exprModifier.ModifyParameter(lambda, lambda.TakeParamter(0), _new);
-                }
-            }
-
-            //投影（仅在不存在分组的情况下才有替换参数的意义, 并且只有在非join select的情况下才会存在统一参数）
-            if (query.SelectKey != null && !query.GroupFlag && !joinSelectFlag)
-            {
-                LambdaExpression lambda = query.SelectKey.AsLambda();
-                ParameterExpression _old = lambda.TakeParamter(0);
-                ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                query.SelectKey = exprModifier.ModifyParameter(lambda, _old, _new);
-            }
-
+            return _new;
         }
-      
+        
+
+
         // 调用外部翻译扩展
         private bool OnTranslateExpression(TranslateContext ctx)
         {
@@ -298,6 +231,7 @@ namespace MNet.LTSQL
         }
 
 
+        
         private LTSQLToken TranslateLambda(LambdaExpression lambda, params LTSQLToken[] rets)
         {
             if(rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
@@ -343,31 +277,41 @@ namespace MNet.LTSQL
                 }
             }
         }
-        
-
-        private LTSQLToken TranslateFrom(QueryPart from, string root, ref TableRefs refs, out Expression fromObj)
+        private LTSQLToken TranslateFrom(QueryPart from, string root, out TableDescriptor descriptor)
         {
-            return TranslateQueryPart(from, root, ref refs, out fromObj);
+            LTSQLToken token = TranslateQueryPart(from, root, out descriptor);
+            return token;
         }
-        private LTSQLToken TranslateQueryPart(QueryPart from, string parameterName, ref TableRefs refs, out Expression fromObj)
+        private LTSQLToken TranslateQueryPart(QueryPart from, string parameterName, out TableDescriptor descriptor)
         {
             LTSQLToken src = null;
             string tableAlias = null;
-            fromObj = null;
+            descriptor = null;
 
             if (from is JoinPart join)
             {
-                fromObj = join.JoinObject;
+                TableDescriptor mTbDescriptor = null;
+                TableDescriptor jTbDescriptor = null;
 
-                LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, join.JoinObject.AsLambda().TakeParamter(0).Name, ref refs, out _);
-                LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, join.JoinObject.AsLambda().TakeParamter(1).Name, ref refs, out _);
+                LTSQLToken query1 = this.TranslateQueryPart(join.MainQuery, join.JoinObject.AsLambda().TakeParamter(0).Name, out mTbDescriptor);
+                LTSQLToken query2 = this.TranslateQueryPart(join.JoinQuery, join.JoinObject.AsLambda().TakeParamter(1).Name, out jTbDescriptor);
 
-                //透明表
-                TableDescriptor descriptor = new TableDescriptor(parameterName, true);
-                descriptor.Alias = parameterName;
-                descriptor.AddField(new FieldDescriptor(join.JoinObject.AsLambda().TakeParamter(0).Name, query1, join.MainQuery.MappingType));
-                descriptor.AddField(new FieldDescriptor(join.JoinObject.AsLambda().TakeParamter(1).Name, query1, join.JoinQuery.MappingType));
-                refs.AddTableRef(parameterName, descriptor);
+                TableObjectToken t1 = LTSQLTokenFactory.CreateTableObjectToken(mTbDescriptor.Alias ?? mTbDescriptor.TableName, mTbDescriptor, mTbDescriptor.MappingType);
+                TableObjectToken t2 = LTSQLTokenFactory.CreateTableObjectToken(jTbDescriptor.Alias ?? jTbDescriptor.TableName, jTbDescriptor, jTbDescriptor.MappingType);
+
+                //解析透明表结构
+                descriptor = new TableDescriptor(parameterName, true);
+                LTSQLToken tbMerge = this.TranslateLambda(join.JoinObject.AsLambda(), t1, t2);
+                if (tbMerge is ITupleable)
+                {
+                    foreach ((string key, LTSQLToken val) in tbMerge as ITupleable)
+                        descriptor.AddField(new FieldDescriptor(key, val, (val as ValueToken)?.ValueType));
+                }
+                else
+                {
+                    //理论上不存在
+                    descriptor.AddField(new FieldDescriptor(_transparentField, tbMerge, (tbMerge as ValueToken)?.ValueType));
+                }
 
                 //连接查询
                 //合并查询
@@ -376,7 +320,7 @@ namespace MNet.LTSQL
                     LambdaExpression expr1 = join.JoinKey1.AsLambda();
                     LambdaExpression expr2 = join.JoinKey2.AsLambda();
                     LambdaExpression expr3 = Expression.Lambda(Expression.Equal(expr1.Body, expr2.Body), expr1.TakeParamter(0), expr2.TakeParamter(0));
-                    LTSQLToken joinKeys = this.TranslateLambda(expr3, new PrefixPropToken("", refs));
+                    LTSQLToken joinKeys = this.TranslateLambda(expr3, t1, t2);
                     JoinToken joinToken = new JoinToken(join.JoinType, query1, query2, joinKeys);
                     return joinToken;
                 }
@@ -394,7 +338,7 @@ namespace MNet.LTSQL
                 tableAlias = this._context.TableAliasGenerator.Next();
                 string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
                 
-                TableDescriptor descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
+                descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
                 descriptor.Alias = tableAlias;
 
                 //解析属性
@@ -425,7 +369,6 @@ namespace MNet.LTSQL
                 }
 
                 src = LTSQLTokenFactory.CreateTableObjectToken(tableName, descriptor, table.MappingType);
-                refs.AddTableRef(parameterName, descriptor);
             }
             else
             {
@@ -440,19 +383,25 @@ namespace MNet.LTSQL
                 if (qry is ISelectable select)
                 {
                     tableAlias = this._context.TableAliasGenerator.Next();
-                    TableDescriptor descriptor = new TableDescriptor("$temp", tableAlias, select.MappingType);
+                    descriptor = new TableDescriptor("$temp", tableAlias, select.MappingType);
                     descriptor.Alias = tableAlias;
-                    foreach ((string key, LTSQLToken val) in select)
+
+                    //对子查询的访问，只能访问子查询中的select字段，所以对子查询中表格的字段访问，就是对 "子查询"."字段" 的访问。
+                    //去掉子查询中的table token是为了防止访问table token时，分不清楚table token的作用域到底是当前查询的还是来自于子查询的。
+                    //并且上层查询也不允许访问子查询中的table token，所以直接将table 转换为 tuple，将对table的访问改成对tuple的访问，并帮助忽略隐藏字段。
+                    //改变子查询的字段所属者
+                    ITupleable tuple = this.ChangePropOwner(select, LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, select.MappingType));
+                    foreach ((string key, LTSQLToken val) in tuple)
                     {
                         if (val is TableObjectToken t)
                             throw new Exception("错误的select表达式，禁止引用子查询中的表格");
                         if (val is GroupObjToken g)
                             throw new Exception("错误的select表达式，禁止引用子查询中的分组变量");
-                        
+
                         string fieldAlias = key ?? "field";
                         descriptor.AddField(new FieldDescriptor(fieldAlias, val, select.GetValueType(key)));
                     }
-                    refs.AddTableRef(parameterName, descriptor);
+
                 }
 
                 src = qry;
@@ -536,8 +485,9 @@ namespace MNet.LTSQL
 
             return LTSQLTokenFactory.CreateListToken(orderKeyTokens.ToArray());
         }
-        private LTSQLToken TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, ref TableDescriptor descriptor)
+        private LTSQLToken TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, out TableDescriptor descriptor)
         {
+            descriptor = new TableDescriptor();
             try
             {
                 LTSQLToken[] parameterObjs = new LTSQLToken[selectKey.Parameters.Count];
@@ -548,12 +498,14 @@ namespace MNet.LTSQL
 
                 if (token is ITupleable tuple)
                 {
-                    //如果是元组，用于上层查询访问，需要解决key冲突问题，保持唯一性
+                    //对于select，需要展开元组(需要解决key冲突问题，保持唯一性)
                     ITupleable expdTuple = tuple.ExpendTuple(selectKey.ReturnType);
                     fields.AddRange(expdTuple.Select(p => LTSQLTokenFactory.CreateAliasToken(p.Item2, p.Item1)));
-                    //table描述中需要保持原样
+
+                    //对于子tuple需要保持原样，用于上层查询访问，所以无需展开
                     foreach ((string key, LTSQLToken val) in tuple)
                         descriptor.AddField(new FieldDescriptor(key, val, tuple.GetValueType(key)));
+
                 }
                 else if (token is ObjectAccessToken access)
                 {
@@ -562,40 +514,189 @@ namespace MNet.LTSQL
                 }
                 else
                 {
-                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, "field"));
-                    descriptor.AddField(new FieldDescriptor("field", token, selectKey.ReturnType));
+                    fields.Add(LTSQLTokenFactory.CreateAliasToken(token, _transparentField));
+                    descriptor.AddField(new FieldDescriptor(_transparentField, token, selectKey.ReturnType));
                 }
-                
+
                 return LTSQLTokenFactory.CreateListToken(fields.ToArray());
             }
             catch (Exception ex)
             {
+                descriptor = null;
                 Console.WriteLine(ex);
                 throw;
             }
+        }
+        //统一命名
+        private void BeforeTranslate(ref string root)
+        {
+            SqlQueryPart query = this._context.Root;
+            if (query == null)
+                return;
+            root = "root_" + this._context.TableAliasGenerator.Next();
+            ExpressionModifier exprModifier = new ExpressionModifier();
+
+            //统一根参数名(存在select 字段硬编码查询)
+            if (query.Wheres.IsNotEmpty())
+            {
+                //where 多条件合并
+                Expression merge = null;
+                ParameterExpression _old = query.Wheres[0].AsLambda().TakeParamter(0);
+                ParameterExpression _new = Expression.Parameter(_old.Type, root);
+                foreach (Expression expr in query.Wheres)
+                {
+                    LambdaExpression lambda = expr.AsLambda();
+                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
+                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
+                }
+
+                query.Wheres.Clear();
+                query.Wheres.Add(Expression.Lambda(merge, _new));
+            }
+
+            // group by
+            if (query.GroupFlag)
+            {
+                ParameterExpression _old = null;
+                ParameterExpression _new = null;
+                if (query.GroupKey != null)
+                {
+                    _old = query.GroupKey.AsLambda().TakeParamter(0);
+                    _new = Expression.Parameter(_old.Type, root);
+                    query.GroupKey = exprModifier.ModifyParameter(query.GroupKey, _old, _new);
+                }
+
+                if (query.GroupElement != null)
+                {
+                    _old = query.GroupElement.AsLambda().TakeParamter(0);
+                    _new = Expression.Parameter(_old.Type, root);
+                    query.GroupElement = exprModifier.ModifyParameter(query.GroupElement, _old, _new);
+                }
+            }
+
+            // having
+            if (query.Havings.IsNotEmpty())
+            {
+                //多条件合并
+                Expression merge = null;
+                ParameterExpression _old = query.Havings[0].AsLambda().TakeParamter(0);
+                ParameterExpression _new = Expression.Parameter(_old.Type, root);
+                foreach (Expression expr in query.Havings)
+                {
+                    LambdaExpression lambda = expr.AsLambda();
+                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
+                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
+                }
+
+                query.Havings.Clear();
+                query.Havings.Add(Expression.Lambda(merge, _new));
+            }
+
+            //排序（仅在不存在分组的情况下才有替换参数的意义）
+            if (query.Orders.IsNotEmpty())
+            {
+                ParameterExpression _old = query.Orders[0].Key.AsLambda().TakeParamter(0);
+                ParameterExpression _new = Expression.Parameter(_old.Type, root);
+                foreach (var orderItem in query.Orders)
+                {
+                    LambdaExpression lambda = orderItem.Key.AsLambda();
+                    orderItem.Key = exprModifier.ModifyParameter(lambda, lambda.TakeParamter(0), _new);
+                }
+            }
+
+            //投影（仅在不存在分组的情况下才有替换参数的意义, 并且只有在非join select的情况下才会存在统一参数）
+            if (query.SelectKey != null)
+            {
+                LambdaExpression lambda = query.SelectKey.AsLambda();
+                ParameterExpression _old = lambda.TakeParamter(0);
+                ParameterExpression _new = Expression.Parameter(_old.Type, root);
+                query.SelectKey = exprModifier.ModifyParameter(lambda, _old, _new);
+            }
+
+        }
+        private LTSQLToken PostTranslate(LTSQLToken sqlToken)
+        {
+            //内联查询翻译
+            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+            {
+                //如果存在内联查询，需要进一步翻译
+                if (t is SqlParameterToken p)
+                {
+                    if (p.Value is ILTSQLObjectQueryable subquery)
+                    {
+                        LTSQLToken subQueryToken = new SequenceTranslater()
+                                .Translate(subquery.Query, this._scope.NewScope());
+
+                        var token = subQueryToken is IPriorable proir && !proir.IsPriority ? proir.SetPriority(true) as LTSQLToken : subQueryToken;
+                        return token;
+                    }
+                }
+                return t;
+            });
+
+            //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
+            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
+            {
+                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.Alias == SqlFunctionHelper.F_EXISTS)
+                {
+                    LTSQLToken parameter = c.Parameters[0];
+                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this._context.Options.DbType, parameter.TryPriority(false))
+                    .Build() as FunctionCallToken;
+                    return c.IsNot ? fcall.Not() : fcall;
+                }
+                return t;
+            });
+
+            //null 等式处理
+            if (!this._context.Options.DisNullable)
+            {
+                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+                {
+                    if (t is SqlParameterToken p && p.Value == null)
+                        return LTSQLTokenFactory.CreateNullToken(p.ValueType, this._context.Options.DbType);
+                    return t;
+                }) as SqlQueryToken;
+
+                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
+                {
+                    if (t is BoolCalcToken cdt && (cdt.Opration == BoolCalcToken.OPT_EQUAL || cdt.Opration == BoolCalcToken.OPT_NOT_EQUAL))
+                    {
+                        string opt = cdt.Opration == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
+
+                        if (cdt.Left is NullToken)
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Right, cdt.Left);
+                        else if (cdt.Right is NullToken)
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Left, cdt.Right);
+                    }
+                    return t;
+                });
+            }
+
+            return sqlToken;
         }
         //开始翻译
         private SqlQueryToken TranslateCore()
         {
             string root = null;
-            this.AssignTableAlias(ref root);
+            this.BeforeTranslate(ref root);
 
             TableRefs refs = new TableRefs();
             SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
             LTSQLToken parameterObj = null;
-            Expression fromObj = null;
+            TableDescriptor descriptor = null;
 
-            sqlToken.Table = new TableDescriptor("$self", null, query.MappingType);
             this._context.TableRefs = refs;
 
-            //from
+            //from, 注意存在单独的select 语句：select 1
+            //from 是可能null的
             if (query.From != null)
             {
-                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, ref refs, out fromObj));    
+                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, out descriptor));
+                sqlToken.Table = descriptor;
+                parameterObj = LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias ?? descriptor.TableName, descriptor, descriptor.MappingType);
+                this._context.SetRootParameter(root, parameterObj);
             }
-
-            parameterObj = new PrefixPropToken("", refs);
 
             //where
             if (query.Wheres.IsNotEmpty())
@@ -604,7 +705,7 @@ namespace MNet.LTSQL
                 sqlToken.Where = LTSQLTokenFactory.CreateClauseToken("WHERE", condition);
             }
 
-            //group by
+            //group by，注意存在select count(*) from xxx ；即无需group by 子句的全部数据分组
             if (query.GroupFlag)
             {
                 LambdaExpression lambda1 = query.GroupKey.AsLambda();
@@ -615,6 +716,7 @@ namespace MNet.LTSQL
                     sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
 
                 parameterObj = groupObj;
+                this._context.SetRootParameter(root, parameterObj);
             }
 
             //having
@@ -633,19 +735,17 @@ namespace MNet.LTSQL
 
             //select
             LTSQLToken selectFieldsToken = null;
-            if (query.SelectKey != null || fromObj != null)
+            if (query.SelectKey != null)
             {
-                TableDescriptor descriptor = sqlToken.Table;
-                Expression selectExpr = query.SelectKey ?? fromObj;
-                selectFieldsToken = this.TranslateSelect(selectExpr.AsLambda(), parameterObj, ref descriptor);
-                sqlToken.Table = descriptor;
+                TableDescriptor descriptorNew = new TableDescriptor();
+                selectFieldsToken = this.TranslateSelect(query.SelectKey.AsLambda(), parameterObj, out descriptorNew);
+                sqlToken.Table = descriptorNew;
             }
-
             else
             {
                 //需要注意字段唯一命名问题
-                sqlToken.Table = refs.BuildNewMeger(sqlToken.Table.Alias);
-                selectFieldsToken = LTSQLTokenFactory.CreateListToken(sqlToken.Table.Select(p => p.value).ToArray());
+                TupleToken defaultSelect = LTSQLTokenFactory.CreateTupleToken(sqlToken.Table.ExpendTuple(sqlToken.Table.MappingType));
+                selectFieldsToken = LTSQLTokenFactory.CreateListToken(defaultSelect.Select(p => LTSQLTokenFactory.CreateAliasToken(p.value, p.key)).ToArray());
             }
 
             //distict
@@ -673,65 +773,9 @@ namespace MNet.LTSQL
             sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT",
                 new[] { distinckClause, topLimitClause, selectFieldsToken }.Where(p => p != null).ToArray()
             );
-            sqlToken.ValueType = typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType);
 
-
-            //内联查询翻译
-            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-            {
-                //如果存在内联查询，需要进一步翻译
-                if (t is SqlParameterToken p)
-                {
-                    if (p.Value is ILTSQLObjectQueryable subquery)
-                    {
-                        LTSQLToken subQueryToken = new SequenceTranslater()
-                                .Translate(subquery.Query, this._scope.NewScope());
-
-                        var token = subQueryToken is IPriorable proir && !proir.IsPriority ? proir.SetPriority(true) as LTSQLToken : subQueryToken;
-                        return token;
-                    }
-                }
-                return t;
-            }) as SqlQueryToken;
-
-            //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
-            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
-            {
-                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.Alias == SqlFunctionHelper.F_EXISTS)
-                {
-                    LTSQLToken parameter = c.Parameters[0];
-                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this._context.Options.DbType, parameter.TryPriority(false))
-                    .Build() as FunctionCallToken;
-                    return c.IsNot ? fcall.Not() : fcall;
-                }
-                return t;
-            }) as SqlQueryToken;
-
-            //null 等式处理
-            if (!this._context.Options.DisNullable)
-            {
-                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-                {
-                    if (t is SqlParameterToken p && p.Value == null)
-                        return LTSQLTokenFactory.CreateNullToken(p.ValueType, this._context.Options.DbType);
-                    return t;
-                }) as SqlQueryToken;
-
-                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-                {
-                    if (t is BoolCalcToken cdt && (cdt.Opration == BoolCalcToken.OPT_EQUAL || cdt.Opration == BoolCalcToken.OPT_NOT_EQUAL))
-                    {
-                        string opt = cdt.Opration == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
-
-                        if (cdt.Left is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Right, cdt.Left);
-                        else if (cdt.Right is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Left, cdt.Right);
-                    }
-                    return t;
-                }) as SqlQueryToken;
-            }
-
+            sqlToken = sqlToken.ChangeType(typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType)) as SqlQueryToken;
+            sqlToken = this.PostTranslate(sqlToken) as SqlQueryToken;
             return sqlToken;
         }
 
@@ -740,19 +784,8 @@ namespace MNet.LTSQL
         protected override Expression VisitParameter(ParameterExpression node)
         {
             LTSQLToken token = this.PopParameterToken(node);
-            PrefixPropToken prefix = token as PrefixPropToken;
-            if (prefix != null)
-            {
-                TableDescriptor tableDescriptor = prefix.TableRefs.GetTableRef(node.Name);
-                if (tableDescriptor == null)
-                    throw new Exception($"无法解析参数节点：{node}");
-
-                if (tableDescriptor.IsHide)
-                    this.PushToken(new PrefixPropToken(node.Name, prefix.TableRefs));
-                else
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
-            }
-            else if (token != null)
+            //PrefixPropToken prefix = token as PrefixPropToken;
+            if (token != null)
             {
                 //外部转换优先
                 if (!this.OnTranslateExpression(node, node.Type))
@@ -764,14 +797,15 @@ namespace MNet.LTSQL
                 if (!this.OnTranslateExpression(node, node.Type))
                 {
                     //确定参数范围
-                    TableDescriptor tableDescriptor = this.GetRootTableAliasMapping(node.Name);
-                    if (tableDescriptor == null)
+                    LTSQLToken ptoken = this.GetRootTableAliasMapping(node.Name);
+                    if (ptoken == null)
                         throw new Exception($"无法解析参数节点：{node}");
 
-                    if (tableDescriptor.IsHide)
-                        this.PushToken(new PrefixPropToken(node.Name, this._context.TableRefs));
-                    else
-                        this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
+                    this.PushToken(ptoken);
+                    //if (tableDescriptor.IsHide)
+                    //    this.PushToken(new PrefixPropToken(node.Name, this._context.TableRefs));
+                    //else
+                    //    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
                 }
             }
 
@@ -816,30 +850,6 @@ namespace MNet.LTSQL
             if (objToken == null)
                 throw new Exception($"表达式解析结果为null:{node}");
 
-            //表名转换
-            if (objToken is PrefixPropToken prefix)
-            {
-                TableDescriptor descriptor = prefix.TableRefs.GetTableRef(memberName);
-                if (descriptor == null)
-                    throw new Exception($"无法解析成员：{memberName}. ([{node}])");
-
-                //忽略掉 join 过程中的 属性前缀链
-                if (descriptor.IsHide)
-                {
-                    this.PushToken(new PrefixPropToken($"{prefix.ObjPrefix}.{memberName}", prefix.TableRefs));
-                }
-                // join 过程中的 属性前缀链 转化成表名
-                else
-                {
-                    //外部对表达式树翻译
-                    if (this.OnTranslateExpression(node, node.Type))
-                        return expr;
-
-                    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias, descriptor, node.Type));
-                }
-            }
-            //字段访问
-            else
             {
                 //外部对表达式树翻译
                 if (this.OnTranslateExpression(node, node.Type))
@@ -865,15 +875,9 @@ namespace MNet.LTSQL
                     if (this.OnTranslateMember(node.Member, null, node.Expression.Type, node, node.Type, objToken, null))
                         return expr;
 
-                    if (objToken is GroupObjToken gpobj && memberName == nameof(IGrouping<object, object>.Key))
+                    if (objToken is ITupleable tuple)
                     {
-                        //IGrouping.Key 的访问转换为分组依据元组的访问
-                        this.PushToken(gpobj.GroupKey);
-                    }
-                    else if (objToken is TupleToken tuple)
-                    {
-                        //string fieldName = this.OnGetColumnName(tuple.ValueType, null, node.Member);
-                        LTSQLToken prop = tuple.GetValue(memberName);
+                        LTSQLToken prop = tuple[memberName];
                         if (prop == null)
                             throw new Exception($"没有找到对应属性的解析结果, 表达式解析失败: {node}");
 
@@ -882,31 +886,10 @@ namespace MNet.LTSQL
                     }
                     else
                     {
-                        TableObjectToken tpb = objToken as TableObjectToken;
-                        if (tpb is not null && (tpb[memberName] is ITupleable subTuple))
-                        {
-                            //if (subTuple is GroupObjToken gp)
-                            //{
-                            //    this.PushToken(gp);
-                            //}
-                            //else
-                            {
-                                //字段收缩，跳过隐藏字段访问
-                                TableDescriptor descriptor = new TableDescriptor(tpb.Descriptor.TableName, tpb.Descriptor.Alias, subTuple.MappingType);
-                                foreach ((string key, LTSQLToken val) in subTuple)
-                                    descriptor.AddField(new FieldDescriptor(key, val, subTuple.GetValueType(key)));
-
-                                tpb = new TableObjectToken(tpb.Alias, descriptor, tpb.ValueType);
-                                this.PushToken(tpb);
-                            }
-
-                        }
-                        else
-                        {
-                            //对象访问
-                            string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
-                            this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
-                        }
+                        //对象访问
+                        //或者透明对象访问到头了
+                        string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
+                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
                     }
                 }
             }
@@ -1033,8 +1016,8 @@ namespace MNet.LTSQL
             {
                 LTSQLToken[] bindProps = this.PopAsParamters(node.Bindings.Count);
                 TupleToken tuple = this.PopToken() as TupleToken;
+                tuple = LTSQLTokenFactory.CreateTupleToken(tuple);
 
-                tuple.ValueType = node.Type;
                 for (int i = 0; i < node.Bindings.Count; i++)
                 {
                     PropertyInfo prop = node.Bindings[i].Member as PropertyInfo;
@@ -1190,8 +1173,7 @@ namespace MNet.LTSQL
                 }
                 else if (value is ValueToken v)
                 {
-                    v.ValueType = node.Type;
-                    this.PushToken(value);
+                    this.PushToken(v.ChangeType(node.Type));
                 }
                 else
                 {

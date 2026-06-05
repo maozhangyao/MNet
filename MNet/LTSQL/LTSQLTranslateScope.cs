@@ -11,11 +11,13 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(context));
                 
             this.Context = context;
+            this.ScopeId = Guid.NewGuid().ToString("N");
         }
 
+        public string ScopeId { get; private set; }
+        public LTSQLContext Context { get; }
         public LTSQLTranslateScope Parent { get; private set; }
-        public LTSQLContext Context { get;}
-
+        
 
         public LTSQLTranslateScope NewScope()
         {

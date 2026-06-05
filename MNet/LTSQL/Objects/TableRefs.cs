@@ -73,8 +73,6 @@ namespace MNet.LTSQL.Objects
     {
         public TableDescriptor()
         { }
-        public TableDescriptor(string tableName) : this(tableName, null)
-        { }
         public TableDescriptor(string tableName, string alias) : this(tableName, alias, null)
         { }
         public TableDescriptor(string tableName, string alias, Type type)

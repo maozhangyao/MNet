@@ -40,7 +40,7 @@ namespace MNet.LTSQL
             if (select == null)
                 throw new Exception($"不支持的查询类型：{rts[0].GetType().Name}，非{nameof(ISelectable)}接口");
 
-            TableDescriptor descriptor = new TableDescriptor("$temp");
+            TableDescriptor descriptor = new TableDescriptor("$temp", "", select.Table.MappingType);
             foreach (var field in select.Table.Fields)
             {
                 descriptor.AddField(new FieldDescriptor(field.Field, field.Value, field.FieldValueType));

@@ -294,7 +294,7 @@ namespace LTSQLXUnitTest
             Assert.NotNull(list);
 
             // 验证没有重复的 Age 值
-            var ages = list.Select(x => ((dynamic)x).Age).Cast<int>().ToList();
+            var ages = list.Select(x => x.Age).Cast<long>().ToList();
             Assert.Equal(ages.Count, ages.Distinct().Count());
         }
 
@@ -325,7 +325,7 @@ namespace LTSQLXUnitTest
             // 验证排序正确性
             for (int i = 1; i < list.Count; i++)
             {
-                Assert.True(string.Compare(list[i - 1].Name, list[i].Name) <= 0,
+                Assert.True(string.Compare(list[i - 1].Name, list[i].Name, StringComparison.Ordinal) <= 0,
                     $"排序错误：位置 {i-1} 的 Name({list[i-1].Name}) 大于位置 {i} 的 Name({list[i].Name})");
             }
         }

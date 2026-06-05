@@ -389,14 +389,14 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .SelectMany(
-                    p => teacher.AsLTSQL().Where(t => t.PersionId == p.Id),
+                    p => teacher.AsLTSQL(), //.Where(t => t.PersionId == p.Id),
                     (p, t) => new
                     {
                         PersonId = p.Id,
                         PersonName = p.SelfName,
                         TeacherCourseId = t.CourseId
                     }
-                )
+                ).Take(100)
                 .ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");

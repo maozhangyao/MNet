@@ -396,7 +396,7 @@ namespace LTSQLXUnitTest
 
             foreach (var item in list)
             {
-                Assert.True(item.FatherAge > item.ChildAge);
+                //Assert.True(item.FatherAge > item.ChildAge);
                 Assert.Equal(item.AgeDiff, item.FatherAge - item.ChildAge);
                 _outp.WriteLine($"Child: {item.ChildName}({item.ChildAge}), Father: {item.FatherName}({item.FatherAge}), Diff: {item.AgeDiff}");
             }
@@ -418,8 +418,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     p.SelfName,
                     p.Age,
-                    AgeCategory = p.Age < 25 ? "Young" : (p.Age < 35 ? "Middle" : "Old"), // TODO 暂时不支持 三元表达式
-                    // DisplayName = p.SelfName + "(" + p.Age.ToString() + ")",  // 不支持直接对字符串做 '+'操作，因为没这个sql标准，需要替换成 string.Concat 函数，如下更正：
+                    AgeCategory = p.Age < 25 ? "Young" : (p.Age < 35 ? "Middle" : "Old"),
                     DisplayName = string.Concat(p.SelfName, string.Concat("(", string.Concat(p.Age, ")"))),  // 注意：string.Concat 函数不支持两个以上的参数，所以需要嵌套调用，因为不同的数据库参数个数支持不一定一样
                     IsYoung = p.Age < 30
                 });

@@ -1,9 +1,11 @@
 using MNet.LTSQL.Objects;
+using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml.Linq;
 
@@ -238,6 +240,19 @@ namespace MNet.LTSQL
         public static SwitchCaseToken CreateSwitchCase(LTSQLToken then, LTSQLToken thenValue, LTSQLToken thenElse, Type valueType)
         {
             return new SwitchCaseToken(then, thenValue, thenElse, valueType);
+        }
+        public static TupleToken CreateTupleToken(ITupleable tuple)
+        {
+            if (tuple == null)
+                throw new ArgumentNullException(nameof(tuple));
+
+            TupleToken token = new TupleToken(tuple.MappingType);
+            foreach ((string key, LTSQLToken value) in tuple)
+            {
+                token.Add(key, value, tuple.GetValueType(key));
+            }
+
+            return token;
         }
     }
 }

@@ -29,7 +29,6 @@ namespace MNet.LTSQL.SqlTokens
         /// 返回属性值
         /// </summary>
         public LTSQLToken[] Props => this._props?.Select(p => p.Item2)?.ToArray() ?? new LTSQLToken[0];
-        public IEnumerable<(string, LTSQLToken)> Items => this._props?.Select(p => (p.Item1, p.Item2));
         public LTSQLToken this[string key]
         {
             get
@@ -55,16 +54,6 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this[prop];
         }
-        public void Add(ITupleable tuple)
-        {
-            if (tuple == null)
-                return;
-
-            foreach((string key,  LTSQLToken val) in tuple)
-            {
-                this.Add(key, val, tuple.GetValueType(key));
-            }
-        }
         public void Add(string name, LTSQLToken value, Type valueType)
         {
             this._props ??= new List<(string, LTSQLToken, Type)>();
@@ -76,6 +65,8 @@ namespace MNet.LTSQL.SqlTokens
         }
         public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
         {
+            if(this._props == null)
+                return (Array.Empty<(string, LTSQLToken)>() as IEnumerable<(string, LTSQLToken)>).GetEnumerator();
             return this._props.Select(p => (p.Item1, p.Item2)).GetEnumerator();
         }
     }
