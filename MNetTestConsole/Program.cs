@@ -52,7 +52,7 @@ using UnitTestModel;
 //ConsoleHelper.WriteLineWithYellow(query2.ToSql(DbTypes.SQLLite, out _, false));
 
 
-//// 联合查询操作(union all)
+//// 联合查询操作(union all)， 由于查询1与查询1字段不一致，所以无法执行查询，仅作sql生成展示
 //var query3 = query1.UnionSet(query2, distinct: false);
 //Console.WriteLine();
 //Console.WriteLine("联合查询操作(union all)：");
