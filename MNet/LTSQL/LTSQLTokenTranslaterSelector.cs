@@ -84,113 +84,84 @@ namespace MNet.LTSQL
             // 聚合函数 SUM
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                MethodInfo sumMethod = ctx.Member as MethodInfo;
-                if (sumMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Sum))
-                    return;
-                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
-                    return;
-                if (ctx.MethodParameterTokenList.IsEmpty())
-                    return;
-
-                // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
-                LTSQLToken inst = ctx.MethodParameterTokenList[0];
-                if (inst == null)
-                    return;
-
-                if (inst is GroupObjToken gpObj)
+                MethodInfo mthd = ctx.Member as MethodInfo;
+                if (ctx.TranslateExpr is MethodCallExpression callExpr)
                 {
-                    LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("SUM", parameters, sumMethod.ReturnType);
+                    if (ctx.MethodParameterTokenList.IsEmpty())
+                        return;
+                    if (mthd == null || ctx.Owner != null)
+                        return;
+                    if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                        return;
+
+                    string sqlFunc = "";
+                    string extdName = "";
+                    string mthdName = ctx.Member.Name;
+                    string sum = nameof(Enumerable.Sum);
+                    string max = nameof(Enumerable.Max);
+                    string min = nameof(Enumerable.Min);
+                    string avg = nameof(Enumerable.Average);
+                    string cnt = nameof(Enumerable.Count);
+                    string lcnt = nameof(Enumerable.LongCount);
+
+                    bool flag = true;
+                    if (mthdName == sum)
+                    {
+                        sqlFunc = "SUM";
+                        extdName = nameof(LTSQLQueryableExtensions.WithSum);
+                    }
+                    else if (mthdName == max)
+                    {
+                        sqlFunc = "MAX";
+                        extdName = nameof(LTSQLQueryableExtensions.WithMax);
+                    }
+                    else if (mthdName == min)
+                    {
+                        sqlFunc = "MIN";
+                        extdName = nameof(LTSQLQueryableExtensions.WithMin);
+                    }
+                    else if (mthdName == avg)
+                    {
+                        sqlFunc = "AVG";
+                        extdName = nameof(LTSQLQueryableExtensions.WithAverage);
+                    }
+                    else if (mthdName == cnt)
+                    {
+                        sqlFunc = "COUNT";
+                        extdName = nameof(LTSQLQueryableExtensions.WithCount);
+                    }
+                    else if (mthdName == lcnt)
+                    {
+                        sqlFunc = "COUNT";
+                        extdName = nameof(LTSQLQueryableExtensions.WithLongCount);
+                    }
+                    else
+                    {
+                        flag = false;
+                    }
+
+                    if (!flag)
+                        return;
+
+                    // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
+                    LTSQLToken inst = ctx.MethodParameterTokenList[0];
+                    if (inst == null)
+                        return;
+
+                    if (inst is GroupObjToken gpObj)
+                    {
+                        LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
+                        if((mthdName == cnt || mthdName == lcnt) && parameters.IsEmpty())
+                            parameters = new[] { SyntaxToken.Create("*") };
+                        
+                        ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken(sqlFunc, parameters, mthd.ReturnType);
+                    }
+                    else if (inst.TryGetSqlQueryable(out ILTSQLObjectQueryable query))
+                    {
+                        ILTSQLObjectQueryable newQuery = (ILTSQLObjectQueryable)InvokeCommonGroupMethod(extdName, callExpr, query);
+                        ctx.ResultToken = ctx.TokenSqlParameter(newQuery);
+                    }
                 }
-                else if (inst.TryGetSqlQueryable(out ILTSQLObjectQueryable query))
-                {
-                    MethodCallExpression callExpr = ctx.TranslateExpr as MethodCallExpression;
-
-                    MethodInfo[] methods = typeof(LTSQLQueryableExtensions).GetMethods()
-                        .Where(p => p.Name == nameof(LTSQLQueryableExtensions.WithSum))
-                        .Where(p => p.ReturnType.GetGenericArguments()[0] == sumMethod.ReturnType)
-                        .ToArray();
-                    
-                    //调用 WithSum
-                    query = (ILTSQLObjectQueryable)methods[0].MakeGenericMethod(callExpr.Method.GetGenericArguments()[0]).Invoke(null, new object [] { query, callExpr.Arguments[1] });
-                    ctx.ResultToken = ctx.TokenSqlParameter(query);
-                }
-            });
-
-
-            // 聚合函数 MAX
-            defaultTranslater.UseMemberTranslate(ctx =>
-            {
-                MethodInfo maxMethod = ctx.Member as MethodInfo;
-                if (maxMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Max))
-                    return;
-                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
-                    return;
-                if (ctx.MethodParameterTokenList.IsEmpty())
-                    return;
-
-                // MAX 是扩展方法，所以该方法的第一个参数表示实例对象
-                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
-                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                if (groupObj != null)
-                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("MAX", parameters, maxMethod.ReturnType);
-            });
-
-
-            // 聚合函数 MIN
-            defaultTranslater.UseMemberTranslate(ctx =>
-            {
-                MethodInfo minMethod = ctx.Member as MethodInfo;
-                if (minMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Min))
-                    return;
-                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
-                    return;
-                if (ctx.MethodParameterTokenList.IsEmpty())
-                    return;
-
-                // MIN 是扩展方法，所以该方法的第一个参数表示实例对象
-                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
-                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                if (groupObj != null)
-                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("MIN", parameters, minMethod.ReturnType);
-            });
-
-
-            // 聚合函数 AVG
-            defaultTranslater.UseMemberTranslate(ctx =>
-            {
-                MethodInfo avgMethod = ctx.Member as MethodInfo;
-                if (avgMethod == null || ctx.Owner != null || ctx.Member.Name != nameof(Enumerable.Average))
-                    return;
-                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
-                    return;
-                if (ctx.MethodParameterTokenList.IsEmpty())
-                    return;
-
-                // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
-                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
-                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                if (groupObj != null)
-                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("AVG", parameters, avgMethod.ReturnType);
-            });
-
-
-            // 聚合函数 COUNT
-            defaultTranslater.UseMemberTranslate(ctx =>
-            {
-                MethodInfo cntMethod = ctx.Member as MethodInfo;
-                if (cntMethod == null || ctx.Owner != null || (ctx.Member.Name != nameof(Enumerable.Count) && ctx.Member.Name != nameof(Enumerable.LongCount)))
-                    return;
-                if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
-                    return;
-                if (ctx.MethodParameterTokenList.IsEmpty())
-                    return;
-
-                // COUNT 是扩展方法，所以该方法的第一个参数表示实例对象
-                GroupObjToken groupObj = ctx.MethodParameterTokenList[0] as GroupObjToken;
-                LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                if (groupObj != null)
-                    ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken("COUNT", (parameters.IsEmpty() ? new[] { SyntaxToken.Create("*") } : parameters), cntMethod.ReturnType);
             });
 
 
@@ -367,7 +338,6 @@ namespace MNet.LTSQL
             InitForDatetime(defaultTranslater);
             return defaultTranslater;
         }
-
         private static LTSQLTokenTranslaterSelector InitForString(LTSQLTokenTranslaterSelector defaultTranslater)
         {
             // 字符串 Length 函数
@@ -496,7 +466,6 @@ namespace MNet.LTSQL
 
             return defaultTranslater;
         }
-
         private static LTSQLTokenTranslaterSelector InitForDatetime(LTSQLTokenTranslaterSelector defaultTranslater)
         {
             // 日期时间函数：Year / Month / Day / Hour / Minute / Second / ToString
@@ -537,6 +506,59 @@ namespace MNet.LTSQL
             });
 
             return defaultTranslater;
+        }
+
+
+        //通用分组方法调用
+        private static object InvokeCommonGroupMethod(string gpMethod, MethodCallExpression callExpr, ILTSQLObjectQueryable qInst)
+        {
+            int argsLen = callExpr.Arguments.Count;
+
+            Expression aggExpr = argsLen < 2 ? null : callExpr.Arguments[1]; // 聚合的lambda
+            Type selectorValueType = argsLen < 2 ? null : aggExpr.AsLambda().ReturnType; // 需要聚合的类型
+            Type entityType = callExpr.Method.GetGenericArguments()[0]; //实体类型
+            Type aggRetType = callExpr.Method.ReturnType;// 聚合之后的值的类型
+
+            MethodInfo m = GetExtMethod(gpMethod, m =>
+            {
+                var paras = m.GetParameters();
+                if (paras.Length != argsLen)
+                    return false;
+
+                //扩展方法：所以至少有一个参数有的
+                if (argsLen < 2)
+                    return m.ReturnType.GetGenericArguments()[0] == aggRetType;
+
+                //聚合值的类型(注意：聚合值和聚合后的值类型不一定一样)
+                Type t = paras[1].ParameterType.GetGenericArguments()[0].GetGenericArguments()[1];
+                return m.ReturnType.GetGenericArguments()[0] == aggRetType && t == selectorValueType;
+            });
+
+            if (argsLen == 1)
+                return InvokeExtMethod(m, new[] { entityType }, qInst);
+            return InvokeExtMethod(m, new[] { entityType }, qInst, aggExpr);
+        }
+        private static MethodInfo GetExtMethod(string gpMethod, Func<MethodInfo, bool> where)
+        {
+            MethodInfo[] ms = typeof(LTSQLQueryableExtensions).GetMethods()
+                .Where(p => p.Name == gpMethod)
+                .Where(p => where(p))
+                .ToArray();
+
+            if (ms.IsEmpty())
+                throw new Exception($"{gpMethod}方法未找到。");
+            if (ms.Length != 1)
+                throw new Exception($"{gpMethod}方法匹配到多个无法确定唯一。");
+
+            return ms[0];
+        }
+        private static object InvokeExtMethod(MethodInfo mthd, Type[] makeTypes, params object[] args)
+        {
+            if (makeTypes.IsNotEmpty())
+            {
+                mthd = mthd.MakeGenericMethod(makeTypes);
+            }
+            return mthd.Invoke(null, args);
         }
     }
 }

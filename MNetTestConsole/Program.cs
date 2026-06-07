@@ -59,11 +59,19 @@ CPersionT p = new CPersionT();
 //Console.WriteLine("联合查询操作(union all)：");
 //ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite, out _, false));
 
-var a = new { }.AsSelect(_ => new
-{
-    s = p.AsSelect().Sum(p => p.Age)
-});
-string sql = a.ToSql(DbTypes.SQLLite, out _, false);
+//var a = new { }.AsSelect(_ => new
+//{
+//    sum = p.AsSelect().Sum(p => p.Age),
+//    max = p.AsSelect().Max(p => p.Age),
+//    min = p.AsSelect().Min(p => p.Age),
+//    avg = p.AsSelect().Average(p => p.Age),
+//    cnt = p.AsSelect().Count(),
+//    lcnt = p.AsSelect().LongCount(p => 1 == 1),
+//});
+//string sql = a.ToSql(DbTypes.SQLLite, out _, false);
+
+
 Console.WriteLine(sql);
+
 
 return 0;
