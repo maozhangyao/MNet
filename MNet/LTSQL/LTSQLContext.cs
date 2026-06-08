@@ -17,7 +17,6 @@ namespace MNet.LTSQL
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
 
-        public TableRefs TableRefs { get; set; }
         public SqlQueryPart Root { get; set; }
         public string RootParameterName { get; private set; }
         public LTSQLToken RootParameterToken { get; private set; }

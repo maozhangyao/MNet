@@ -19,10 +19,7 @@ namespace MNet.LTSQL.SqlTokens
 
         public string Value { get; set; }
 
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new ConstantToken(this.Value, this.ValueType) { IsPriority = isPriority };
-        }
+        
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitConstantToken(this);

@@ -32,7 +32,7 @@ namespace MNet.LTSQL
 
         //成员(字段/属性/方法)
         public MemberInfo Member { get; set; }
-        //成员所在的实例，对于调用静态成员，该属性为nul
+        //成员所在的实例，对于调用静态成员，该属性为null
         public object? Owner { get; set; }
         //成员所在的实例的类型
         public Type OwnerType { get; set; }

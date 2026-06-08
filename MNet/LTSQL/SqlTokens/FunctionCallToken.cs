@@ -28,10 +28,6 @@ namespace MNet.LTSQL.SqlTokens
         {
             return new FunctionCallToken(this.FunctionObject, this.Parameters, this.ValueType, !this.IsNot);
         }
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new FunctionCallToken(this.FunctionObject, this.Parameters, this.ValueType, this.IsNot) { IsPriority = isPriority };
-        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

@@ -40,11 +40,6 @@ namespace MNet.LTSQL.SqlTokens
         public readonly static string OPT_LESS_OR_EQUAL = "<=";
 
 
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new BinaryToken(this.Opration, this.Left, this.Right, this.ValueType, isPriority);
-        }
-
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitBinaryToken(this);

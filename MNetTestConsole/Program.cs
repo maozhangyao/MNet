@@ -9,7 +9,7 @@ using MNet.LTSQL.Attributes;
 using UnitTestModel;
 using System.Security.Cryptography.X509Certificates;
 
-CPersionT p = new CPersionT();
+//CPersionT p = new CPersionT();
 
 //// 基础内连接查询 + 子查询 + 元组in匹配
 //var query1 = (from p1 in p.AsLTSQL()

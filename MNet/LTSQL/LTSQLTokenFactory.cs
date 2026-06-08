@@ -174,14 +174,13 @@ namespace MNet.LTSQL
         {
             return new PageToken(skip, take);
         }
-        //public static PriorityCalcToken CreatePriorityCalcToken(LTSQLToken inner)
-        //{
-        //    if (inner == null)
-        //        throw new ArgumentNullException(nameof(inner));
+        public static PriorityCalcToken CreatePriorityCalcToken(LTSQLToken inner)
+        {
+            if (inner == null)
+                throw new ArgumentNullException(nameof(inner));
 
-        //    return new PriorityCalcToken(inner);
-        //}
-
+            return new PriorityCalcToken(inner);
+        }
         public static BinaryToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
             return CreateBinaryToken("+", left, right, typeOfValue, true);

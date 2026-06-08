@@ -23,7 +23,7 @@ namespace MNet.LTSQL
         public Func<object, SqlWriterContext, string> Obj2SqlPart { get; set; }
         // sql 标识符&关键字转义，常用于对表名字段名的转义，如mysql： `t1`.`Name`, sql server：[t1].[Name]
         public Func<string, SqlWriterContext, string> SqlKeyWordEscape { get; set; }
-        public SqlBuilderContext BuildContext { get; set; }
+        public SqlBuilderOptions BuildContext { get; set; }
 
         public void AddParameter(string key, object value)
         {

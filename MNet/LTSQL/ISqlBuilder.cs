@@ -1,4 +1,4 @@
-﻿using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.SqlTokens;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -11,6 +11,6 @@ namespace MNet.LTSQL
     /// </summary>
     public interface ISqlBuilder
     {
-        void Build(LTSQLToken token, SqlBuilderContext context);
+        void Build(LTSQLToken token, SqlBuilderOptions context);
     }
 }

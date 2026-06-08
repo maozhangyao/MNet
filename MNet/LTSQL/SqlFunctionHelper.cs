@@ -1,6 +1,8 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 using MNet.LTSQL.SqlTokens;
+using MNet.Utils;
 
 namespace MNet.LTSQL
 {
@@ -338,7 +340,13 @@ namespace MNet.LTSQL
 
             return builder;
         }
-
+        /// <summary>
+        /// COALESCE 函数，返回首个非空值
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="fReturn"></param>
+        /// <param name="args"></param>
+        /// <returns></returns>
         public static FunctionTokenBuilder CoalesceFunction(DbTypes db, Type fReturn, params LTSQLToken[] args)
         {
             FunctionTokenBuilder builder = new FunctionTokenBuilder();
@@ -346,6 +354,87 @@ namespace MNet.LTSQL
             .WithFunctionArgs(args);
 
             return builder;
+        }
+
+        public static FunctionTokenBuilder StringConcatFunction(DbTypes db, params LTSQLToken[] strs)
+        {
+            if (strs.IsEmpty() || strs.Length < 2)
+                throw new Exception("字符串拼接函数入参个数至少为2");
+
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            if (db == DbTypes.SQLLite || db == DbTypes.MSSQL || db == DbTypes.Oracle || db == DbTypes.PGSQL)
+            {
+                builder.WithFunctionName("CONCAT", typeof(string));
+                builder.WithFunctionArgs(strs);
+                builder.UseRecursionCall((s, q) => {
+                    q.Enqueue(s.Pop());
+                    q.Enqueue(s.Pop());
+                }, false);
+            }
+            else if (db == DbTypes.MySQL)
+            {
+                List<LTSQLToken> args = new List<LTSQLToken>();
+                args.Add(LTSQLTokenFactory.CreateConstantToken("", db, typeof(string)));
+                args.AddRange(args);
+             
+                builder.WithFunctionName("CONCAT_WS", typeof(string));
+                builder.WithFunctionArgs(args.ToArray());
+            }
+            else
+                throw UnknownDb(db);
+
+            return builder;
+        }
+        public static FunctionTokenBuilder StringLengthFunction(DbTypes db, LTSQLToken str)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            if (db == DbTypes.MSSQL)
+                builder.WithFunctionName("LEN", typeof(int));
+            else if(db == DbTypes.MySQL)
+                builder.WithFunctionName("CHAR_LENGTH", typeof(int));
+            else
+                builder.WithFunctionName("LENGTH", typeof(int));
+
+            return builder.WithFunctionArgs(str);
+        }
+        public static FunctionTokenBuilder StringSubstrFunction(DbTypes db, LTSQLToken str, LTSQLToken pos, LTSQLToken len)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            if (db == DbTypes.SQLLite || db == DbTypes.Oracle)
+                builder.WithFunctionName("SUBSTR", typeof(string));
+            else if (db == DbTypes.MySQL || db == DbTypes.MSSQL || db == DbTypes.PGSQL)
+                builder.WithFunctionName("SUBSTRING", typeof(string));
+            else
+                throw UnknownDb(db);
+
+            builder.WithFunctionArgs(pos, len);
+            return builder;
+        }
+        public static FunctionTokenBuilder StringTrimLFunction(DbTypes db, LTSQLToken str)
+        {
+            return new FunctionTokenBuilder().WithFunctionName("LTRIM", typeof(string)).WithFunctionArgs(str);
+        }
+        public static FunctionTokenBuilder StringTrimRFunction(DbTypes db, LTSQLToken str)
+        {
+            return new FunctionTokenBuilder().WithFunctionName("RTRIM", typeof(string)).WithFunctionArgs(str);
+        }
+        public static FunctionTokenBuilder StringTrimFunction(DbTypes db, LTSQLToken str)
+        {
+            return StringTrimRFunction(db,
+                     StringTrimLFunction(db, str).Build()
+                );
+        }
+        public static FunctionTokenBuilder StringLikeLConcat(DbTypes db, LTSQLToken str)
+        {
+            return StringConcatFunction(db, str, LTSQLTokenFactory.CreateConstantToken("%", db));
+        }
+        public static FunctionTokenBuilder StringLikeRConcat(DbTypes db, LTSQLToken str)
+        {
+            return StringConcatFunction(db, LTSQLTokenFactory.CreateConstantToken("%", db), str);
+        }
+        public static FunctionTokenBuilder StringLikeConcat(DbTypes db, LTSQLToken str)
+        {
+            return StringConcatFunction(db, LTSQLTokenFactory.CreateConstantToken("%", db), str, LTSQLTokenFactory.CreateConstantToken("%", db));
         }
     }
 }

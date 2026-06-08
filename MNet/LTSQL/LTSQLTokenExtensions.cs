@@ -42,12 +42,6 @@ namespace MNet.LTSQL
             return _new;
         }
 
-        public static bool IsSqlQueryable(this LTSQLToken token)
-        {
-            if (token == null)
-                throw new ArgumentNullException(nameof(token));
-            return token is ISelectable || (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable);
-        }
         public static bool TryGetSqlQueryable(this LTSQLToken token, out ILTSQLObjectQueryable queryable)
         {
             if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable q)

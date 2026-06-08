@@ -38,10 +38,6 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken ThenElse { get; }
 
 
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new SwitchCaseToken(this.When, this.ThenValue, this.ThenElse, this.ValueType) { IsPriority = isPriority };
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSwitchCaseToken(this);

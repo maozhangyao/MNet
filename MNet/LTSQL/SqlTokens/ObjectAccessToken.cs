@@ -18,10 +18,6 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken Object { get; }
 
 
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new ObjectAccessToken(this.Object, this.Prop, this.ValueType) { IsPriority = isPriority };
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitObjectAccessToken(this);

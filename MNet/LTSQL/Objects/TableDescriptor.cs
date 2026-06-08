@@ -5,54 +5,6 @@ using System.Runtime.InteropServices;
 
 namespace MNet.LTSQL.Objects
 {
-    public class TableRefs
-    {
-        //key:参数名
-        private Dictionary<string, TableDescriptor> _refs
-            = new Dictionary<string, TableDescriptor>();
-
-        public bool Is()
-        {
-            return false;
-        }
-        public TableDescriptor GetTableRef(string parameterName)
-        {
-            return this._refs.TryGetValue(parameterName, out var v) ? v : null;
-        }
-        public void AddTableRef(string parameterName, TableDescriptor value)
-        {
-            if (string.IsNullOrEmpty(parameterName))
-                throw new ArgumentNullException(nameof(parameterName));
-            if (this._refs.ContainsKey(parameterName))
-                throw new Exception("重复添加表格信息");
-
-            this._refs.Add(parameterName, value);
-        }
-        public TableDescriptor BuildNewMeger(string alias)
-        {
-            TableDescriptor newTable = new TableDescriptor(null, alias);
-            foreach (var kvp in this._refs)
-            {
-                TableDescriptor tableDescriptor = kvp.Value;
-                if (tableDescriptor.IsHide)
-                    continue;
-
-                string tableAlias = tableDescriptor.Alias;
-                foreach (FieldDescriptor field in tableDescriptor.Fields)
-                {
-                    newTable.AddField(new FieldDescriptor(field.Field,
-                        LTSQLTokenFactory.CreateAccessToken(
-                                LTSQLTokenFactory.CreateTableObjectToken(tableAlias, tableDescriptor, tableDescriptor.MappingType),
-                                field.Field,
-                                field.FieldValueType
-                            )
-                        , field.FieldValueType));
-                }
-            }
-            return newTable;
-        }
-    }
-
     public class FieldDescriptor
     {
         public FieldDescriptor()
@@ -83,14 +35,12 @@ namespace MNet.LTSQL.Objects
         }
         public TableDescriptor(string tableName, bool isHide)
         {
-            this.IsHide = isHide;
             this.TableName = tableName;
         }
         public TableDescriptor(TableDescriptor other)
         {
             this.TableName = other.TableName;
             this.Alias = other.Alias;
-            this.IsHide = other.IsHide;
             this.MappingType = other.MappingType;
             foreach (FieldDescriptor field in other.Fields)
             {
@@ -102,7 +52,6 @@ namespace MNet.LTSQL.Objects
         private List<FieldDescriptor> _fields = new List<FieldDescriptor>();
 
 
-        public bool IsHide { get; }
         public string Alias { get; set; }
         public string TableName { get; set; }
         public IEnumerable<FieldDescriptor> Fields => this._fields;

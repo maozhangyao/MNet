@@ -300,7 +300,7 @@ namespace MNet.LTSQL
                 TableObjectToken t2 = LTSQLTokenFactory.CreateTableObjectToken(jTbDescriptor.Alias ?? jTbDescriptor.TableName, jTbDescriptor, jTbDescriptor.MappingType);
 
                 //解析透明表结构
-                descriptor = new TableDescriptor(parameterName, true);
+                descriptor = new TableDescriptor(parameterName, null);
                 LTSQLToken tbMerge = this.TranslateLambda(join.JoinObject.AsLambda(), t1, t2);
                 if (tbMerge is ITupleable)
                 {
@@ -680,13 +680,10 @@ namespace MNet.LTSQL
             string root = null;
             this.BeforeTranslate(ref root);
 
-            TableRefs refs = new TableRefs();
             SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
             LTSQLToken parameterObj = null;
             TableDescriptor descriptor = null;
-
-            this._context.TableRefs = refs;
 
             //from, 注意存在单独的select 语句：select 1
             //from 是可能null的

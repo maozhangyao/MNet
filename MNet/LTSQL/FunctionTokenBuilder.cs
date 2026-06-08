@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlTokens;
 
@@ -44,6 +44,7 @@ namespace MNet.LTSQL
                 return this;
             }
 
+            //参数顺序
             this._rangingArgs = (args) =>
             {
                 Stack<LTSQLToken> stack = new Stack<LTSQLToken>();
@@ -60,13 +61,14 @@ namespace MNet.LTSQL
                 return stack;
             };
 
+            //参数使用
             this._takingArgs = takingArgs;
             return this;
         }
 
         public LTSQLToken Build()
         {
-            LTSQLToken func = LTSQLTokenFactory.CreateFunctionCallToken(this._funcName, null, _typeOfValue); 
+            LTSQLToken func = LTSQLTokenFactory.CreateFunctionCallToken(this._funcName, null, _typeOfValue);  //默认无参函数调用
             Queue<LTSQLToken> use = new Queue<LTSQLToken>();
             Stack<LTSQLToken> all = this._rangingArgs != null ? this._rangingArgs(this._funcArgs) : new Stack<LTSQLToken>();
 

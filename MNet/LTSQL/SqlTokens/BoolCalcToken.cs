@@ -74,10 +74,6 @@ namespace MNet.LTSQL.SqlTokens
                 
             throw new Exception($"操作符：{opt}不支持Not取反操作。");
         }
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new BoolCalcToken(this.Left, this.Right, this.Opration, this.IsNot, isPriority);
-        }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitBoolCalcToken(this);

@@ -48,15 +48,7 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this.Table?.GetField(key)?.FieldValueType;
         }
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            return new DataSetToken(this.ValueType, this.Querys, this.SetType, this.Distinct)
-            {
-                IsPriority = isPriority,
-                Table = this.Table
-            };
-        }
-
+     
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

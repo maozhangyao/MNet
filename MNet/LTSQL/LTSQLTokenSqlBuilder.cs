@@ -392,7 +392,7 @@ namespace MNet.LTSQL
         /// </summary>
         /// <param name="token"></param>
         /// <param name="context"></param>
-        public void Build(LTSQLToken token, SqlBuilderContext context)
+        public void Build(LTSQLToken token, SqlBuilderOptions context)
         {
             SqlWriterContext writerCxt = new SqlWriterContext();
             writerCxt.DbType = context.DbType;

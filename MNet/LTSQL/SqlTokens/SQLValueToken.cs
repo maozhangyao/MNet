@@ -10,7 +10,9 @@ namespace MNet.LTSQL.SqlTokens
 
         public virtual IPriorable SetPriority(bool isPriority)
         {
-            throw new NotImplementedException($"类型{this.GetType().FullName}未实现虚方法{nameof(SqlValueToken)}.{nameof(SqlValueToken.SetPriority)}");
+            SqlValueToken t = this.LiteClone() as SqlValueToken;
+            t.IsPriority = isPriority;
+            return t;
         }
     }
 }

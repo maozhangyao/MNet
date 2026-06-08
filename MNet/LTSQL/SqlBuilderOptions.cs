@@ -7,7 +7,7 @@ namespace MNet.LTSQL
     /// <summary>
     /// sql builder 上下文
     /// </summary>
-    public class SqlBuilderContext
+    public class SqlBuilderOptions
     {
         public DbTypes DbType { get; set; }
         public bool UseParameter { get; set; }

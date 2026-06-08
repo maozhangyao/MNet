@@ -18,18 +18,24 @@ namespace MNet.LTSQL.SqlTokens
         }
 
 
-        public LTSQLToken this[string key] => this.Table?.Fields?.FirstOrDefault(p => p.Field == key)?.Value;
+        //from
         public LTSQLToken From { get; set; }
+        //where
         public LTSQLToken Where { get; set; }
+        //group
         public LTSQLToken Group { get; set; }
+        //having
         public LTSQLToken Having { get; set; }
+        //order
         public LTSQLToken Order { get; set; }
+        //select
         public LTSQLToken Select { get; set; }
         //分页子句
         public LTSQLToken Page { get; set; }
+
         public Type MappingType => base.ValueType;
-        
         public TableDescriptor Table { get; set; }
+        public LTSQLToken this[string key] => this.Table?.Fields?.FirstOrDefault(p => p.Field == key)?.Value;
 
 
         public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
@@ -43,12 +49,6 @@ namespace MNet.LTSQL.SqlTokens
         public Type GetValueType(string key)
         {
             return this.Table.Fields?.FirstOrDefault(p => p.Field == key)?.FieldValueType;
-        }
-
-        public override IPriorable SetPriority(bool isPriority)
-        {
-            this.IsPriority = isPriority;
-            return this;
         }
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

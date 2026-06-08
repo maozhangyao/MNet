@@ -18,7 +18,7 @@ namespace MNet.LTSQL.SqlTokens
 
         public readonly string Alias;
         public readonly LTSQLToken Object;
-        
+
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
