@@ -76,7 +76,6 @@ namespace MNet.LTSQL
         {
             src = src.AsLTSQL();
             SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
-            //query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
             query.GroupFlag = true;
             query.GroupElement = (Expression<Func<T, T>>)(p => p);
 
@@ -353,23 +352,23 @@ namespace MNet.LTSQL
 
         public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
         {
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-            query = query.SetNextStep(QueryStepSeq.Page);
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Page);
             query.Skip = skip;
+            //主要是，数据库中没有独立使用Skip的场景，所以默认设置一个最大的Take值代替
+            if (query.Take == null)
+                query.Take = int.MaxValue;
+
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
         {
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-            query = query.SetNextStep(QueryStepSeq.Page);
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Page);
             query.Take = take;
             return new LTSQLObject<T>(query);
         }
         public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
         {
-            //return WithDistinct(src) as ILTSQLObjectQueryable<T>;
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-            query = query.SetNextStep(QueryStepSeq.Query);
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Query);
             query.Distinct = true;
 
             return new LTSQLObject<T>(query);
@@ -378,9 +377,7 @@ namespace MNet.LTSQL
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-
-            query = query.SetNextStep(QueryStepSeq.Where);
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Where);
             query.Wheres ??= new List<Expression>();
             query.Wheres.Add(expr);
 
@@ -435,8 +432,7 @@ namespace MNet.LTSQL
         }
         public static ILTSQLObjectQueryable<IGrouping<TKey, TElement>> GroupBy<T, TKey, TElement>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr, Expression<Func<T, TElement>> elementExpr)
         {
-            var query = (src.SqlQuery.CopyNew() as SqlQueryPart)
-                .SetNextStep(QueryStepSeq.GroupBy, false);
+            var query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy, false);
 
             query.GroupFlag = true;
             query.GroupKey = keyExpr;

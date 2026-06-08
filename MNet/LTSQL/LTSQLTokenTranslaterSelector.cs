@@ -325,11 +325,14 @@ namespace MNet.LTSQL
                     LTSQLToken token = ctx.MethodParameterTokenList[0];
                     if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable query)
                     {
-                        //调用 FirstOrDefault 之后需要调整参数
-                        MethodInfo method = ctx.Member as MethodInfo;
-                        //直接调用静态方法：LTSQLQueryableExtensions.FirstOrDefault, 其内部会做相关处理
-                        method.Invoke(null, new[] { query });
-                        ctx.ResultToken = LTSQLTokenFactory.CreateSqlParameterToken(p.ParameterName, query, method.ReturnType);
+                        MethodInfo firstOrDefaultMthd = ctx.Member as MethodInfo;
+                        MethodInfo takeMthd = typeof(LTSQLQueryableExtensions).GetMethod(nameof(LTSQLQueryableExtensions.Take))
+                            .MakeGenericMethod(firstOrDefaultMthd.GetGenericArguments()[0]);
+
+                        // Take(1)
+                        ILTSQLObjectQueryable newQuery = (ILTSQLObjectQueryable)takeMthd.Invoke(null, new object[] { query, 1 });
+                        //调用FirstOrDefault方法之后，参数类型需要调整为FirstOrDefault方法的返回值
+                        ctx.ResultToken = ctx.TokenSqlParameter(newQuery, firstOrDefaultMthd.ReturnType);
                     }
                 }
             });

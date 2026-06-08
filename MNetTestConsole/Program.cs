@@ -61,17 +61,17 @@ CPersionT p = new CPersionT();
 
 //var a = new { }.AsSelect(_ => new
 //{
-//    sum = p.AsSelect().Sum(p => p.Age),
-//    max = p.AsSelect().Max(p => p.Age),
-//    min = p.AsSelect().Min(p => p.Age),
-//    avg = p.AsSelect().Average(p => p.Age),
-//    cnt = p.AsSelect().Count(),
-//    lcnt = p.AsSelect().LongCount(p => 1 == 1),
+//    //sum = p.AsSelect().Sum(p => p.Age),
+//    //max = p.AsSelect().Max(p => p.Age),
+//    //min = p.AsSelect().Min(p => p.Age),
+//    //avg = p.AsSelect().Average(p => p.Age),
+//    //cnt = p.AsSelect().Count(),
+//    //lcnt = p.AsSelect().LongCount(p => 1 == 1),
+//    fst = p.AsSelect().FirstOrDefault()
 //});
 //string sql = a.ToSql(DbTypes.SQLLite, out _, false);
 
-
-Console.WriteLine(sql);
+//Console.WriteLine(sql);
 
 
 return 0;

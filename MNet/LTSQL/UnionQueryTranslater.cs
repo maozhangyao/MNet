@@ -28,11 +28,12 @@ namespace MNet.LTSQL
             {
                 IQueryTranslater translater = factory.Create(sub);
                 LTSQLToken ret = translater.Translate(sub, scope.NewScope())?.TryPriority(false);
-                if (sub is QuerySetPart)
+                if (sub is QuerySetPart && scope.Context.Options.DbType != DbTypes.SQLLite)
                 {
                     //如果子查询是集合操作，则需要添加优先级计算(sqllite好像不支持集合操作时加优先级运算，有点坑)
                     ret = ret is IPriorable prior && !prior.IsPriority ? prior.SetPriority(true) as LTSQLToken : ret;
                 }
+
                 rts.Add(ret);
             }
 
