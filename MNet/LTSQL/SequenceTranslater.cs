@@ -39,7 +39,7 @@ namespace MNet.LTSQL
         private Stack<LTSQLToken> _tokens;
         //复用对象，用于扩展翻译上下文，避免频繁创建对象
         private TranslateContext _templateContext;
-        private Stack<(Expression expr, LTSQLToken token)> _bufferLayer;
+        private Stack<(string expr, LTSQLToken token)> _bufferLayer;
         private string _transparentField = "transparent_field";
 
 
@@ -134,24 +134,34 @@ namespace MNet.LTSQL
         {
             this._bufferLayer.Pop();
         }
+        private string GetExpressionId(Expression expr)
+        {
+            if (expr is ParameterExpression p)
+            {
+                return $"{p.Name}[{p.Type.FullName}]";
+            }
+            return expr.GetHashCode().ToString();
+        }
         private void UseToken(Expression expr, LTSQLToken token)
         {
-            this._bufferLayer.Push((expr, token));
+            string id = this.GetExpressionId(expr);
+            this._bufferLayer.Push((id, token));
+
+            //this._layer[id] = token;
         }
         private LTSQLToken PopParameterToken(Expression expr)
         {
+            string id = this.GetExpressionId(expr);
             if (this._bufferLayer.Count > 0)
             {
-                //if (this._bufferLayer.Peek().expr == expr)
-                //    return this._bufferLayer.Peek().token;
                 foreach (var item in this._bufferLayer)
                 {
-                    if (item.expr == expr)
+                    if (item.expr == id)
                         return item.token;
                 }
             }
-
             return null;
+            //return this._layer.TryGetValue(this.GetExpressionId(expr), out var val) ? val : null;
         }
         //删除所有的表格token，将其转换为元组,并且调整为新的所属者
         private TupleToken ChangePropOwner(ITupleable tuple, ObjectToken obj)
@@ -251,6 +261,7 @@ namespace MNet.LTSQL
         {
             if(list.Length > 0)
             {
+                ParameterExpression p;
                 foreach ((Expression expr, LTSQLToken ret) in list)
                 {
                     this.UseToken(expr, ret);
@@ -1032,13 +1043,24 @@ namespace MNet.LTSQL
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
 
-            LTSQLToken right = this.PopToken().TryPriority(true);
-            LTSQLToken left  = this.PopToken().TryPriority(true);
-            if (!(right is ValueToken && left is ValueToken))
-                throw new Exception($"二元表达式左右两边的子节点无法正常表示:{node}");
-
+            LTSQLToken right = this.PopToken();
+            LTSQLToken left  = this.PopToken();
             ValueToken vall = left as ValueToken;
             ValueToken valr = right as ValueToken;
+
+            if (vall == null || valr == null)
+                throw new Exception($"二元表达式左右两边的子节点无法正常表示一个值:{node}");
+
+            if (node.NodeType == ExpressionType.Add && node.Type == typeof(string))
+            {
+                // TODO
+                LTSQLToken concat = SqlFunctionHelper.StringConcatFunction(this._context.Options.DbType, vall, valr).Build();
+                this.PushToken(concat);
+                return expr;
+            }
+
+            vall = vall.TryPriority(true) as ValueToken;
+            valr = valr.TryPriority(true) as ValueToken;
 
             //理论上也不需要验证类型是否相等，因为编译编译通过了就证明类型能够相互转换了
             if (vall.ValueType != valr.ValueType)
@@ -1226,7 +1248,7 @@ namespace MNet.LTSQL
             this._context = scope.Context;
             this._context.Root = query as SqlQueryPart;
             this._tokens = new Stack<LTSQLToken>();
-            this._bufferLayer = new Stack<(Expression expr, LTSQLToken token)>();
+            this._bufferLayer = new Stack<(string expr, LTSQLToken token)>();
 
             return this.TranslateCore();
         }

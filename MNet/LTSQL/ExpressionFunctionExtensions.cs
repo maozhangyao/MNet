@@ -9,6 +9,10 @@ namespace MNet.LTSQL
     /// </summary>
     public static class ExpressionFunctionExtensions
     {
+        public static bool? ToBool(this object val)
+        {
+            return default;
+        }
         public static int? ToInt(this object val)
         {
             return default;
@@ -22,10 +26,6 @@ namespace MNet.LTSQL
             return default;
         }
         public static decimal? ToDecimal(this object val)
-        {
-            return default;
-        }
-        public static bool? ToBoolean(this object val)
         {
             return default;
         }

@@ -382,7 +382,7 @@ namespace MNet.LTSQL
             {
                 List<LTSQLToken> args = new List<LTSQLToken>();
                 args.Add(LTSQLTokenFactory.CreateConstantToken("", db, typeof(string)));
-                args.AddRange(args);
+                args.AddRange(strs);
              
                 builder.WithFunctionName("CONCAT_WS", typeof(string));
                 builder.WithFunctionArgs(args.ToArray());

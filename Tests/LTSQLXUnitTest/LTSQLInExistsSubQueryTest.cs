@@ -472,7 +472,7 @@ namespace LTSQLXUnitTest
                 .Select(p => new { age = p.Age, name = p.SelfName });
 
             (string sql, _) = persion.AsLTSQL()
-                .Where(p => new { age = p.Age, name = p.SelfName }.In(subQuery))
+                .Where(p => new { p.Age, p.SelfName }.In(subQuery))
                 .ToSql(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");

@@ -362,7 +362,7 @@ namespace MNet.LTSQL
                 if(ctx.OwnerType == typeof(ExpressionFunctionExtensions))
                 {
                     DbTypes db = ctx.Options.DbType;
-                    if(ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToBoolean))
+                    if(ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToBool))
                     {
                         ctx.ResultToken = SqlFunctionHelper.CastToBooleanFunction(db, ctx.MethodParameterTokenList[0]).Build();
                     }
