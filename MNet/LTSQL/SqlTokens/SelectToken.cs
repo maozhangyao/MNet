@@ -9,13 +9,6 @@ namespace MNet.LTSQL.SqlTokens
         internal SelectToken()
         { }
 
-
-        // 是否 select * 
-        public bool Asterisk { get; set; }
-        //distinct 子句
-        public bool Distinct { get; set; }
-        //top 子句（sql server 专属）
-        public int? TopLimit { get; set; }
         public LTSQLToken Fields { get; set; }
 
 
@@ -27,6 +20,10 @@ namespace MNet.LTSQL.SqlTokens
         {
             this.Fields = this.Fields.Visit(visitor);
             return this;
+        }
+        public override string ToString()
+        {
+            return this.Fields.ToString();
         }
     }
 }

@@ -68,5 +68,25 @@ namespace MNet.LTSQL.SqlTokens
 
             return sub;
         }
+        protected override string ToString(string fmt)
+        {
+            StringBuilder b = new StringBuilder();
+            if (this.Select != null)
+                b.AppendLine(this.Select.ToString());
+            if (this.From != null)
+                b.AppendLine(this.From.ToString());
+            if (this.Where != null)
+                b.AppendLine(this.Where.ToString());
+            if (this.Group != null)
+                b.AppendLine(this.Group.ToString());
+            if (this.Having != null)
+                b.AppendLine(this.Having.ToString());
+            if (this.Order != null)
+                b.AppendLine(this.Order.ToString());
+            if (this.Page != null)
+                b.AppendLine(this.Page.ToString());
+
+            return string.Format(fmt, b.ToString());
+        }
     }
 }

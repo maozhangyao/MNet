@@ -1,3 +1,4 @@
+using MNet.Utils;
 using System;
 using System.Collections.Generic;
 
@@ -45,6 +46,13 @@ namespace MNet.LTSQL.SqlTokens
             }
 
             return new ClauseToken(this.ClauseName, arr, this.Metadata);
+        }
+        public override string ToString()
+        {
+            if (this.SubClause == null || this.SubClause.Length < 1)
+                return this.ClauseName;
+
+            return this.ClauseName + " " + this.SubClause.JoinAsString(" ");
         }
     }
 }

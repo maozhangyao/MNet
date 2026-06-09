@@ -4,6 +4,7 @@ using MNet.LTSQL.SqlTokenExtends;
 using System.Collections.Generic;
 using System.Collections;
 using MNet.LTSQL.Objects;
+using System.Text;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -66,6 +67,21 @@ namespace MNet.LTSQL.SqlTokens
             {
                 Table = this.Table
             };
+        }
+        protected override string ToString(string fmt)
+        {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < this.Querys.Length; i++)
+            {
+                if (i > 1)
+                {
+                    b.AppendLine();
+                    b.AppendLine(this.SetType.ToString() + (this.Distinct ? "" : "ALL"));
+                }
+                b.Append(this.Querys[i].ToString());
+            }
+
+            return string.Format(fmt, b);
         }
     }
 }

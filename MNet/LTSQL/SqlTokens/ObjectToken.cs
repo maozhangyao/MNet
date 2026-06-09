@@ -3,6 +3,7 @@ using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection.Metadata.Ecma335;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -27,6 +28,10 @@ namespace MNet.LTSQL.SqlTokens
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitObjectToken(this);
+        }
+        public override string ToString()
+        {
+            return this.Alias + $":{ObjectType}";
         }
     }
 
@@ -65,6 +70,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return visitor.VisitTableObjectToken(this);
         }
-
+        public override string ToString()
+        {
+            return $"({this.Descriptor.TableName})" + this.Alias + $":{ObjectType}";
+        }
     }
 }

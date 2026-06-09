@@ -73,5 +73,14 @@ namespace MNet.LTSQL.SqlTokens
 
             return new SequenceToken(_news);
         }
+        public override string ToString()
+        {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < this.Tokens.Length; i++)
+            {
+                b.Append(this.Tokens[i].ToString());
+            }
+            return b.ToString();
+        }
     }
 }

@@ -30,5 +30,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return new PriorityCalcToken(this.Value.Visit(visitor));
         }
+        public override string ToString()
+        {
+            return $"({this.Value.ToString()})";
+        }
     }
 }

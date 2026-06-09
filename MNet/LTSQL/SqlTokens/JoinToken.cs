@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -32,6 +33,16 @@ namespace MNet.LTSQL.SqlTokens
             var newJoinKeys = this.JoinKeys?.Visit(visitor);
 
             return new JoinToken(this.JoinType, newMainQuery, newJoinQuery, newJoinKeys);
+        }
+        public override string ToString()
+        {
+            StringBuilder b = new StringBuilder();
+            b.AppendLine(this.MainQuery.ToString());
+            b.AppendLine(this.JoinKeys.ToString());
+            b.Append(this.JoinQuery.ToString());
+            b.Append(" ON ");
+            b.AppendLine(this.JoinQuery.ToString());
+            return b.ToString();
         }
     }
 

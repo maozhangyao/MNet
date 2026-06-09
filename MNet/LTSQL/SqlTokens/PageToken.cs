@@ -28,5 +28,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this;
         }
+        public override string ToString()
+        {
+            return $"Skip {this.Skip?.ToString() ?? "NULL"} Take {this.Take?.ToString() ?? "NULL"}";
+        }
     }
 }

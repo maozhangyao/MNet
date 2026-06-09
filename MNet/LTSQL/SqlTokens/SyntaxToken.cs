@@ -32,5 +32,10 @@ namespace MNet.LTSQL.SqlTokens
             SyntaxToken[] tokens = texts.Select(txt => Create(txt)).ToArray();
             return tokens;
         }
+
+        public override string ToString() 
+        {
+            return this.EscapeKey ? $"[{this.Text}]" : this.Text;
+        }
     }
 }

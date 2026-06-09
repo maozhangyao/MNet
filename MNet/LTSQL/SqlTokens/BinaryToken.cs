@@ -50,5 +50,10 @@ namespace MNet.LTSQL.SqlTokens
             LTSQLToken right = this.Right?.Visit(visitor);
             return new BinaryToken(this.Opration, left, right, this.ValueType, this.IsPriority);
         }
+        protected override string ToString(string fmt)
+        {
+            string val = $"{this.Left} {this.Opration} {this.Right}";
+            return string.Format(fmt, val);
+        }
     }
 }

@@ -14,5 +14,13 @@ namespace MNet.LTSQL.SqlTokens
             t.IsPriority = isPriority;
             return t;
         }
+        public override string ToString()
+        {
+            return this.ToString(this.IsPriority ? "({0})" : "{0}");
+        }
+        protected virtual string ToString(string fmt)
+        {
+            return fmt;
+        }
     }
 }

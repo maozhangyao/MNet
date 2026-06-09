@@ -17,5 +17,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this;
         }
+        public override string ToString()
+        {
+            return $"Bogus({this.GetType().Name})";
+        }
     }
 }

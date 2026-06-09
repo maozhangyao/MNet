@@ -28,5 +28,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this;
         }
+        protected override string ToString(string fmt)
+        {
+            return string.Format(fmt, $"const({(this.Value == null ? "NULL" : this.Value)})");
+        }
     }
 }

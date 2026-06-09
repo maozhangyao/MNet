@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks.Sources;
 
 namespace MNet.LTSQL.SqlTokens
@@ -68,6 +69,28 @@ namespace MNet.LTSQL.SqlTokens
             if(this._props == null)
                 return (Array.Empty<(string, LTSQLToken)>() as IEnumerable<(string, LTSQLToken)>).GetEnumerator();
             return this._props.Select(p => (p.Item1, p.Item2)).GetEnumerator();
+        }
+        public override string ToString()
+        {
+            StringBuilder b = new StringBuilder();
+            b.Append("(");
+
+
+            for (int i = 0; i < this._props.Count; i++)
+            {
+                if(i > 0)
+                    b.Append(", ");
+
+                (string key, LTSQLToken val, _) = this._props[i];
+
+                b.Append(key);
+                b.Append(":　");
+                b.Append(val.ToString());
+            }
+
+            b.Append(")");
+
+            return b.ToString();
         }
     }
 }

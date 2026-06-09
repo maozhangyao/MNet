@@ -28,5 +28,10 @@ namespace MNet.LTSQL.SqlTokens
         {
             return new AliasToken(this.Object.Visit(visitor), this.Alias);
         }
+
+        public override string ToString()
+        {
+            return $"{this.Object} AS {this.Alias}";
+        }
     }
 }

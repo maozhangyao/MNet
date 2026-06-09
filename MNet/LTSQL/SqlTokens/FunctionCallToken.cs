@@ -1,7 +1,8 @@
-using System;
-using System.Linq;
-using System.Collections.Generic;
 using MNet.LTSQL.SqlTokenExtends;
+using MNet.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -41,6 +42,22 @@ namespace MNet.LTSQL.SqlTokens
                 args[i] = this.Parameters[i].Visit(visitor);
 
             return new FunctionCallToken(fObj, args, this.ValueType, this.IsNot) { IsPriority = this.IsPriority };
+        }
+        protected override string ToString(string fmt)
+        {
+            string f = this.FunctionName.ToString();
+            string p = "";
+            if (this.Parameters.IsNotEmpty())
+            {
+                for (int i = 0; i < this.Parameters.Length; ++i)
+                {
+                    if (i > 0)
+                        p += ", ";
+                    p += this.Parameters[i].ToString();
+                }
+            }
+
+            return string.Format(fmt, $"{f}({p})");
         }
     }
 }

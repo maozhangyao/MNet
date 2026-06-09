@@ -30,5 +30,10 @@ namespace MNet.LTSQL.SqlTokens
 
             return new ObjectAccessToken(newObject, this.Prop, this.ValueType) { IsPriority = this.IsPriority };
         }
+        protected override string ToString(string fmt)
+        {
+            string c = this.Object.ToString() + "." + this.Prop;
+            return string.Format(fmt, c);
+        }
     }
 }

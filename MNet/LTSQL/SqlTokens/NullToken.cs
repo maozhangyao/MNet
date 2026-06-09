@@ -22,5 +22,9 @@ namespace MNet.LTSQL.SqlTokens
                 Value = DbUtils.ToSqlPart(null, db)
             };
         }
+        protected override string ToString(string fmt)
+        {
+            return string.Format(fmt, "NULL");
+        }
     }
 }

@@ -49,5 +49,14 @@ namespace MNet.LTSQL.SqlTokens
             LTSQLToken thenElse = this.ThenElse.Visit(visitor);
             return new SwitchCaseToken(then, thenValue, thenElse, this.ValueType, this.IsPriority);
         }
+
+        protected override string ToString(string fmt)
+        {
+            string s = @$"CASE
+    WHEN {this.When} THEN {this.ThenValue}
+    ELSE ({this.ThenElse})";
+
+            return string.Format(fmt, s);
+        }
     }
 }

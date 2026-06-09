@@ -21,7 +21,7 @@ namespace MNet.Utils
                     return str.Length <= 0;
                 if (list is IDictionary dic)
                     return dic.Count <= 0;
-                    
+
                 IEnumerator ator = list.GetEnumerator();
                 bool flag = ator.MoveNext();
 
@@ -33,6 +33,13 @@ namespace MNet.Utils
             public bool IsNotEmpty()
             {
                 return !list.IsEmpty();
+            }
+            public string JoinAsString(string separator = "")
+            {
+                if (list == null)
+                    return null;
+
+                return string.Join(separator, list.OfType<object>());
             }
         }
 #else
@@ -62,6 +69,13 @@ namespace MNet.Utils
         public static bool IsNotEmpty(this IEnumerable list)
         {
             return !list.IsEmpty();
+        }
+        public static string JoinAsString(this IEnumerable list, string separator = "")
+        {
+            if (list == null)
+                return null;
+
+            return string.Join(separator, list);
         }
 #endif
     }

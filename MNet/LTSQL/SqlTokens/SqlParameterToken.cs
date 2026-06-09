@@ -35,5 +35,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return this;
         }
+        protected override string ToString(string fmt)
+        {
+            return string.Format(fmt, $"$val({(this.Value == null ? "NULL" : this.Value)})");
+        }
     }
 }

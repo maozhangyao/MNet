@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlTokenExtends;
+using System.Text;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -40,6 +41,18 @@ namespace MNet.LTSQL.SqlTokens
                 _news[i] = this.Tokens[i].Visit(visitor);
 
             return new ListToken(_news, this.IsPriority);
+        }
+        public override string ToString()
+        {
+            StringBuilder b = new StringBuilder();
+            for(int i = 0; i < this.Tokens.Length; i++)
+            {
+                if (i > 0)
+                    b.Append(", ");
+
+                b.Append(this.Tokens[i].ToString());
+            }
+            return b.ToString();
         }
     }
 }

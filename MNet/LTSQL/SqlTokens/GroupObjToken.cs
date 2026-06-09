@@ -47,5 +47,9 @@ namespace MNet.LTSQL.SqlTokens
         {
             return ((IEnumerable<(string key, LTSQLToken value)>)(new[] { ("Key", this["Key"]) })).GetEnumerator();
         }
+        public override string ToString()
+        {
+            return $"(Key:{this.GroupKey.ToString()})";
+        }
     }
 }
