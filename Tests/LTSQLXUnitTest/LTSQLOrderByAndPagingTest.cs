@@ -31,7 +31,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .OrderBy(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -58,7 +58,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .OrderByDescending(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -86,7 +86,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .OrderBy(p => p.Age)
                 .ThenByDescending(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -115,7 +115,7 @@ namespace LTSQLXUnitTest
                 .OrderBy(p => p.SelfName)
                 .ThenByDescending(p => p.Age)
                 .ThenBy(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -136,7 +136,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .OrderBy(p => p.Id)
                 .Skip(5)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -145,7 +145,7 @@ namespace LTSQLXUnitTest
 
             // 获取全部数据用于对比
             List<CPersionT> allList = connection.Query<CPersionT>(
-                persion.AsLTSQL().OrderBy(p => p.Id).ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().OrderBy(p => p.Id).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             // 验证跳过了前5条
@@ -169,7 +169,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .OrderBy(p => p.Id)
                 .Take(takeCount)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -193,7 +193,7 @@ namespace LTSQLXUnitTest
                 .OrderBy(p => p.Id)
                 .Skip(skip)
                 .Take(take)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -203,7 +203,7 @@ namespace LTSQLXUnitTest
 
             // 获取全部数据用于对比
             List<CPersionT> allList = connection.Query<CPersionT>(
-                persion.AsLTSQL().OrderBy(p => p.Id).ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().OrderBy(p => p.Id).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             // 验证分页正确性
@@ -227,7 +227,7 @@ namespace LTSQLXUnitTest
                 .OrderByDescending(p => p.Age)
                 .Skip(1)
                 .Take(2)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -259,7 +259,7 @@ namespace LTSQLXUnitTest
                                })
                 .Skip(2)
                 .Take(3)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -286,7 +286,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .Select(p => new { p.Age })
                 .Distinct()
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -314,7 +314,7 @@ namespace LTSQLXUnitTest
                                {
                                    Name = g.Key
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -349,7 +349,7 @@ namespace LTSQLXUnitTest
                     Id = p.Id,
                     Name = p.SelfName
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

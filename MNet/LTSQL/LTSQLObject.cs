@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using MNet.LTSQL.SqlQueryStructs;
@@ -35,16 +35,20 @@ namespace MNet.LTSQL
     }
 
 
-    public interface ILTSQLObjectQueryable
+    public interface ILTSQLQueryable
     {
         //保存查询的结构
         public QueryPart Query { get; set; }
     }
-    public interface ILTSQLObjectSetable<T> : ILTSQLObjectQueryable
+    //保留泛型信息
+    public interface ILTSQLQueryable<T>　: ILTSQLQueryable
+    {　}
+
+    public interface ILTSQLObjectSetable<T> : ILTSQLQueryable<T>
     {
         public QuerySetPart SetQuery { get; }
     }
-    public interface ILTSQLObjectQueryable<T> : IEnumerable<T>, ILTSQLObjectQueryable
+    public interface ILTSQLObjectQueryable<T> : IEnumerable<T>, ILTSQLQueryable<T>
     {
         public SqlQueryPart SqlQuery { get; }
     }

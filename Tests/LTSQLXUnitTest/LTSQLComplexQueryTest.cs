@@ -44,7 +44,7 @@ namespace LTSQLXUnitTest
                             thrid = p3.Id
                         };
 
-            (string sql, _) = query.ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query.ToSqlWithParameter(DbTypes.SQLLite, false);
             _outp.WriteLine($"SQL: {sql}");
 
             dynamic list = connection.Query(sql).ToList();
@@ -74,7 +74,7 @@ namespace LTSQLXUnitTest
                             Max = gs.Max(p => p.Id3)
                         };
 
-            (string sql, _) = query.ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query.ToSqlWithParameter(DbTypes.SQLLite, false);
             _outp.WriteLine($"SQL: {sql}");
 
             dynamic list = connection.Query(sql).ToList();
@@ -118,7 +118,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = query
                 .Skip(0)
                 .Take(10)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -163,7 +163,7 @@ namespace LTSQLXUnitTest
                 })
                 .OrderByDescending(p => p.Age);
 
-            (string sql, _) = query.ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query.ToSqlWithParameter(DbTypes.SQLLite, false);
             _outp.WriteLine($"SQL: {sql}");
 
             dynamic list = connection.Query(sql).ToList();
@@ -171,12 +171,12 @@ namespace LTSQLXUnitTest
 
             // 获取平均年龄用于验证
             double avgAge = connection.QueryFirst<double>(
-                persion.AsLTSQL().WithAverage(p => p.Age).ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().WithAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             );
 
             // 获取有教师记录的人员 ID 列表
             List<int> teacherIds = connection.Query<int>(
-                teacher.AsLTSQL().Select(t => t.PersionId).ToSql(DbTypes.SQLLite, false).Item1
+                teacher.AsLTSQL().Select(t => t.PersionId).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             foreach (var item in list)
@@ -214,7 +214,7 @@ namespace LTSQLXUnitTest
             var query = youngPeople.UnionSet(oldPeople, distinct: true)
                 .IntersectSet(highIdPeople);
 
-            (string sql, _) = query.ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query.ToSqlWithParameter(DbTypes.SQLLite, false);
             _outp.WriteLine($"SQL: {sql}");
 
             dynamic list = connection.Query(sql).ToList();
@@ -252,7 +252,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = query
                 .OrderByDescending(x => x.TeacherCount)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -290,7 +290,7 @@ namespace LTSQLXUnitTest
                 .Where(p => p.SelfName.Contains("张"))
                 .OrderBy(p => p.Id);
 
-            (string sql, _) = level3.ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = level3.ToSqlWithParameter(DbTypes.SQLLite, false);
             _outp.WriteLine($"SQL: {sql}");
 
             dynamic list = connection.Query(sql).ToList();
@@ -336,7 +336,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = query
                 .Skip(0)
                 .Take(5)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -387,7 +387,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = query
                 .OrderBy(x => x.AgeDiff)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -428,7 +428,7 @@ namespace LTSQLXUnitTest
                 .OrderByDescending(p => p.IsYoung)
                 .ThenBy(p => p.Age)
                 .ThenBy(p => p.SelfName)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -525,7 +525,7 @@ namespace LTSQLXUnitTest
                 .ThenBy(p => p.PersonName)
                 .Skip(0)
                 .Take(20)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

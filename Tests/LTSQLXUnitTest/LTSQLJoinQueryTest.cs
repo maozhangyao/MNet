@@ -41,7 +41,7 @@ namespace LTSQLXUnitTest
                                    PersonName = p.SelfName,
                                    CourseName = c.Course
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -76,7 +76,7 @@ namespace LTSQLXUnitTest
                                    PersonName = p.SelfName,
                                    CourseName = c.Course
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -111,7 +111,7 @@ namespace LTSQLXUnitTest
                                    PersonName = p.SelfName,
                                    TeacherCourseId = t.CourseId
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -143,7 +143,7 @@ namespace LTSQLXUnitTest
                                    PersonName = p.SelfName,
                                    TeacherPersionId = t.PersionId
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -179,7 +179,7 @@ namespace LTSQLXUnitTest
                                    Age = p.Age,
                                    CourseName = c.Course
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -215,7 +215,7 @@ namespace LTSQLXUnitTest
                                    StudentCount = g.Count(),
                                    AvgAge = g.Average(x => x.p.Age)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -247,7 +247,7 @@ namespace LTSQLXUnitTest
                                    PersonId = p.Id,
                                    PersonName = p.SelfName
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -283,7 +283,7 @@ namespace LTSQLXUnitTest
                                    Age = p.Age,
                                    CourseName = c.Course
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -320,7 +320,7 @@ namespace LTSQLXUnitTest
                                    Age = p.Age,
                                    CourseName = c.Course
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -362,7 +362,7 @@ namespace LTSQLXUnitTest
                                    FatherId = p2.Id,
                                    FatherName = p2.SelfName
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -397,7 +397,7 @@ namespace LTSQLXUnitTest
                         TeacherCourseId = t.CourseId
                     }
                 ).Take(100)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -433,7 +433,7 @@ namespace LTSQLXUnitTest
                                })
                 .Skip(0)
                 .Take(5)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -472,7 +472,7 @@ namespace LTSQLXUnitTest
                                    Count = g.Count(),
                                    AvgAge = g.Average(x => x.p.Age)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

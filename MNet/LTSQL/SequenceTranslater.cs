@@ -633,7 +633,7 @@ namespace MNet.LTSQL
                 //如果存在内联查询，需要进一步翻译
                 if (t is SqlParameterToken p)
                 {
-                    if (p.Value is ILTSQLObjectQueryable subquery)
+                    if (p.Value is ILTSQLQueryable subquery)
                     {
                         LTSQLToken subQueryToken = new SequenceTranslater()
                                 .Translate(subquery.Query, this._scope.NewScope());

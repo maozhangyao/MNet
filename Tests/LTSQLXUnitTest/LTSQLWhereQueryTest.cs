@@ -32,7 +32,7 @@ namespace LTSQLXUnitTest
 
             (string sql, var parameters) = persion.AsLTSQL()
                 .Where(p => p.Id == 5)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
             if (parameters != null && parameters.Count > 0)
@@ -61,7 +61,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Id != 0)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -86,7 +86,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age > 20)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -110,7 +110,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age < 50)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -134,7 +134,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age >= 25)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -158,7 +158,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age <= 40)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -182,7 +182,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Id > 0 && p.Age < 50)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -206,7 +206,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Id == 1 || p.Id == 2)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -230,7 +230,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => (p.Id > 0 && p.Age < 50) || p.SelfName.Contains("test"))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -249,7 +249,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.SelfName.Contains("张"))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -273,7 +273,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.SelfName.StartsWith("张"))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -297,7 +297,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.SelfName.EndsWith("三"))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -322,7 +322,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Id > 0)
                 .Where(p => p.Age < 60)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -346,7 +346,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age >= 20 && p.Age <= 40)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -370,7 +370,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => !(p.Id == 0))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

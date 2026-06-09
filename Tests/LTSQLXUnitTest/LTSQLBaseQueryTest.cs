@@ -33,7 +33,7 @@ namespace LTSQLXUnitTest
 
             CPersionT persion = new CPersionT();
 
-            (string sql, _) = persion.AsLTSQL().ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+            (string sql, _) = persion.AsLTSQL().ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
             List<CPersionT> list = connection.Query<CPersionT>(sql).ToList();
@@ -59,7 +59,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Id == 0)
-                .ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+                .ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
 
@@ -80,7 +80,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
             (string sql, _) = persion.AsLTSQL()
                 .OrderByDescending(p => p.Id)
-                .ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+                .ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
 
@@ -114,7 +114,7 @@ namespace LTSQLXUnitTest
                     {
                         Name = g.Key
                     }
-                ).ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+                ).ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
 
@@ -142,7 +142,7 @@ namespace LTSQLXUnitTest
                     {
                         Name = g.Key
                     }
-                ).ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+                ).ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
             List<CPersionSelect1> list = connection.Query<CPersionSelect1>(sql).ToList();
@@ -167,7 +167,7 @@ namespace LTSQLXUnitTest
                         Id = p.Id,
                         Name = p.SelfName
                     }
-                ).ToSql(MNet.LTSQL.DbTypes.SQLLite, false);
+                ).ToSqlWithParameter(MNet.LTSQL.DbTypes.SQLLite, false);
 
             this._outp.WriteLine(sql);
             List<CPersionSelect1> list = connection.Query<CPersionSelect1>(sql).ToList();

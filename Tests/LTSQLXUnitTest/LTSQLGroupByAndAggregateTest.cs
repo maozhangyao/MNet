@@ -36,7 +36,7 @@ namespace LTSQLXUnitTest
                                    Name = g.Key,
                                    Count = g.Count()
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -69,7 +69,7 @@ namespace LTSQLXUnitTest
                                    Name = g.Key.SelfName,
                                    Count = g.Count()
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -101,7 +101,7 @@ namespace LTSQLXUnitTest
                                    Name = g.Key,
                                    Count = g.Count()
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -133,7 +133,7 @@ namespace LTSQLXUnitTest
                                    Count = g.Count(),
                                    AvgAge = g.Average(p => p.Age)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -162,14 +162,14 @@ namespace LTSQLXUnitTest
                 {
                     TotalCount = persion.AsLTSQL().Count()
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
             // 直接使用 WithCount 方法
             (string sql2, _) = persion.AsLTSQL()
                 .WithCount()
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL with WithCount: {sql2}");
 
@@ -189,7 +189,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithCount(p => p.Age > 30)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -209,7 +209,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithSum(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -229,7 +229,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithMax(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -239,7 +239,7 @@ namespace LTSQLXUnitTest
 
             // 验证最大值正确性
             List<CPersionT> all = connection.Query<CPersionT>(
-                persion.AsLTSQL().ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
             
             int expectedMax = all.Max(p => p.Age);
@@ -257,7 +257,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithMin(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -267,7 +267,7 @@ namespace LTSQLXUnitTest
 
             // 验证最小值正确性
             List<CPersionT> all = connection.Query<CPersionT>(
-                persion.AsLTSQL().ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             int expectedMin = all.Min(p => p.Age);
@@ -285,7 +285,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithAverage(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -295,7 +295,7 @@ namespace LTSQLXUnitTest
 
             // 验证平均值正确性
             List<CPersionT> all = connection.Query<CPersionT>(
-                persion.AsLTSQL().ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             double expectedAvg = all.Average(p => p.Age);
@@ -313,7 +313,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .WithLongCount()
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -342,7 +342,7 @@ namespace LTSQLXUnitTest
                                    MinAge = g.Min(p => p.Age),
                                    AvgAge = g.Average(p => p.Age)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -379,7 +379,7 @@ namespace LTSQLXUnitTest
                                    Name = g.Key,
                                    Count = g.Count()
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -416,7 +416,7 @@ namespace LTSQLXUnitTest
                                    MaxAge = g.Max(p => p.Age),
                                    MinAge = g.Min(p => p.Age)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

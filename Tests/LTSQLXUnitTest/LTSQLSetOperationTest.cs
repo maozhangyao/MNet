@@ -45,7 +45,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.UnionSet(query2, distinct: false).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.UnionSet(query2, distinct: false).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -86,7 +86,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.UnionSet(query2, distinct: true).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.UnionSet(query2, distinct: true).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -129,7 +129,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.IntersectSet(query2, true).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.IntersectSet(query2, true).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -170,7 +170,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.ExceptSet(query2).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.ExceptSet(query2).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -221,7 +221,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = query1.UnionSet(query2, distinct: true)
                 .AppendSet(query3)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -264,7 +264,7 @@ namespace LTSQLXUnitTest
                     Name = p.SelfName
                 });
 
-            (string sql, _) = query1.UnionSet(query2, distinct: true).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.UnionSet(query2, distinct: true).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -304,7 +304,7 @@ namespace LTSQLXUnitTest
                               Count = g.Count()
                           });
 
-            (string sql, _) = query1.IntersectSet(query2, true).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query1.IntersectSet(query2, true).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -354,7 +354,7 @@ namespace LTSQLXUnitTest
             // (query1 UNION query2) INTERSECT query3
             (string sql, _) = query1.UnionSet(query2, distinct: true)
                 .IntersectSet(query3)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -397,7 +397,7 @@ namespace LTSQLXUnitTest
                 });
 
             // query2 EXCEPT query1（与之前的测试相反）
-            (string sql, _) = query2.ExceptSet(query1).ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = query2.ExceptSet(query1).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -439,10 +439,10 @@ namespace LTSQLXUnitTest
                 });
 
             // UNION ALL（不去重）
-            (string sqlAll, _) = query1.UnionSet(query2, distinct: false).ToSql(DbTypes.SQLLite, false);
+            (string sqlAll, _) = query1.UnionSet(query2, distinct: false).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             // UNION DISTINCT（去重）
-            (string sqlDistinct, _) = query1.UnionSet(query2, distinct: true).ToSql(DbTypes.SQLLite, false);
+            (string sqlDistinct, _) = query1.UnionSet(query2, distinct: true).ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL UNION ALL: {sqlAll}");
             _outp.WriteLine($"SQL UNION DISTINCT: {sqlDistinct}");

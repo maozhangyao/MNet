@@ -271,31 +271,31 @@ namespace MNet.LTSQL
         }
 
         //多集合共同取并集
-        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = false)
         {
             return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
         }
-        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = false)
+        public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLQueryable other, bool distinct = false)
         {
             return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
         }
 
         //多集合共同取交集
-        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
-        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
+        public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
 
         //多集合共同取差集
-        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
-        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLObjectQueryable other, bool distinct = true)
+        public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectSetable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
@@ -303,7 +303,7 @@ namespace MNet.LTSQL
         //向当前集合追加相同集合操作, 比如：
         //向并集集合，在追加集合做并集
         //向交集集合，在追加集合做并集
-        public static ILTSQLObjectSetable<T> AppendSet<T>(this ILTSQLObjectSetable<T> src, params ILTSQLObjectQueryable[] other)
+        public static ILTSQLObjectSetable<T> AppendSet<T>(this ILTSQLObjectSetable<T> src, params ILTSQLQueryable[] other)
         {
             if (src == null)
                 throw new ArgumentNullException(nameof(src));
@@ -785,27 +785,91 @@ namespace MNet.LTSQL
 
 
         #region sql格式化
-        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, DbTypes db, bool useSqlParameter = true)
+        /// <summary>
+        /// 返回非参数化的sql(使用LTSQLOptionsSetting配置类作为默认配置)
+        /// </summary>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static string ToSql(this ILTSQLQueryable src)
         {
-            return ToSql(src, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
+            LTSQLOptions opt = LTSQLOptionsSetting.GetOptions();
+            if (opt == null)
+                throw new Exception($"请指定{nameof(LTSQLOptions)}配置，可以考虑设置{nameof(LTSQLOptionsSetting)}配置类.");
+
+            opt.UseSqlParameter = false;
+            return ToSql(src, out _, opt, null);
         }
-        public static string ToSql(this ILTSQLObjectQueryable src, DbTypes db, out List<(string key, object val)> sqlargs, bool useSqlParameter = true)
+        /// <summary>
+        /// 返回参数化的sql(使用LTSQLOptionsSetting配置类作为默认配置)
+        /// </summary>
+        /// <param name="src"></param>
+        /// <param name="sqlargs"></param>
+        /// <returns></returns>
+        public static string ToSql(this ILTSQLQueryable src, out List<(string key, object val)> sqlargs)
         {
-            return ToSql(src, out sqlargs, new LTSQLOptions { UseSqlParameter = useSqlParameter, DbType = db }, null);
+            LTSQLOptions opt = LTSQLOptionsSetting.GetOptions();
+            if (opt == null)
+                throw new Exception($"请指定{nameof(LTSQLOptions)}配置，可以考虑设置{nameof(LTSQLOptionsSetting)}配置类.");
+            
+            opt.UseSqlParameter = true;
+            return ToSql(src, out sqlargs, opt, null);
         }
-        public static (string, List<(string key, object val)>) ToSql(this ILTSQLObjectQueryable src, LTSQLOptions options = null, SqlBuilderOptions ctx = null)
+        /// <summary>
+        /// 生成指定数据库的sql，并返回非参数化sql
+        /// </summary>
+        /// <param name="src"></param>
+        /// <param name="db"></param>
+        /// <returns></returns>
+        public static string ToSql(this ILTSQLQueryable src, DbTypes db)
+        {
+            return ToSql(src, db, out _, false);
+        }
+        /// <summary>
+        ///  生成指定数据库的sql，并返回参数化sql
+        /// </summary>
+        /// <param name="src"></param>
+        /// <param name="db"></param>
+        /// <param name="sqlargs"></param>
+        /// <returns></returns>
+        public static string ToSql(this ILTSQLQueryable src, DbTypes db, out List<(string key, object val)> sqlargs)
+        {
+            return ToSql(src, db, out sqlargs, true);
+        }
+        public static (string, List<(string key, object val)>) ToSqlWithParameter(this ILTSQLQueryable src, DbTypes db, bool useSqlParameter = true)
+        {
+            LTSQLOptions opt = LTSQLOptionsSetting.GetOptions() ?? new LTSQLOptions();
+            opt.DbType = db;
+            opt.UseSqlParameter = useSqlParameter;
+
+            return ToSqlWithParameter(src, opt, null);
+        }
+        public static string ToSql(this ILTSQLQueryable src, DbTypes db, out List<(string key, object val)> sqlargs, bool useSqlParameter = true)
+        {
+            LTSQLOptions opt = LTSQLOptionsSetting.GetOptions() ?? new LTSQLOptions();
+            opt.DbType = db;
+            opt.UseSqlParameter = useSqlParameter;
+
+            return ToSql(src, out sqlargs, opt, null);
+        }
+
+        public static (string, List<(string key, object val)>) ToSqlWithParameter(this ILTSQLQueryable src, LTSQLOptions options = null, SqlBuilderOptions ctx = null)
         {
             List<(string key, object val)> list = null;
             string sql = ToSql(src, out list, options, ctx);
             return (sql, list);
         }
-        public static string ToSql(this ILTSQLObjectQueryable src, out List<(string key, object val)> sqlargs, LTSQLOptions options = null, SqlBuilderOptions ctx = null)
+        public static string ToSql(this ILTSQLQueryable src, out List<(string key, object val)> sqlargs, LTSQLOptions options = null, SqlBuilderOptions ctx = null)
         {
-            options ??= LTSQLOptionsSetting.GetOptions() ?? throw new Exception($"请指定{nameof(LTSQLOptions)}配置，可以考虑设置{nameof(LTSQLOptionsSetting)}配置类。");
+            if (src == null || src.Query == null)
+                throw new Exception("参数或者Query对象实例为null.");
+
+            options ??= LTSQLOptionsSetting.GetOptions() ?? throw new Exception($"请指定{nameof(LTSQLOptions)}配置，可以考虑设置{nameof(LTSQLOptionsSetting)}配置类.");
 
             QueryPart q = src.Query.CopyNew();
             IQueryTranslaterFactory factory = new QueryTranslaterFactory();
             IQueryTranslater tranlator = factory.Create(q);
+            if (tranlator == null)
+                throw new Exception($"未配置{q.GetType().FullName}类型的SQL翻译器");
 
             LTSQLToken token = tranlator.Translate(q, options);
             SqlBuilderOptions bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildContext(options);

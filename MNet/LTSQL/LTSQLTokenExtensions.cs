@@ -42,9 +42,9 @@ namespace MNet.LTSQL
             return _new;
         }
 
-        public static bool TryGetSqlQueryable(this LTSQLToken token, out ILTSQLObjectQueryable queryable)
+        public static bool TryGetSqlQueryable(this LTSQLToken token, out ILTSQLQueryable queryable)
         {
-            if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable q)
+            if (token is SqlParameterToken p && p.Value is ILTSQLQueryable q)
             {
                 queryable = q;
                 return true;

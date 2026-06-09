@@ -159,9 +159,9 @@ namespace MNet.LTSQL
                         //ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken(sqlFunc, parameters, mthd.ReturnType);
                         ctx.ResultToken = new FunctionTokenBuilder().WithFunctionName(sqlFunc, mthd.ReturnType).WithFunctionArgs(parameters).Build();
                     }
-                    else if (inst.TryGetSqlQueryable(out ILTSQLObjectQueryable query))
+                    else if (inst.TryGetSqlQueryable(out ILTSQLQueryable query))
                     {
-                        ILTSQLObjectQueryable newQuery = (ILTSQLObjectQueryable)InvokeCommonGroupMethod(extdName, callExpr, query);
+                        ILTSQLQueryable newQuery = (ILTSQLQueryable)InvokeCommonGroupMethod(extdName, callExpr, query);
                         ctx.ResultToken = ctx.TokenSqlParameter(newQuery);
                     }
                 }
@@ -207,7 +207,7 @@ namespace MNet.LTSQL
                     //拆包
                     if (right is SqlParameterToken p)
                     {
-                        if (p.Value is ILTSQLObjectQueryable query)
+                        if (p.Value is ILTSQLQueryable query)
                         {
                             // do nothing
                             right = p;
@@ -234,7 +234,7 @@ namespace MNet.LTSQL
                 {
                     TupleToken tuple = ctx.MethodParameterTokenList[0] as TupleToken;
                     LTSQLToken token = ctx.MethodParameterTokenList[1];
-                    ILTSQLObjectQueryable query = (token is SqlParameterToken p1) ? p1.Value as ILTSQLObjectQueryable : null;
+                    ILTSQLQueryable query = (token is SqlParameterToken p1) ? p1.Value as ILTSQLQueryable : null;
                     IEnumerable list = (token is SqlParameterToken p2) ? p2.Value as IEnumerable : null;
                     if (tuple == null)
                         throw new NotSupportedException("In操作符号进行元组匹配时，必须是元组。");
@@ -296,7 +296,7 @@ namespace MNet.LTSQL
                     SqlParameterToken p = inner as SqlParameterToken;
 
                     //拆包
-                    if (p != null && p.Value is ILTSQLObjectQueryable query)
+                    if (p != null && p.Value is ILTSQLQueryable query)
                     {
                         // do nothing
                         inner = p;
@@ -326,14 +326,14 @@ namespace MNet.LTSQL
                         return;
 
                     LTSQLToken token = ctx.MethodParameterTokenList[0];
-                    if (token is SqlParameterToken p && p.Value is ILTSQLObjectQueryable query)
+                    if (token is SqlParameterToken p && p.Value is ILTSQLQueryable query)
                     {
                         MethodInfo firstOrDefaultMthd = ctx.Member as MethodInfo;
                         MethodInfo takeMthd = typeof(LTSQLQueryableExtensions).GetMethod(nameof(LTSQLQueryableExtensions.Take))
                             .MakeGenericMethod(firstOrDefaultMthd.GetGenericArguments()[0]);
 
                         // Take(1)
-                        ILTSQLObjectQueryable newQuery = (ILTSQLObjectQueryable)takeMthd.Invoke(null, new object[] { query, 1 });
+                        ILTSQLQueryable newQuery = (ILTSQLQueryable)takeMthd.Invoke(null, new object[] { query, 1 });
                         //调用FirstOrDefault方法之后，参数类型需要调整为FirstOrDefault方法的返回值
                         ctx.ResultToken = ctx.TokenSqlParameter(newQuery, firstOrDefaultMthd.ReturnType);
                     }
@@ -516,7 +516,7 @@ namespace MNet.LTSQL
 
 
         //通用分组方法调用
-        private static object InvokeCommonGroupMethod(string gpMethod, MethodCallExpression callExpr, ILTSQLObjectQueryable qInst)
+        private static object InvokeCommonGroupMethod(string gpMethod, MethodCallExpression callExpr, ILTSQLQueryable qInst)
         {
             int argsLen = callExpr.Arguments.Count;
 

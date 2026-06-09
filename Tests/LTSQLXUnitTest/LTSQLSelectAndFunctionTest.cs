@@ -35,7 +35,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     p.SelfName
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -65,7 +65,7 @@ namespace LTSQLXUnitTest
                     Id = p.Id,
                     Name = p.SelfName
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -97,7 +97,7 @@ namespace LTSQLXUnitTest
                     p.SelfName,
                     NextAge = (p.Age == null ? 0 : p.Age) + 1
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -128,7 +128,7 @@ namespace LTSQLXUnitTest
                     p.Age,
                     AgeGroup = p.Age > 30 ? "Old" : "Young"
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -160,7 +160,7 @@ namespace LTSQLXUnitTest
                     p.Age,
                     Info = string.Concat(string.Concat(p.SelfName, "-") , p.Age)
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -194,7 +194,7 @@ namespace LTSQLXUnitTest
                                    p.Id,
                                    Info = string.Concat(string.Concat(p.SelfName, "-"), c.Course)
                                })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -223,7 +223,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Year = DateTime.Now.Year
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -254,7 +254,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Month = DateTime.Now.Month
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -284,7 +284,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Day = DateTime.Now.Day
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -314,7 +314,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Hour = DateTime.Now.Hour
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -344,7 +344,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Minute = DateTime.Now.Minute
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -374,7 +374,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     Second = DateTime.Now.Second
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -410,7 +410,7 @@ namespace LTSQLXUnitTest
                     Minute = DateTime.Now.Minute,
                     Second = DateTime.Now.Second
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -447,7 +447,7 @@ namespace LTSQLXUnitTest
                     p.Id,
                     FormattedDate = DateTime.Now.ToString("%Y %m-%H")
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -481,7 +481,7 @@ namespace LTSQLXUnitTest
                     DoubleAge = p.Age * 2,
                     CurrentYear = DateTime.Now.Year
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -512,7 +512,7 @@ namespace LTSQLXUnitTest
 
             // 使用表达式方式创建硬编码查询
             var testData = new HardCodedTestData { Name = "Mr. liu", Age = 18, Description = "like books" };
-            (string sql, _) = testData.AsSelect().ToSql(DbTypes.SQLLite, false);
+            (string sql, _) = testData.AsSelect().ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -557,7 +557,7 @@ namespace LTSQLXUnitTest
                     IsSenior = p.Age > 30
                 })
                 .OrderByDescending(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -594,7 +594,7 @@ namespace LTSQLXUnitTest
                                    MinAge = g.Min(x => x.Age)
                                })
                 .OrderByDescending(p => p.Count)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 

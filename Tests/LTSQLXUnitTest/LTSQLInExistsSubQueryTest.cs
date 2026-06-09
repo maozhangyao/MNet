@@ -33,7 +33,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => ids.Contains(p.Id))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -60,7 +60,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => names.Contains(p.SelfName))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -92,7 +92,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => new { age = p.Age, name = p.SelfName }.In(tupleData))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -122,7 +122,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => subQuery.Contains(p.Id))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -149,7 +149,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => !excludeIds.Contains(p.Id))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -178,7 +178,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => subQuery.Any())
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -207,7 +207,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => !subQuery.Any())
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -235,7 +235,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age > avgAgeQuery.FirstOrDefault())
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -244,7 +244,7 @@ namespace LTSQLXUnitTest
 
             // 获取平均年龄用于验证
             double avgAge = connection.QueryFirst<double>(
-                persion.AsLTSQL().WithAverage(p => p.Age).ToSql(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().WithAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             );
 
             _outp.WriteLine($"Average Age: {avgAge}");
@@ -276,7 +276,7 @@ namespace LTSQLXUnitTest
                         .WithCount()
                         .FirstOrDefault()
                 })
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -306,7 +306,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = subQuery.AsLTSQL()
                 .Where(p => p.Age < 40)
                 .OrderBy(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -340,7 +340,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = level2Query
                 .OrderByDescending(p => p.Id)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -369,7 +369,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => teacherIds.Contains(p.Id))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -378,7 +378,7 @@ namespace LTSQLXUnitTest
 
             // 获取所有教师的人员 ID
             List<int> teacherPersionIds = connection.Query<int>(
-                teacher.AsLTSQL().Select(t => t.PersionId).ToSql(DbTypes.SQLLite, false).Item1
+                teacher.AsLTSQL().Select(t => t.PersionId).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             ).ToList();
 
             foreach (var item in list)
@@ -409,7 +409,7 @@ namespace LTSQLXUnitTest
             (string sql, _) = avgIdByAge.AsLTSQL()
                 .Where(p => p.AvgId > 50)
                 .OrderBy(p => p.Age)
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -443,7 +443,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => hasMathCourse.Any())
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
@@ -473,7 +473,7 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => new { p.Age, p.SelfName }.In(subQuery))
-                .ToSql(DbTypes.SQLLite, false);
+                .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
 
