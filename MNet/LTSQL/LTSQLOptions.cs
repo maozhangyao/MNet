@@ -7,6 +7,9 @@ namespace MNet.LTSQL
 {
     public class LTSQLOptions
     {
+        //一个无意义的id，也许可以用来区别场景
+        public string Id { get; set; }
+
         //数据库类型
         public DbTypes DbType { get; set; }
         //是否参数化， 默认true
