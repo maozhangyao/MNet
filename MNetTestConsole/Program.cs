@@ -59,15 +59,4 @@ CPersionT p = new CPersionT();
 //Console.WriteLine("联合查询操作(union all)：");
 //ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite, out _, false));
 
-var a = new { }.AsSelect(_ => new
-{
-    str1 = false + ":false"+ ".abc" + $"  {DateTime.Now}",
-    str2 = true + ":true",
-    str3 = DateTime.Now + ":dateTime"
-});
-string sql = a.ToSql(DbTypes.SQLLite, out _, false);
-
-Console.WriteLine(sql);
-
-
 return 0;
