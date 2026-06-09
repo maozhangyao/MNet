@@ -9,7 +9,7 @@ using MNet.LTSQL.Attributes;
 using UnitTestModel;
 using System.Security.Cryptography.X509Certificates;
 
-//CPersionT p = new CPersionT();
+CPersionT p = new CPersionT();
 
 //// 基础内连接查询 + 子查询 + 元组in匹配
 //var query1 = (from p1 in p.AsLTSQL()
@@ -59,19 +59,13 @@ using System.Security.Cryptography.X509Certificates;
 //Console.WriteLine("联合查询操作(union all)：");
 //ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite, out _, false));
 
-//var a = new { }.AsSelect(_ => new
-//{
-//    //sum = p.AsSelect().Sum(p => p.Age),
-//    //max = p.AsSelect().Max(p => p.Age),
-//    //min = p.AsSelect().Min(p => p.Age),
-//    //avg = p.AsSelect().Average(p => p.Age),
-//    //cnt = p.AsSelect().Count(),
-//    //lcnt = p.AsSelect().LongCount(p => 1 == 1),
-//    fst = p.AsSelect().FirstOrDefault()
-//});
-//string sql = a.ToSql(DbTypes.SQLLite, out _, false);
+var a = new { }.AsSelect(_ => new
+{
+    agestr = p.AsLTSQL().Select(p => p.Age)
+});
+string sql = a.ToSql(DbTypes.SQLLite, out _, false);
 
-//Console.WriteLine(sql);
+Console.WriteLine(sql);
 
 
 return 0;

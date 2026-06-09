@@ -8,8 +8,9 @@ namespace MNet.LTSQL
 {
     public class SqlFunctionHelper
     {
-        // 函数名称
-        public const string F_EXISTS = "EXISTS";
+        // 函数名称（不使用只读属性，便于运行时修改）
+        public static string F_EXISTS = "EXISTS";
+        public static string F_CAST = "CAST";
 
 
         private static Exception UnknownDb(DbTypes db)
@@ -435,6 +436,25 @@ namespace MNet.LTSQL
         public static FunctionTokenBuilder StringLikeConcat(DbTypes db, LTSQLToken str)
         {
             return StringConcatFunction(db, LTSQLTokenFactory.CreateConstantToken("%", db), str, LTSQLTokenFactory.CreateConstantToken("%", db));
+        }
+        //通过 cast 语法将值转换为 string
+        public static FunctionTokenBuilder CastToStringFunction(DbTypes db, LTSQLToken val)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            builder.WithFunctionName(F_CAST, typeof(string));
+
+            string strTypeInDb = db switch
+            {
+                DbTypes.MySQL => "CHAR",
+                DbTypes.PGSQL => "TEXT",
+                DbTypes.MSSQL => "VARCHAR(26)",
+                DbTypes.Oracle => "VARCHAR2(26))",
+                DbTypes.SQLLite => "TEXT",
+                _ => throw UnknownDb(db)
+            };
+
+            builder.WithFunctionArgs(LTSQLTokenFactory.CreateSequenceToken(val, LTSQLTokenFactory.Syntax(" AS "), LTSQLTokenFactory.Syntax(strTypeInDb)));
+            return builder;
         }
     }
 }

@@ -221,6 +221,10 @@ namespace MNet.LTSQL
         {
             return new ClauseToken(clause, subs);
         }
+        public static SequenceToken CreateSequenceToken(params LTSQLToken[] tokens)
+        {
+            return SequenceToken.Create(tokens);
+        }
         public static ListToken CreateListToken(params LTSQLToken[] tokens)
         {
             return CreateListToken(false, tokens);
@@ -252,6 +256,10 @@ namespace MNet.LTSQL
             }
 
             return token;
+        }
+        public static SyntaxToken Syntax(string txt, bool escape = false)
+        {
+            return SyntaxToken.Create(txt);
         }
     }
 }

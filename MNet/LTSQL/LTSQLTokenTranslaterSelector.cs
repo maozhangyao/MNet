@@ -340,6 +340,22 @@ namespace MNet.LTSQL
                 }
             });
 
+
+            // 对 数值的 ToString 的支持
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                //int bool long ... ToString
+                if (ctx.Owner == null //常量无需处理，仅处理SQL化的ToString
+                    && ctx.OwnerType.IsPrimitive
+                    && ctx.OwnerType.IsValueType
+                    && ctx.Member is MethodInfo
+                    && ctx.Member.Name == nameof(object.ToString))
+                {
+                    ctx.ResultToken = SqlFunctionHelper.CastToStringFunction(ctx.Options.DbType, ctx.OwnerToken).Build();
+                }
+            });
+
+
             InitForString(defaultTranslater);
             InitForDatetime(defaultTranslater);
             return defaultTranslater;
