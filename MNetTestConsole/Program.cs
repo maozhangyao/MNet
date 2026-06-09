@@ -61,9 +61,13 @@ CPersionT p = new CPersionT();
 
 var a = new { }.AsSelect(_ => new
 {
-    agestr = p.AsLTSQL().Select(p => p.Age)
+    b = "0".ToBoolean(),
+    i = "100".ToInt(),
+    l = "1000000000".ToLong(),
+    d = "3.1245".ToDouble(),
+    m = "3.24565532".ToDecimal()
 });
-string sql = a.ToSql(DbTypes.SQLLite, out _, false);
+string sql = a.ToSql(DbTypes.MySQL, out _, false);
 
 Console.WriteLine(sql);
 

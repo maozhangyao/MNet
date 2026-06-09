@@ -356,6 +356,36 @@ namespace MNet.LTSQL
             });
 
 
+            // 对 值的 toInt toLong toDouble 等支持
+            defaultTranslater.UseMemberTranslate(ctx =>
+            {
+                if(ctx.OwnerType == typeof(ExpressionFunctionExtensions))
+                {
+                    DbTypes db = ctx.Options.DbType;
+                    if(ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToBoolean))
+                    {
+                        ctx.ResultToken = SqlFunctionHelper.CastToBooleanFunction(db, ctx.MethodParameterTokenList[0]).Build();
+                    }
+                    else if (ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToInt))
+                    {
+                        ctx.ResultToken = SqlFunctionHelper.CastToIntFunction(db, ctx.MethodParameterTokenList[0]).Build();
+                    }
+                    else if (ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToLong))
+                    {
+                        ctx.ResultToken = SqlFunctionHelper.CastToLongFunction(db, ctx.MethodParameterTokenList[0]).Build();
+                    }
+                    else if (ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToDouble))
+                    {
+                        ctx.ResultToken = SqlFunctionHelper.CastToDoubleFunction(db, ctx.MethodParameterTokenList[0]).Build();
+                    }
+                    else if (ctx.Member.Name == nameof(ExpressionFunctionExtensions.ToDecimal))
+                    {
+                        ctx.ResultToken = SqlFunctionHelper.CastToDecimalFunction(db, ctx.MethodParameterTokenList[0]).Build();
+                    }
+                }
+            });
+
+
             InitForString(defaultTranslater);
             InitForDatetime(defaultTranslater);
             return defaultTranslater;

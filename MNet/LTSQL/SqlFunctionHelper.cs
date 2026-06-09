@@ -11,6 +11,12 @@ namespace MNet.LTSQL
         // 函数名称（不使用只读属性，便于运行时修改）
         public static string F_EXISTS = "EXISTS";
         public static string F_CAST = "CAST";
+        public static string F_DATE_MySql = "NOW";
+        public static string F_DATE_PGSql = "NOW";
+        public static string F_DATE_MSSql = "GETDATE";
+        public static string F_DATE_Oracle = "SYSDATE";
+        public static string F_DATE_SqlLite = "DATETIME";
+
 
 
         private static Exception UnknownDb(DbTypes db)
@@ -27,11 +33,11 @@ namespace MNet.LTSQL
         {
             string f = db switch
             {
-                DbTypes.Oracle => "SYSDATE",
-                DbTypes.MySQL => "NOW",
-                DbTypes.PGSQL => "NOW",
-                DbTypes.MSSQL => "GETDATE",
-                DbTypes.SQLLite => "DATETIME",
+                DbTypes.Oracle => F_DATE_Oracle,
+                DbTypes.MySQL => F_DATE_MySql,
+                DbTypes.PGSQL => F_DATE_PGSql,
+                DbTypes.MSSQL => F_DATE_MSSql,
+                DbTypes.SQLLite => F_DATE_SqlLite,
                 _ => throw UnknownDb(db)
             };
 
@@ -437,24 +443,144 @@ namespace MNet.LTSQL
         {
             return StringConcatFunction(db, LTSQLTokenFactory.CreateConstantToken("%", db), str, LTSQLTokenFactory.CreateConstantToken("%", db));
         }
+
+
+
+        //cast 函数
+        private static FunctionTokenBuilder CastFunction(LTSQLToken val, string targetTypeInDb, Type targetType)
+        {
+            FunctionTokenBuilder builder = new FunctionTokenBuilder();
+            builder.WithFunctionName(F_CAST, targetType);
+
+            builder.WithFunctionArgs(LTSQLTokenFactory.CreateSequenceToken(val, LTSQLTokenFactory.Syntax(" AS "), LTSQLTokenFactory.Syntax(targetTypeInDb)));
+            return builder;
+        }
+        public static string CAST_TYPE_STRING_MySql = "CHAR";
+        public static string CAST_TYPE_STRING_PGSql = "TEXT";
+        public static string CAST_TYPE_STRING_MSSql = "VARCHAR(26)";
+        public static string CAST_TYPE_STRING_Oracle = "VARCHAR2(26)";
+        public static string CAST_TYPE_STRING_SqlLite = "TEXT";
         //通过 cast 语法将值转换为 string
         public static FunctionTokenBuilder CastToStringFunction(DbTypes db, LTSQLToken val)
         {
-            FunctionTokenBuilder builder = new FunctionTokenBuilder();
-            builder.WithFunctionName(F_CAST, typeof(string));
-
             string strTypeInDb = db switch
             {
-                DbTypes.MySQL => "CHAR",
-                DbTypes.PGSQL => "TEXT",
-                DbTypes.MSSQL => "VARCHAR(26)",
-                DbTypes.Oracle => "VARCHAR2(26))",
-                DbTypes.SQLLite => "TEXT",
+                DbTypes.MySQL => CAST_TYPE_STRING_MySql,
+                DbTypes.PGSQL => CAST_TYPE_STRING_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_STRING_MSSql,
+                DbTypes.Oracle => CAST_TYPE_STRING_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_STRING_SqlLite,
                 _ => throw UnknownDb(db)
             };
 
-            builder.WithFunctionArgs(LTSQLTokenFactory.CreateSequenceToken(val, LTSQLTokenFactory.Syntax(" AS "), LTSQLTokenFactory.Syntax(strTypeInDb)));
-            return builder;
+            return CastFunction(val, strTypeInDb, typeof(string));
         }
+
+        public static string CAST_TYPE_BOOL_MySql = "SIGNED";
+        public static string CAST_TYPE_BOOL_PGSql = "BOOLEAN";
+        public static string CAST_TYPE_BOOL_MSSql = "BIT";
+        public static string CAST_TYPE_BOOL_Oracle = "NUMBER(1)";
+        public static string CAST_TYPE_BOOL_SqlLite = "INTEGEN";
+        //通过 cast 语法将值转换为 bool
+        public static FunctionTokenBuilder CastToBooleanFunction(DbTypes db, LTSQLToken val)
+        {
+            string boolTypeInDb = db switch
+            {
+                DbTypes.MySQL => CAST_TYPE_BOOL_MySql,
+                DbTypes.PGSQL => CAST_TYPE_BOOL_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_BOOL_MSSql,
+                DbTypes.Oracle => CAST_TYPE_BOOL_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_BOOL_SqlLite,
+                _ => throw UnknownDb(db)
+            };
+
+            return CastFunction(val, boolTypeInDb, typeof(bool));
+        }
+
+        public static string CAST_TYPE_INT_MySql = "SIGNED";
+        public static string CAST_TYPE_INT_PGSql = "INTEGER";
+        public static string CAST_TYPE_INT_MSSql = "INT";
+        public static string CAST_TYPE_INT_Oracle = "NUMBER(10)";
+        public static string CAST_TYPE_INT_SqlLite = "INTEGER";
+        //通过 cast 语法将值转换为 int
+        public static FunctionTokenBuilder CastToIntFunction(DbTypes db, LTSQLToken val)
+        {
+            string intTypeInDb = db switch
+            {
+                DbTypes.MySQL => CAST_TYPE_INT_MySql,
+                DbTypes.PGSQL => CAST_TYPE_INT_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_INT_MSSql,
+                DbTypes.Oracle => CAST_TYPE_INT_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_INT_SqlLite,
+                _ => throw UnknownDb(db)
+            };
+
+            return CastFunction(val, intTypeInDb, typeof(int));
+        }
+
+        public static string CAST_TYPE_LONG_MySql = "SIGNED";
+        public static string CAST_TYPE_LONG_PGSql = "BIGINT";
+        public static string CAST_TYPE_LONG_MSSql = "BIGINT";
+        public static string CAST_TYPE_LONG_Oracle = "NUMBER(19)";
+        public static string CAST_TYPE_LONG_SqlLite = "INTEGER";
+        //通过 cast 语法将值转换为 long
+        public static FunctionTokenBuilder CastToLongFunction(DbTypes db, LTSQLToken val)
+        {
+            string longTypeInDb = db switch
+            {
+                DbTypes.MySQL => CAST_TYPE_LONG_MySql,
+                DbTypes.PGSQL => CAST_TYPE_LONG_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_LONG_MSSql,
+                DbTypes.Oracle => CAST_TYPE_LONG_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_LONG_SqlLite,
+                _ => throw UnknownDb(db)
+            };
+
+            return CastFunction(val, longTypeInDb, typeof(long));
+        }
+
+        public static string CAST_TYPE_DOUBLE_MySql = "DOUBLE";
+        public static string CAST_TYPE_DOUBLE_PGSql = "DOUBLE PRECISION";
+        public static string CAST_TYPE_DOUBLE_MSSql = "FLOAT";
+        public static string CAST_TYPE_DOUBLE_Oracle = "BINARY_DOUBLE";
+        public static string CAST_TYPE_DOUBLE_SqlLite = "REAL";
+        //通过 cast 语法将值转换为 double
+        public static FunctionTokenBuilder CastToDoubleFunction(DbTypes db, LTSQLToken val)
+        {
+            string doubleTypeInDb = db switch
+            {
+                DbTypes.MySQL => CAST_TYPE_DOUBLE_MySql,
+                DbTypes.PGSQL => CAST_TYPE_DOUBLE_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_DOUBLE_MSSql,
+                DbTypes.Oracle => CAST_TYPE_DOUBLE_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_DOUBLE_SqlLite,
+                _ => throw UnknownDb(db)
+            };
+
+            return CastFunction(val, doubleTypeInDb, typeof(double));
+        }
+
+        public static string CAST_TYPE_DECIMAL_MySql = "DECIMAL(12,4)";
+        public static string CAST_TYPE_DECIMAL_PGSql = "NUMERIC(12,4)";
+        public static string CAST_TYPE_DECIMAL_MSSql = "DECIMAL(12,4)";
+        public static string CAST_TYPE_DECIMAL_Oracle = "NUMBER(12,4)";
+        public static string CAST_TYPE_DECIMAL_SqlLite = "NUMERIC";
+        //通过 cast 语法将值转换为 decimal
+        public static FunctionTokenBuilder CastToDecimalFunction(DbTypes db, LTSQLToken val)
+        {
+            string decimalTypeInDb = db switch
+            {
+                DbTypes.MySQL => CAST_TYPE_DECIMAL_MySql,
+                DbTypes.PGSQL => CAST_TYPE_DECIMAL_PGSql,
+                DbTypes.MSSQL => CAST_TYPE_DECIMAL_MSSql,
+                DbTypes.Oracle => CAST_TYPE_DECIMAL_Oracle,
+                DbTypes.SQLLite => CAST_TYPE_DECIMAL_SqlLite,
+                _ => throw UnknownDb(db)
+            };
+
+            return CastFunction(val, decimalTypeInDb, typeof(decimal));
+        }
+
+        
     }
 }
