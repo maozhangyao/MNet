@@ -85,10 +85,10 @@ namespace MNet.LTSQL
         }
         private TranslateContext NewTranslateContext()
         {
-            this._templateContext ??= new TranslateContext(this._tokens);
+            this._templateContext ??= new TranslateContext();
             this._templateContext.ClearProps();
 
-            this._templateContext.Tokens = this._tokens;
+            //this._templateContext.Tokens = this._tokens;
             this._templateContext.Options = this._context.Options;
             this._templateContext.ParameterNameGenerator = this._context.ParameterNameGenerator;
 

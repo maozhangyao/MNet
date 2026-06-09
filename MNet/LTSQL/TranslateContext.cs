@@ -13,14 +13,10 @@ namespace MNet.LTSQL
     {
         public TranslateContext()
         { }
-        public TranslateContext(Stack<LTSQLToken> tokens)
-        {
-            this.Tokens = tokens;
-        }
 
 
-
-        internal Stack<LTSQLToken> Tokens;
+        //暂时无用
+        public Stack<LTSQLToken> Tokens { get; set; }
         public LTSQLOptions Options { get; set; }
         public NameGenerator ParameterNameGenerator { get; set; }
 
