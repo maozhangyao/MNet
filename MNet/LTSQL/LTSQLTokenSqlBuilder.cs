@@ -407,6 +407,7 @@ namespace MNet.LTSQL
 
             //生成sql
             context.Sql = writerCxt.Writer.GetSqlBuilder();
+            context.SqlParameters = writerCxt.SqlParameters;
         }
         public LTSQLTokenSqlBuilder UseCommonToken<T>(Action<T, SqlWriterContext, Action> builder)
         {

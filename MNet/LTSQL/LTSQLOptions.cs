@@ -24,5 +24,6 @@ namespace MNet.LTSQL
         public Func<LTSQLMemberContext, string> GetTableName { get; set; }
         //获取表字段名称
         public Func<LTSQLMemberContext, string> GetColumnName { get; set; }
+        public Action<LTSQLOptions, SqlBuilderOptions> ConfigSqlBuilderOptions { get; set; }
     }
 }

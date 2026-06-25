@@ -872,8 +872,11 @@ namespace MNet.LTSQL
                 throw new Exception($"未配置{q.GetType().FullName}类型的SQL翻译器");
 
             LTSQLToken token = tranlator.Translate(q, options);
-            SqlBuilderOptions bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildContext(options);
+            SqlBuilderOptions bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildOptions(options);
             ISqlBuilder builder = LTSQLTokenSqlBuilder.Default;
+
+            if (options.ConfigSqlBuilderOptions != null)
+                options.ConfigSqlBuilderOptions(options, bCtx);
 
             builder.Build(token, bCtx);
             sqlargs = bCtx.SqlParameters;

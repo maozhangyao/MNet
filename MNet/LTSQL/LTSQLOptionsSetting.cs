@@ -18,7 +18,7 @@ namespace MNet.LTSQL
 
             return null;
         }
-        internal static SqlBuilderOptions GetSqlBuildContext(LTSQLOptions options)
+        internal static SqlBuilderOptions GetSqlBuildOptions(LTSQLOptions options)
         {
             if (SqlBuildContextCreator != null)
                 return SqlBuildContextCreator(options);

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151 d18.0
+VisualStudioVersion = 18.1.11312.151
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MNet", "MNet\MNet.csproj", "{ABAFD8E4-5E02-4904-A37B-9BD4EDD1EC3B}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LTSQLXUnitTest", "Tests\LTSQLXUnitTest\LTSQLXUnitTest.csproj", "{F438DE49-0768-48E8-A2D1-1AD5AEFE88C1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTestModel", "UnitTestModel\UnitTestModel.csproj", "{6A774DCD-1A94-4D0C-BDFF-AC8ECC9A31EA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DapperQ", "DapperQ\DapperQ.csproj", "{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +73,18 @@ Global
 		{6A774DCD-1A94-4D0C-BDFF-AC8ECC9A31EA}.Release|x64.Build.0 = Release|Any CPU
 		{6A774DCD-1A94-4D0C-BDFF-AC8ECC9A31EA}.Release|x86.ActiveCfg = Release|Any CPU
 		{6A774DCD-1A94-4D0C-BDFF-AC8ECC9A31EA}.Release|x86.Build.0 = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|x64.Build.0 = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Debug|x86.Build.0 = Debug|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|x64.ActiveCfg = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|x64.Build.0 = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|x86.ActiveCfg = Release|Any CPU
+		{7EAE7723-1FBC-409C-AB72-5BEBBF6AC69A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

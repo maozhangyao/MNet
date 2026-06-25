@@ -7,6 +7,7 @@ using System.Data;
 using UnitTestModel;
 using Xunit;
 using Xunit.Abstractions;
+using DapperQ;
 
 namespace LTSQLXUnitTest
 {
@@ -47,6 +48,38 @@ namespace LTSQLXUnitTest
                 Assert.NotNull(item.SelfName);
             }
         }
+
+
+        /// <summary>
+        /// 基础查询：select * from xxx
+        /// </summary>
+        [Fact]
+        public void Query001ForDapper()
+        {
+            using IDbConnection connection = DbConnectionFactory.Sqllite();
+            CPersionT person = new CPersionT();
+
+            var list = (from p in person.AsLTSQL()
+                        where p.Age > 0
+                        select new
+                        {
+                            Name = p.SelfName,
+                            Age = p.Age
+                        }).Query(connection, p =>
+                        {
+                            p.DbType = DbTypes.SQLLite;
+                            p.UseSqlParameter = true;
+                        }, sql => this._outp.WriteLine($"SQL:\n{sql}"));
+
+
+            this._outp.WriteLine("");
+            this._outp.WriteLine("结果:");
+            foreach (var item in list)
+            {
+                this._outp.WriteLine($"Name:{item.Name} Age:{item.Age}");
+            }
+        }
+
 
         /// <summary>
         /// 基础查询：select * from xxx where xxx
