@@ -7,9 +7,10 @@ using MNet.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+#if NET6_0_OR_GREATER
 using System.ComponentModel.DataAnnotations.Schema;
+#endif
 using System.Data.Common;
-using System.Diagnostics.Tracing;
 using System.Dynamic;
 using System.IO;
 using System.Linq;
@@ -17,11 +18,6 @@ using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
-using System.Security.Permissions;
-using System.Xml;
-using System.Xml.Linq;
 
 
 namespace MNet.LTSQL
@@ -48,16 +44,28 @@ namespace MNet.LTSQL
             if (ctx.Owner == null)
                 throw new Exception("表名称获取异常， 未传入实体类型，无法获取。");
 
-            TableAttribute attr = ctx.Owner.GetCustomAttribute<TableAttribute>();
+#if NET6_0_OR_GREATER
+            TableAttribute attr1 = ctx.Owner.GetCustomAttribute<TableAttribute>();
+            QTableAttribute attr2 = ctx.Owner.GetCustomAttribute<QTableAttribute>();
+            return attr1?.Name ?? attr2?.Name ?? ctx.Owner.Name;
+#else
+            QTableAttribute attr = ctx.Owner.GetCustomAttribute<QTableAttribute>();
             return attr?.Name ?? ctx.Owner.Name;
+#endif
         }
         private static string GetColumnName(LTSQLMemberContext ctx)
         {
             if (ctx.Member == null)
                 throw new Exception("表字段获取异常， 未传入属性或者字段信息，无法获取。");
 
-            ColumnAttribute attr = ctx.Member.GetCustomAttribute<ColumnAttribute>();
+#if NET6_0_OR_GREATER
+            ColumnAttribute attr1 = ctx.Owner.GetCustomAttribute<ColumnAttribute>();
+            QColumnAttribute attr2 = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
+            return attr1?.Name ?? attr2?.Name ?? ctx.Member.Name;
+#else
+            QColumnAttribute attr = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
             return attr?.Name ?? ctx.Member.Name;
+#endif
         }
 
         private LTSQLToken PopToken()

@@ -31,7 +31,7 @@ namespace MNet.LTSQL
         {
             Type tokenType = token.GetType();
             //顺序执行
-            int index = pos >= this._commons.Count ? -1 : this._commons.FindIndex(pos + 1, p => tokenType.IsAssignableTo(p.Item1));
+            int index = pos >= this._commons.Count ? -1 : this._commons.FindIndex(pos + 1, p => p.Item1.IsAssignableFrom(tokenType) /*tokenType.IsAssignableTo(p.Item1)*/);
             if (index < 0)
             {
                 this.NextAtSpecial(token, context);

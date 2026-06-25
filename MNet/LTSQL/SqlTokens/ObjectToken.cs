@@ -3,7 +3,6 @@ using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection.Metadata.Ecma335;
 
 namespace MNet.LTSQL.SqlTokens
 {
