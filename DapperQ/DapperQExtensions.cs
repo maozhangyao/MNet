@@ -34,8 +34,12 @@ namespace DapperQ
 
             if (explicitCtor == null && TypeMapCache<T>.Flag == 0)
             {
-                Interlocked.Exchange(ref TypeMapCache<T>.Flag, 1);
-                SqlMapper.SetTypeMap(t, new AnonymousTypeMap(t));
+                lock (_lock)
+                {
+                    if (TypeMapCache<T>.Flag == 0)
+                        SqlMapper.SetTypeMap(t, new AnonymousTypeMap(t));
+                    TypeMapCache<T>.Flag = 1;
+                }
             }
         }
         private static void EmitLog(Action<string> logs, string sql, List<(string key, object val)>? parameters)
