@@ -1,15 +1,16 @@
-using System;
-using MNet.LTSQL;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Concurrent;
-using System.Reflection;
 using Dapper;
-using System.Threading;
+using MNet.LTSQL;
+using System;
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DapperQ
 {
@@ -65,21 +66,46 @@ namespace DapperQ
 
 
         // 仅仅读取第一行记录
-        public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptioins = null, Action<string> logs = null)
+        public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry)
+        {
+            SqlContext? ctx = qry.Query.Follow as SqlContext;
+            if (ctx == null)
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+
+            return qry.QueryF(ctx.Connection, ctx.Options!, ctx.Log);
+        }
+        public static async Task<T?> QueryFAsync<T>(this ILTSQLObjectQueryable<T> qry)
+        {
+            SqlContext? ctx = qry.Query.Follow as SqlContext;
+            if (ctx == null)
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+
+            return await qry.QueryFAsync(ctx.Connection, ctx.Options!, ctx.Log);
+        }
+        public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
+        {
+            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
+            configOptions(option);
+            return qry.QueryF(connection, option, logs);
+        }
+        public static async Task<T?> QueryFAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
+        {
+            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
+            configOptions(option);
+            return await qry.QueryFAsync(connection, option, logs);
+        }
+        public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
             if (qry == null)
                 throw new ArgumentNullException(nameof(qry));
             if(connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            if (LTSQLOptionsSetting.OptionCreator == null && configOptioins == null)
-                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(configOptioins)}参数。");
+            if (LTSQLOptionsSetting.OptionCreator == null && options == null)
+                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(options)}参数。");
 
             SetAnonymousTypeCache<T>();
 
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            if (configOptioins != null)
-                configOptioins(option);
-
+            LTSQLOptions option = options ?? LTSQLOptionsSetting.OptionCreator();
             (string sql, var parameters) = qry.ToSqlWithParameter(option, null);
 
             if(logs != null)
@@ -97,21 +123,18 @@ namespace DapperQ
             return connection.QueryFirstOrDefault<T>(sql);
         }
         // 仅仅读取第一行记录
-        public static async Task<T?> QueryFAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptioins = null, Action<string> logs = null)
+        public static async Task<T?> QueryFAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
             if (qry == null)
                 throw new ArgumentNullException(nameof(qry));
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            if (LTSQLOptionsSetting.OptionCreator == null && configOptioins == null)
-                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(configOptioins)}参数。");
+            if (LTSQLOptionsSetting.OptionCreator == null && options == null)
+                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(options)}参数。");
 
             SetAnonymousTypeCache<T>();
 
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            if (configOptioins != null)
-                configOptioins(option);
-
+            LTSQLOptions option = options ?? LTSQLOptionsSetting.OptionCreator!();
             (string sql, var parameters) = qry.ToSqlWithParameter(option, null);
 
             if (logs != null)
@@ -130,22 +153,48 @@ namespace DapperQ
         }
 
 
+
         // 返回所有查询结果
-        public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptioins = null, Action<string> logs = null)
+        public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry)
+        {
+            SqlContext? ctx = qry.Query.Follow as SqlContext;
+            if (ctx == null)
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+
+            return qry.Query(ctx.Connection, ctx.Options!, ctx.Log);
+        }
+        public static async Task<IEnumerable<T>> QueryAsync<T>(this ILTSQLObjectQueryable<T> qry)
+        {
+            SqlContext? ctx = qry.Query.Follow as SqlContext;
+            if (ctx == null)
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+
+            return await qry.QueryAsync(ctx.Connection, ctx.Options!, ctx.Log);
+        }
+        public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
+        {
+            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
+            configOptions(option);
+            return qry.Query(connection, option, logs);
+        }
+        public static async Task<IEnumerable<T>> QueryAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
+        {
+            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
+            configOptions(option);
+            return await qry.QueryAsync(connection, option, logs);
+        }
+        public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
             if (qry == null)
                 throw new ArgumentNullException(nameof(qry));
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            if (LTSQLOptionsSetting.OptionCreator == null && configOptioins == null)
-                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(configOptioins)}参数。");
+            if (LTSQLOptionsSetting.OptionCreator == null && options == null)
+                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(options)}参数。");
 
             SetAnonymousTypeCache<T>();
 
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            if (configOptioins != null)
-                configOptioins(option);
-
+            LTSQLOptions option = options ?? LTSQLOptionsSetting.OptionCreator!();
             (string sql, var parameters) = qry.ToSqlWithParameter(option, null);
 
             if (logs != null)
@@ -163,21 +212,18 @@ namespace DapperQ
             return connection.Query<T>(sql);
         }
         // 返回所有查询结果
-        public static async Task<IEnumerable<T>> QueryAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptioins = null, Action<string> logs = null)
+        public static async Task<IEnumerable<T>> QueryAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
             if (qry == null)
                 throw new ArgumentNullException(nameof(qry));
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
-            if (LTSQLOptionsSetting.OptionCreator == null && configOptioins == null)
-                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(configOptioins)}参数。");
+            if (LTSQLOptionsSetting.OptionCreator == null && options == null)
+                throw new Exception($"请配置{nameof(LTSQLOptions)}选配置。可以考虑{nameof(LTSQLOptionsSetting)}全局配置，或者{nameof(options)}参数。");
 
             SetAnonymousTypeCache<T>();
 
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            if (configOptioins != null)
-                configOptioins(option);
-
+            LTSQLOptions option = options ?? LTSQLOptionsSetting.OptionCreator!();
             (string sql, var parameters) = qry.ToSqlWithParameter(option, null);
 
             if (logs != null)
@@ -194,6 +240,5 @@ namespace DapperQ
 
             return await connection.QueryAsync<T>(sql);
         }
-
     }
 }

@@ -56,20 +56,23 @@ namespace LTSQLXUnitTest
         [Fact]
         public void Query001ForDapper()
         {
-            using IDbConnection connection = DbConnectionFactory.Sqllite();
-            CPersionT person = new CPersionT();
+            using ISqlContext ctx = DbConnectionFactory.CreateSqlContext(log => this._outp.WriteLine(log));
 
-            var list = (from p in person.AsLTSQL()
+            var list = (from p in ctx.Create<CPersionT>()
                         where p.Age > 0
                         select new
                         {
                             Name = p.SelfName,
                             Age = p.Age
-                        }).Query(connection, p =>
-                        {
-                            p.DbType = DbTypes.SQLLite;
-                            p.UseSqlParameter = true;
-                        }, sql => this._outp.WriteLine($"SQL:\n{sql}"));
+                        }).Query();
+
+            var p1 = (from p in ctx.Create<CPersionT>()
+             where p.Age > 0
+             select new
+             {
+                 Name = p.SelfName,
+                 Age = p.Age
+             }).QueryF();
 
 
             this._outp.WriteLine("");

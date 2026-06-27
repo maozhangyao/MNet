@@ -55,6 +55,10 @@ namespace MNet.LTSQL
 
 
         //初始化查询对象，以支持LINQ语法
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>() where T : class, new()
+        {
+            return AsLTSQL((T)default);
+        }
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj) where T : class, new()
         {
             return AsLTSQL<T>(obj, null);
