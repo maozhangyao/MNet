@@ -18,36 +18,6 @@ namespace MNet.LTSQL
 {
     public static class LTSQLQueryableExtensions
     {
-        private static T Active<T>()
-        {
-            return (T)Active(typeof(T));
-        }
-        private static object Active(Type t)
-        {
-            var cstrs = t.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            ConstructorInfo minParameters = null;
-            foreach (var cstr in cstrs)
-            {
-                if (minParameters == null)
-                    minParameters = cstr;
-                if (cstr.GetParameters().Length < minParameters.GetParameters().Length)
-                    minParameters = cstr;
-            }
-
-            ParameterInfo[] ps = minParameters.GetParameters();
-            object[] objs = ps.Select(p =>
-            {
-                if (p.ParameterType.IsClass)
-                    return (object)null;
-                if (p.ParameterType.IsValueType && !p.ParameterType.IsEnum && !p.ParameterType.IsPrimitive)
-                    return Activator.CreateInstance(p.ParameterType); //结构体，直接构造
-                return (object)0;
-            }).ToArray();
-
-            return minParameters.Invoke(objs);
-        }
-
-
         private static SqlQueryPart SetNextStep(this SqlQueryPart query, QueryStepSeq step, bool equals = true)
         {
             if (query.Step >= step)

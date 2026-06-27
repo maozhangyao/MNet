@@ -1,13 +1,6 @@
 using MNet.LTSQL;
-using MNet.LTSQL.SqlTokens;
 using MNetTestConsole.Utils;
-using System.Reflection;
-using System.Linq;
-using System.Linq.Expressions;
-using System.ComponentModel.DataAnnotations.Schema;
-using MNet.LTSQL.Attributes;
 using UnitTestModel;
-using System.Security.Cryptography.X509Certificates;
 
 CPersionT p = new CPersionT();
 
