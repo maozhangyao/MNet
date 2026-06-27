@@ -37,7 +37,7 @@ namespace DapperQ
         {
 
         }
-        public virtual ILTSQLObjectQueryable<T> Create<T>() where T : class, new()
+        public virtual ILTSQLObjectQueryable<T> CreateQuery<T>() where T : class, new()
         {
             var query =  LTSQLQueryableExtensions.AsLTSQL<T>();
             query.Query.Follow = this;

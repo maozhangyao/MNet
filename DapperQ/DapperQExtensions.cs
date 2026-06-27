@@ -70,7 +70,7 @@ namespace DapperQ
         {
             SqlContext? ctx = qry.Query.Follow as SqlContext;
             if (ctx == null)
-                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.CreateQuery)}创建查询表达式。");
 
             return qry.QueryF(ctx.Connection, ctx.Options!, ctx.Log);
         }
@@ -78,7 +78,7 @@ namespace DapperQ
         {
             SqlContext? ctx = qry.Query.Follow as SqlContext;
             if (ctx == null)
-                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.CreateQuery)}创建查询表达式。");
 
             return await qry.QueryFAsync(ctx.Connection, ctx.Options!, ctx.Log);
         }
@@ -159,7 +159,7 @@ namespace DapperQ
         {
             SqlContext? ctx = qry.Query.Follow as SqlContext;
             if (ctx == null)
-                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.CreateQuery)}创建查询表达式。");
 
             return qry.Query(ctx.Connection, ctx.Options!, ctx.Log);
         }
@@ -167,7 +167,7 @@ namespace DapperQ
         {
             SqlContext? ctx = qry.Query.Follow as SqlContext;
             if (ctx == null)
-                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.Create)}创建查询表达式。");
+                throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.CreateQuery)}创建查询表达式。");
 
             return await qry.QueryAsync(ctx.Connection, ctx.Options!, ctx.Log);
         }

@@ -58,7 +58,7 @@ namespace LTSQLXUnitTest
         {
             using ISqlContext ctx = DbConnectionFactory.CreateSqlContext(log => this._outp.WriteLine(log));
 
-            var list = (from p in ctx.Create<CPersionT>()
+            var list = (from p in ctx.CreateQuery<CPersionT>()
                         where p.Age > 0
                         select new
                         {
@@ -66,7 +66,7 @@ namespace LTSQLXUnitTest
                             Age = p.Age
                         }).Query();
 
-            var p1 = (from p in ctx.Create<CPersionT>()
+            var p1 = (from p in ctx.CreateQuery<CPersionT>()
              where p.Age > 0
              select new
              {

@@ -15,6 +15,6 @@ namespace DapperQ
     {
         IDbConnection Connection { get; }
 
-        ILTSQLObjectQueryable<T> Create<T>() where T : class, new();
+        ILTSQLObjectQueryable<T> CreateQuery<T>() where T : class, new();
     }
 }
