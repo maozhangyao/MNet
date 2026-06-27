@@ -257,6 +257,10 @@ namespace MNet.LTSQL
 
             return token;
         }
+        public static UpdateClauseToken CreateUpdateClauseToken(TableObjectToken table, ITupleable setClause, LTSQLToken whereClause)
+        {
+            return new UpdateClauseToken(table, (setClause as TupleToken) ?? CreateTupleToken(setClause), whereClause);
+        }
         public static SyntaxToken Syntax(string txt, bool escape = false)
         {
             return SyntaxToken.Create(txt);

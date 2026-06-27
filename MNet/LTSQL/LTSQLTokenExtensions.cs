@@ -53,6 +53,14 @@ namespace MNet.LTSQL
             queryable = null;
             return false;
         }
+
+        public static LTSQLToken BreakClause(this LTSQLToken token)
+        {
+            if (token == null)
+                return null;
+
+            return SequenceToken.Create(token, LTSQLTokenFactory.Syntax(";"));
+        }
     }
 }
 

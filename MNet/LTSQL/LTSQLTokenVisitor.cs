@@ -142,6 +142,10 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitUpdateClauseToken(UpdateClauseToken token)
+        {
+            return this._visitor(token);
+        }
     }
 }
  

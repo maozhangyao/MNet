@@ -759,7 +759,7 @@ namespace MNet.LTSQL
 
 
 
-        public static ILTSQLNonQueryable<T> AsUpdate<T, TSet>(Expression<Func<T, TSet>> update)
+        public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> update)
         {
             if (update == null)
                 throw new ArgumentNullException(nameof(update));
@@ -878,7 +878,7 @@ namespace MNet.LTSQL
             if (tranlator == null)
                 throw new Exception($"未配置{q.GetType().FullName}类型的SQL翻译器");
 
-            LTSQLToken token = tranlator.Translate(q, options);
+            LTSQLToken token = tranlator.Translate(q, options).BreakClause();
             SqlBuilderOptions bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildOptions(options);
             ISqlBuilder builder = LTSQLTokenSqlBuilder.Default;
 

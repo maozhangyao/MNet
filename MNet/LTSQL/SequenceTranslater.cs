@@ -18,6 +18,7 @@ using System.Linq.Expressions;
 using System.Net.Http.Headers;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Emit;
 
 
 namespace MNet.LTSQL
@@ -355,39 +356,40 @@ namespace MNet.LTSQL
             else if (from is TablePart table)
             {
                 tableAlias = this._context.TableAliasGenerator.Next();
-                string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
-                
-                descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
-                descriptor.Alias = tableAlias;
+                //string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
+                descriptor = this.TranslateTableByType(from.MappingType, table.TableName, tableAlias);
 
-                //解析属性
-                foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                {
-                    if (prop.IsDefined(typeof(NonFiledAttribute)))
-                        continue;
+                //descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
+                //descriptor.Alias = tableAlias;
 
-                    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.PropertyType
-                        );
+                ////解析属性
+                //foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                //{
+                //    if (prop.IsDefined(typeof(NonFiledAttribute)))
+                //        continue;
 
-                    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
-                }
-                //解析字段
-                foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
-                {
-                    if (prop.IsDefined(typeof(NonFiledAttribute)))
-                        continue;
+                //    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
+                //    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                //        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.PropertyType
+                //        );
 
-                    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.FieldType
-                        );
+                //    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
+                //}
+                ////解析字段
+                //foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
+                //{
+                //    if (prop.IsDefined(typeof(NonFiledAttribute)))
+                //        continue;
 
-                    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
-                }
+                //    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
+                //    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                //        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.FieldType
+                //        );
 
-                src = LTSQLTokenFactory.CreateTableObjectToken(tableName, descriptor, table.MappingType);
+                //    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
+                //}
+
+                src = LTSQLTokenFactory.CreateTableObjectToken(descriptor.TableName, descriptor, table.MappingType);
             }
             else
             {
@@ -487,7 +489,6 @@ namespace MNet.LTSQL
             if (orders.IsEmpty())
                 return null;
 
-            bool group = this._context.Root.GroupFlag;
             List<LTSQLToken> orderKeyTokens = new List<LTSQLToken>();
             foreach (OrderKeyPart getKey in orders)
             {
@@ -547,9 +548,8 @@ namespace MNet.LTSQL
             }
         }
         //统一命名
-        private void BeforeTranslate(ref string root)
+        private void BeforeTranslate(SqlQueryPart query, ref string root)
         {
-            SqlQueryPart query = this._context.Root;
             if (query == null)
                 return;
             root = "root_" + this._context.TableAliasGenerator.Next();
@@ -674,7 +674,7 @@ namespace MNet.LTSQL
                     if (t is SqlParameterToken p && p.Value == null)
                         return LTSQLTokenFactory.CreateNullToken(p.ValueType, this._context.Options.DbType);
                     return t;
-                }) as SqlQueryToken;
+                });
 
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
@@ -693,13 +693,51 @@ namespace MNet.LTSQL
 
             return sqlToken;
         }
+
+        private TableDescriptor TranslateTableByType(Type t, string tableName = null, string tableAlias = null)
+        {
+            if (tableName == null)
+                tableName = this.OnGetTableName(t, tableAlias);
+
+            tableAlias ??= tableName;
+            TableDescriptor descriptor = new TableDescriptor(tableName, tableAlias ?? tableName, t);
+
+            //解析属性
+            foreach (PropertyInfo prop in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (prop.IsDefined(typeof(NonFiledAttribute)))
+                    continue;
+
+                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
+                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                    LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, t), fieldName, prop.PropertyType
+                    );
+
+                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
+            }
+            //解析字段
+            foreach (FieldInfo prop in t.GetFields(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (prop.IsDefined(typeof(NonFiledAttribute)))
+                    continue;
+
+                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
+                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
+                    LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, t), fieldName, prop.FieldType
+                    );
+
+                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
+            }
+
+            return descriptor;
+        }
+
         //开始翻译
-        private SqlQueryToken TranslateCore()
+        private SqlQueryToken TranslateQueryCore(SqlQueryPart query)
         {
             string root = null;
-            this.BeforeTranslate(ref root);
+            this.BeforeTranslate(query, ref root);
 
-            SqlQueryPart query = this._context.Root;
             SqlQueryToken sqlToken = new SqlQueryToken();
             LTSQLToken parameterObj = null;
             TableDescriptor descriptor = null;
@@ -795,6 +833,25 @@ namespace MNet.LTSQL
             return sqlToken;
         }
 
+        private LTSQLToken TranslateUpdateCore(UpdatePart part)
+        {
+            //翻译表信息
+            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
+            TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
+
+            if (part.Where != null)
+                this._context.SetRootParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+
+            ITupleable tuple =  this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
+            if (tuple == null)
+                throw new Exception($"无法翻译Update表达式：{part.UpdateSet}");
+
+            //where
+            LTSQLToken whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
+
+            UpdateClauseToken updateClause = LTSQLTokenFactory.CreateUpdateClauseToken(tableObjToken, tuple, whereClause);
+            return PostTranslate(updateClause);
+        }
 
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
@@ -1246,19 +1303,22 @@ namespace MNet.LTSQL
         }
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
-            if (query as SqlQueryPart == null)
-                throw new Exception($"不支持的查询类型：{query.GetType().Name}; 当前翻译器{nameof(SequenceTranslater)}只支持查询类型{nameof(SqlQueryPart)}");
+            if (query as SqlQueryPart == null && query as UpdatePart == null)
+                throw new Exception($"不支持的查询类型：{query.GetType().Name}");
+
 
             scope.Context.Options.GetTableName ??= GetTableName;
             scope.Context.Options.GetColumnName ??= GetColumnName;
 
             this._scope = scope;
             this._context = scope.Context;
-            this._context.Root = query as SqlQueryPart;
+            this._context.Part = query;
             this._tokens = new Stack<LTSQLToken>();
             this._bufferLayer = new Stack<(string expr, LTSQLToken token)>();
 
-            return this.TranslateCore();
+            return query is SqlQueryPart ?
+                this.TranslateQueryCore(query as SqlQueryPart) :
+                this.TranslateUpdateCore(query as UpdatePart);
         }
     }
 }

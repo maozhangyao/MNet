@@ -381,6 +381,31 @@ namespace MNet.LTSQL
 
                 ctx.Writer.EndScope();
                 ctx.Writer.Write("END ");
+            })
+            .UseSpecialToken<UpdateClauseToken>((t, ctx, nxt) =>
+            {
+                ctx.Writer.Write("UPDATE");
+                nxt(t.Table);
+                ctx.Writer.Write(" SET ");
+
+                bool comma = false;
+                foreach(var kv in t.SetClause)
+                {
+                    if(comma)
+                        ctx.Writer.Write(",");
+
+                    comma = true;
+                    ctx.Writer.Write($"{kv.key} = ");
+                    nxt(kv.value);
+                    ctx.Writer.Write(" ");
+                }
+
+                if (t.WhereClause != null)
+                {
+                    ctx.Writer.WriteLine();
+                    ctx.Writer.Write("WHERE ");
+                    nxt(t.WhereClause);
+                }
             });
 
             return builder;
