@@ -758,6 +758,39 @@ namespace MNet.LTSQL
         }
 
 
+
+        public static ILTSQLNonQueryable<T> AsUpdate<T, TSet>(Expression<Func<T, TSet>> update)
+        {
+            if (update == null)
+                throw new ArgumentNullException(nameof(update));
+
+            return new LTSQLObject<T>(new UpdatePart()
+            {
+                MappingType = typeof(T),
+                UpdateSet = update
+            });
+        }
+        public static ILTSQLNonQueryable<T> Where<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, bool>> expr)
+        {
+            NonQueryPart part = nonQuery.Query as NonQueryPart;
+            if (part == null)
+                throw new Exception($"非法的{nameof(QueryPart)}");
+            if (expr == null)
+                throw new ArgumentNullException(nameof(expr));
+
+            part = part.CopyNew() as NonQueryPart;
+            if (part.Where == null)
+            {
+                part.Where = expr;
+                return new LTSQLObject<T>(part);
+            }
+
+            part.Where = ExpressionUtils.MergeAnd((Expression<Func<T, bool>>)part.Where, expr);
+            return new LTSQLObject<T>(part);
+        }
+
+
+
         #region sql格式化
         /// <summary>
         /// 返回非参数化的sql(使用LTSQLOptionsSetting配置类作为默认配置)

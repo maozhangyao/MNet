@@ -5,16 +5,19 @@ using MNet.LTSQL.SqlQueryStructs;
 
 namespace MNet.LTSQL
 {
-    internal class LTSQLObject<T> : ILTSQLOrderedQueryable<T>, ILTSQLObjectSetable<T>
+    internal class LTSQLObject<T> : ILTSQLOrderedQueryable<T>, ILTSQLObjectSetable<T>, ILTSQLNonQueryable<T>
     {
         public LTSQLObject(SqlQueryPart query)
         {
             this.Query = query;
         }
-
         public LTSQLObject(QuerySetPart query)
         {
             this.Query = query;
+        }
+        public LTSQLObject(NonQueryPart nonQuery)
+        {
+            this.Query = nonQuery;
         }
 
 
@@ -53,5 +56,9 @@ namespace MNet.LTSQL
         public SqlQueryPart SqlQuery { get; }
     }
     public interface ILTSQLOrderedQueryable<T> : ILTSQLObjectQueryable<T>
+    { }
+
+
+    public interface ILTSQLNonQueryable<T> : ILTSQLQueryable
     { }
 }
