@@ -54,7 +54,24 @@ ConsoleHelper.WriteLineWithYellow(query3.ToSql(DbTypes.SQLLite));
 
 
 // Update 语句的支持
+var update = LTSQLQueryableExtensions
+    .AsUpdate<CPersionT>(p => new {
+        Age = 900
+    })
+    .Where(p => p.Id == 12345);
 Console.WriteLine();
+Console.WriteLine("Update 语句：");
+ConsoleHelper.WriteLineWithYellow(update.ToSql(DbTypes.SQLLite));
+
+
+// Delete 语句的支持
+var delete = LTSQLQueryableExtensions
+    .AsDelete<CPersionT>()
+    .Where(p => p.Id == 12345);
+Console.WriteLine();
+Console.WriteLine("Delete 语句：");
+ConsoleHelper.WriteLineWithYellow(update.ToSql(DbTypes.SQLLite));
+
 
 
 return 0;
