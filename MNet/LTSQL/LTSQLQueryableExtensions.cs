@@ -758,7 +758,7 @@ namespace MNet.LTSQL
         }
 
 
-
+        
         public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> update)
         {
             if (update == null)
@@ -766,9 +766,21 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(new UpdatePart()
             {
-                MappingType = typeof(T),
-                UpdateSet = update
-            });
+                MappingType = typeof(T)
+            }).UpdateSet(update);
+        }
+        public static ILTSQLNonQueryable<T> UpdateSet<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, object>> update)
+        {
+            if (update == null)
+                throw new ArgumentNullException(nameof(update));
+
+            UpdatePart part = nonQuery.Query as UpdatePart;
+            if (part == null)
+                throw new Exception($"非法的{nameof(QueryPart)}");
+
+            part = part.CopyNew() as UpdatePart;
+            part.UpdateSet = update;
+            return new LTSQLObject<T>(part);
         }
         public static ILTSQLNonQueryable<T> Where<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, bool>> expr)
         {
