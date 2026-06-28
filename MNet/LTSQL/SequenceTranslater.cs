@@ -832,7 +832,6 @@ namespace MNet.LTSQL
             sqlToken = this.PostTranslate(sqlToken) as SqlQueryToken;
             return sqlToken;
         }
-
         private LTSQLToken TranslateUpdateCore(UpdatePart part)
         {
             //翻译表信息
@@ -847,11 +846,36 @@ namespace MNet.LTSQL
                 throw new Exception($"无法翻译Update表达式：{part.UpdateSet}");
 
             //where
-            LTSQLToken whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
+            LTSQLToken whereClause = null;
+            if (part.Where != null)
+                whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
 
             UpdateClauseToken updateClause = LTSQLTokenFactory.CreateUpdateClauseToken(tableObjToken, tuple, whereClause);
             return PostTranslate(updateClause);
         }
+        private LTSQLToken TranslateDeleteCore(DeletePart part)
+        {
+            //翻译表信息
+            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
+            TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
+
+            if (part.Where != null)
+                this._context.SetRootParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+
+            LTSQLToken deleteClause = LTSQLTokenFactory.CreateClauseToken("DELETE FROM", tableObjToken);
+
+            //where
+            LTSQLToken whereClause = null;
+            if(part.Where != null)
+            {
+                LTSQLToken where = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
+                whereClause = LTSQLTokenFactory.CreateClauseToken("WHERE", where);
+            }
+
+            LTSQLToken deleteClauseToken = whereClause != null ? SequenceToken.Create(deleteClause, whereClause) : SequenceToken.Create(deleteClause);
+            return PostTranslate(deleteClauseToken);
+        }
+
 
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
@@ -1303,7 +1327,7 @@ namespace MNet.LTSQL
         }
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
-            if (query as SqlQueryPart == null && query as UpdatePart == null)
+            if (query as SqlQueryPart == null && query as UpdatePart == null && query as DeletePart == null)
                 throw new Exception($"不支持的查询类型：{query.GetType().Name}");
 
 
@@ -1316,9 +1340,8 @@ namespace MNet.LTSQL
             this._tokens = new Stack<LTSQLToken>();
             this._bufferLayer = new Stack<(string expr, LTSQLToken token)>();
 
-            return query is SqlQueryPart ?
-                this.TranslateQueryCore(query as SqlQueryPart) :
-                this.TranslateUpdateCore(query as UpdatePart);
+            return query is SqlQueryPart ? this.TranslateQueryCore(query as SqlQueryPart) :
+                    query is UpdatePart ? this.TranslateUpdateCore(query as UpdatePart) : this.TranslateDeleteCore(query as DeletePart);
         }
     }
 }

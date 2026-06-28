@@ -11,7 +11,7 @@ namespace MNet.LTSQL
         /// <returns>返回值可空</returns>
         public IQueryTranslater? Create(QueryPart query)
         {
-            if (query is SqlQueryPart || query is UpdatePart)
+            if (query is SqlQueryPart || query is UpdatePart || query is DeletePart)
                 return new SequenceTranslater();
             if (query is QuerySetPart set)
                 return new UnionQueryTranslater();

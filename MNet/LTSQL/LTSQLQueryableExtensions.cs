@@ -789,6 +789,17 @@ namespace MNet.LTSQL
             return new LTSQLObject<T>(part);
         }
 
+        public static ILTSQLNonQueryable<T> AsDelete<T>()
+        {
+            return new LTSQLObject<T>(new DeletePart()
+            {
+                MappingType = typeof(T)
+            });
+        }
+        public static ILTSQLNonQueryable<T> AsDelete<T>(Expression<Func<T, bool>> expr)
+        {
+            return AsDelete<T>().Where(expr);
+        }
 
 
         #region sql格式化
