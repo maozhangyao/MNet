@@ -66,11 +66,11 @@ ConsoleHelper.WriteLineWithYellow(update.ToSql(DbTypes.SQLLite));
 
 // Delete 语句的支持
 var delete = LTSQLQueryableExtensions
-    .AsDelete<CPersionT>()
+    .AsDelete<CPersionT>(p => p.Id == 1453)
     .Where(p => p.Id == 12345);
 Console.WriteLine();
 Console.WriteLine("Delete 语句：");
-ConsoleHelper.WriteLineWithYellow(update.ToSql(DbTypes.SQLLite));
+ConsoleHelper.WriteLineWithYellow(delete.ToSql(DbTypes.SQLLite));
 
 
 

@@ -32,10 +32,21 @@ namespace DapperQ
         public virtual IDbConnection Connection => this._connection;
 
 
-
         protected virtual void Configuration()
         {
 
+        }
+        public virtual ILTSQLNonQueryable<T> CreateUpdate<T>()
+        {
+            var update = LTSQLQueryableExtensions.AsUpdate<T>(p => p);
+            update.Query.Follow = this;
+            return update;
+        }
+        public virtual ILTSQLNonQueryable<T> CreateDelete<T>()
+        {
+            var delete = LTSQLQueryableExtensions.AsDelete<T>();
+            delete.Query.Follow = this;
+            return delete;
         }
         public virtual ILTSQLObjectQueryable<T> CreateQuery<T>() where T : class, new()
         {
@@ -47,6 +58,5 @@ namespace DapperQ
         {
             this._connection?.Dispose();
         }
-
     }
 }
