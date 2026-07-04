@@ -64,7 +64,7 @@ namespace MNet.Utils
             if (ator is IDisposable disp)
                 disp.Dispose();
 
-            return flag;
+            return !flag;
         }
         public static bool IsNotEmpty(this IEnumerable list)
         {
