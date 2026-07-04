@@ -29,9 +29,9 @@ namespace MNet.Utils
 
             ExpressionModifier modifier = new ExpressionModifier();
             Expression newExpr1Body = modifier.ModifyParameter(expr1.Body, expr1.TakeParamter(0), expr2.TakeParamter(0));
-
+            
             return Expression.Lambda<Func<T, bool>>(
-                    Expression.And(newExpr1Body, expr2.Body), expr2.TakeParamter(0)
+                    Expression.AndAlso(newExpr1Body, expr2.Body), expr2.TakeParamter(0)
                 );
         }
         public static Expression<Func<T, bool>> MergeOr<T>(this Expression<Func<T, bool>> expr1, Expression<Func<T, bool>> expr2)
@@ -45,7 +45,7 @@ namespace MNet.Utils
             Expression newExpr1Body = modifier.ModifyParameter(expr1.Body, expr1.TakeParamter(0), expr2.TakeParamter(0));
 
             return Expression.Lambda<Func<T, bool>>(
-                    Expression.Or(newExpr1Body, expr2.Body), expr2.TakeParamter(0)
+                    Expression.OrElse(newExpr1Body, expr2.Body), expr2.TakeParamter(0)
                 );
         }
     }
