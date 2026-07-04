@@ -48,11 +48,16 @@ namespace DapperQ
             delete.Query.Follow = this;
             return delete;
         }
-        public virtual ILTSQLObjectQueryable<T> CreateQuery<T>() where T : class, new()
+        public virtual ILTSQLObjectQueryable<T> CreateQuery<T>()
         {
             var query =  LTSQLQueryableExtensions.AsLTSQL<T>();
             query.Query.Follow = this;
             return query;
+        }
+        public virtual ILTSQLQueryable Follow(ILTSQLQueryable expr)
+        {
+            expr.Query.Follow = this;
+            return expr;
         }
         public virtual void Dispose()
         {

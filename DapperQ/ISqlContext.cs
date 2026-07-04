@@ -13,11 +13,34 @@ namespace DapperQ
     /// </summary>
     public interface ISqlContext : IDisposable
     {
+        /// <summary>
+        /// 数据库连接器
+        /// </summary>
         IDbConnection Connection { get; }
 
-        ILTSQLObjectQueryable<T> CreateQuery<T>() where T : class, new();
+        /// <summary>
+        /// 创建查询表达式
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        ILTSQLObjectQueryable<T> CreateQuery<T>();
+        /// <summary>
+        /// 创建非查询表达式:Update
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         ILTSQLNonQueryable<T> CreateUpdate<T>();
+        /// <summary>
+        /// 创建非查询表达式:delete
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         ILTSQLNonQueryable<T> CreateDelete<T>();
-
+        /// <summary>
+        /// 将当前上下文附加到表达式
+        /// </summary>
+        /// <param name="query"></param>
+        /// <returns></returns>
+        ILTSQLQueryable Follow(ILTSQLQueryable expr);
     }
 }
