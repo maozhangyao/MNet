@@ -352,19 +352,14 @@ namespace MNet.LTSQL
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
             SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Where);
-            query.Wheres ??= new List<Expression>();
-            query.Wheres.Add(expr);
-
+            query.Where = query.Where == null ? expr : expr.MergeAnd(query.Where as Expression<Func<T, bool>>);
             return new LTSQLObject<T>(query);
         }
         //having
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> Where<T, TKey>(this ILTSQLObjectQueryable<IGrouping<TKey, T>> src, Expression<Func<IGrouping<TKey, T>, bool>> expr)
         {
-            SqlQueryPart query = src.SqlQuery.CopyNew() as SqlQueryPart;
-            query = query.SetNextStep(QueryStepSeq.Having);
-            query.Havings ??= new List<Expression>();
-            query.Havings.Add(expr);
-
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Having);
+            query.Having = query.Having == null ? expr : expr.MergeAnd(query.Having as Expression<Func<IGrouping<TKey, T>, bool>>);
             return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
 

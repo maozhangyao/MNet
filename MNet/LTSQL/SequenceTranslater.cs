@@ -356,39 +356,7 @@ namespace MNet.LTSQL
             else if (from is TablePart table)
             {
                 tableAlias = this._context.TableAliasGenerator.Next();
-                //string tableName = table.TableName ?? this.OnGetTableName(table.MappingType, tableAlias);
                 descriptor = this.TranslateTableByType(from.MappingType, table.TableName, tableAlias);
-
-                //descriptor = new TableDescriptor(tableName, tableAlias, table.MappingType);
-                //descriptor.Alias = tableAlias;
-
-                ////解析属性
-                //foreach (PropertyInfo prop in table.MappingType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                //{
-                //    if (prop.IsDefined(typeof(NonFiledAttribute)))
-                //        continue;
-
-                //    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                //    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                //        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.PropertyType
-                //        );
-
-                //    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
-                //}
-                ////解析字段
-                //foreach (FieldInfo prop in table.MappingType.GetFields(BindingFlags.Instance | BindingFlags.Public))
-                //{
-                //    if (prop.IsDefined(typeof(NonFiledAttribute)))
-                //        continue;
-
-                //    string fieldName = this.OnGetColumnName(table.MappingType, table.Alias, prop);
-                //    LTSQLToken fieldAccess = LTSQLTokenFactory.CreateAccessToken(
-                //        LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, table.MappingType), fieldName, prop.FieldType
-                //        );
-
-                //    descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
-                //}
-
                 src = LTSQLTokenFactory.CreateTableObjectToken(descriptor.TableName, descriptor, table.MappingType);
             }
             else
@@ -552,25 +520,19 @@ namespace MNet.LTSQL
         {
             if (query == null)
                 return;
+
             root = "root_" + this._context.TableAliasGenerator.Next();
             ExpressionModifier exprModifier = new ExpressionModifier();
 
             //统一根参数名(存在select 字段硬编码查询)
-            if (query.Wheres.IsNotEmpty())
+            if (query.Where != null)
             {
                 //where 多条件合并
-                Expression merge = null;
-                ParameterExpression _old = query.Wheres[0].AsLambda().TakeParamter(0);
+                LambdaExpression lambda = query.Where.AsLambda();
+                ParameterExpression _old = lambda.TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (Expression expr in query.Wheres)
-                {
-                    LambdaExpression lambda = expr.AsLambda();
-                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
-                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
-                }
-
-                query.Wheres.Clear();
-                query.Wheres.Add(Expression.Lambda(merge, _new));
+                Expression newExpr = exprModifier.ModifyParameter(lambda.Body,_old, _new);
+                query.Where = Expression.Lambda(newExpr, _new);
             }
 
             // group by
@@ -594,21 +556,14 @@ namespace MNet.LTSQL
             }
 
             // having
-            if (query.Havings.IsNotEmpty())
+            if (query.Having != null)
             {
                 //多条件合并
-                Expression merge = null;
-                ParameterExpression _old = query.Havings[0].AsLambda().TakeParamter(0);
+                LambdaExpression lambda = query.Having.AsLambda();
+                ParameterExpression _old = lambda.AsLambda().TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (Expression expr in query.Havings)
-                {
-                    LambdaExpression lambda = expr.AsLambda();
-                    Expression newExpr = exprModifier.ModifyParameter(lambda.Body, lambda.TakeParamter(0), _new);
-                    merge = merge == null ? newExpr : Expression.AndAlso(merge, newExpr);
-                }
-
-                query.Havings.Clear();
-                query.Havings.Add(Expression.Lambda(merge, _new));
+                Expression newExpr = exprModifier.ModifyParameter(lambda.Body, _old, _new);
+                query.Having = Expression.Lambda(newExpr, _new);
             }
 
             //排序（仅在不存在分组的情况下才有替换参数的意义）
@@ -736,11 +691,12 @@ namespace MNet.LTSQL
         private SqlQueryToken TranslateQueryCore(SqlQueryPart query)
         {
             string root = null;
-            this.BeforeTranslate(query, ref root);
-
-            SqlQueryToken sqlToken = new SqlQueryToken();
             LTSQLToken parameterObj = null;
             TableDescriptor descriptor = null;
+            SqlQueryToken sqlToken = new SqlQueryToken();
+
+            //
+            this.BeforeTranslate(query, ref root);
 
             //from, 注意存在单独的select 语句：select 1
             //from 是可能null的
@@ -753,9 +709,9 @@ namespace MNet.LTSQL
             }
 
             //where
-            if (query.Wheres.IsNotEmpty())
+            if (query.Where != null)
             {
-                LTSQLToken condition = this.TranslateWhere(query.Wheres[0].AsLambda(), parameterObj);
+                LTSQLToken condition = this.TranslateWhere(query.Where.AsLambda(), parameterObj);
                 sqlToken.Where = LTSQLTokenFactory.CreateClauseToken("WHERE", condition);
             }
 
@@ -774,9 +730,9 @@ namespace MNet.LTSQL
             }
 
             //having
-            if (query.Havings.IsNotEmpty())
+            if (query.Having != null)
             {
-                LTSQLToken condition = this.TranslateHaving(query.Havings[0].AsLambda(), parameterObj);
+                LTSQLToken condition = this.TranslateHaving(query.Having.AsLambda(), parameterObj);
                 sqlToken.Having = LTSQLTokenFactory.CreateClauseToken("HAVING", condition);
             }
 

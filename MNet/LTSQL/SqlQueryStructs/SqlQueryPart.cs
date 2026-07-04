@@ -88,12 +88,12 @@ namespace MNet.LTSQL.SqlQueryStructs
         public QueryPart From { get; set; }
         //where
         // 由于存在连表查询的情况，条件是一个表达式列表，默认是AND关系
-        public List<Expression> Wheres { get; set; }
+        public Expression Where { get; set; }
         //group by
         public Expression GroupKey { get; set; }
         public Expression GroupElement { get; set; }
         //having
-        public List<Expression> Havings { get; set; }
+        public Expression Having { get; set; }
         //order by
         public List<OrderKeyPart> Orders { get; set; }
         public Expression SelectKey { get; set; }
