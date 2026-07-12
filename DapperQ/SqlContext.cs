@@ -1,6 +1,7 @@
 using MNet.LTSQL;
 using System;
 using System.Data;
+using System.Data.Common;
 
 namespace DapperQ
 {
@@ -34,7 +35,7 @@ namespace DapperQ
 
         protected virtual void Configuration()
         {
-
+            
         }
         public virtual ILTSQLNonQueryable<T> CreateUpdate<T>()
         {

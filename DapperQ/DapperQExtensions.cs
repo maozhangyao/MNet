@@ -82,18 +82,6 @@ namespace DapperQ
 
             return await qry.QueryFAsync(ctx.Connection, ctx.Options!, ctx.Log);
         }
-        public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
-        {
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            configOptions(option);
-            return qry.QueryF(connection, option, logs);
-        }
-        public static async Task<T?> QueryFAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
-        {
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            configOptions(option);
-            return await qry.QueryFAsync(connection, option, logs);
-        }
         public static T? QueryF<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
             if (qry == null)
@@ -170,18 +158,6 @@ namespace DapperQ
                 throw new Exception($"未检测到{nameof(SqlContext)}信息，请使用{nameof(SqlContext)}.{nameof(SqlContext.CreateQuery)}创建查询表达式。");
 
             return await qry.QueryAsync(ctx.Connection, ctx.Options!, ctx.Log);
-        }
-        public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
-        {
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            configOptions(option);
-            return qry.Query(connection, option, logs);
-        }
-        public static async Task<IEnumerable<T>> QueryAsync<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, Action<LTSQLOptions> configOptions, Action<string> logs = null)
-        {
-            LTSQLOptions option = LTSQLOptionsSetting.OptionCreator != null ? LTSQLOptionsSetting.OptionCreator() : new LTSQLOptions();
-            configOptions(option);
-            return await qry.QueryAsync(connection, option, logs);
         }
         public static IEnumerable<T> Query<T>(this ILTSQLObjectQueryable<T> qry, IDbConnection connection, LTSQLOptions options = null, Action<string> logs = null)
         {
