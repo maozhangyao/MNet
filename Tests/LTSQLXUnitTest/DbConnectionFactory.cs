@@ -1,14 +1,18 @@
 using DapperQ;
+using MNet.Kits;
+using MNet.LTSQL;
+using System.Data;
 using Microsoft.Data.Sqlite;
 using System;
-using System.Collections.Generic;
-using System.Data;
 using System.Text;
+using System.Collections.Generic;
 
 namespace LTSQLXUnitTest
 {
     internal class DbConnectionFactory
     {
+        private static readonly GeneralObjectPool _pool = new GeneralObjectPool(() => Sqllite(), 100);
+
         public static IDbConnection Sqllite()
         {
             return Sqllite("Data Source=MNetSqllite.db");
@@ -20,14 +24,14 @@ namespace LTSQLXUnitTest
 
         public static ISqlContext CreateSqlContext(Action<string> logs = null)
         {
-            return new SqlContext(new MNet.LTSQL.LTSQLOptions()
-            {
-                UseSqlParameter = false,
-                DbType = MNet.LTSQL.DbTypes.SQLLite,
-            }, Sqllite())
-            { 
-                Log = logs
-            };
+            SqlContextOptions opts = new SqlContextOptions();
+            opts.LTSQLOptions = new LTSQLOptions();
+            opts.LTSQLOptions.UseSqlParameter = false;
+            opts.LTSQLOptions.DbType = DbTypes.SQLLite;
+            opts.DbConnectionRenting = _pool.Rent<IDbConnection>();
+            opts.Log = logs;
+
+            return new SqlContext(opts);
         }
     }
 }

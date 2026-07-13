@@ -1,3 +1,4 @@
+using MNet.Kits;
 using MNet.LTSQL;
 using System;
 using System.Collections.Generic;
@@ -16,7 +17,7 @@ namespace DapperQ
         /// <summary>
         /// 数据库连接器
         /// </summary>
-        IDbConnection Connection { get; }
+        IObjectRenting<IDbConnection> ConnectionRenting { get; }
 
         /// <summary>
         /// 创建查询表达式
