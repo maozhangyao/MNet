@@ -161,11 +161,9 @@ namespace MNet.Kits
                 this._available.Add(item);
             }
         }
-        public async Task<object?> TakeAsync(int waitTimeInMillisecond)
-        {
-            return await this.TakeAsync();
-        }
-        public async Task<object?> TakeAsync()
+
+
+        public object? Take()
         {
             lock (_lock)
             {
@@ -197,6 +195,14 @@ namespace MNet.Kits
                     throw;
                 }
             }
+        }
+        public object? Take(int waitTimeInMillisecond)
+        {
+            return this.Take();
+        }
+        ~GeneralObjectPool()
+        {
+            this.Dispose();
         }
     }
 }

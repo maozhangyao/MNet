@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace MNet.Kits
 {
     /// <summary>
-    /// 对象池
+    /// 全局公用对象池(承诺线程安全)
     /// </summary>
     public interface IObjectPool : IDisposable
     {
@@ -17,18 +17,19 @@ namespace MNet.Kits
         /// </summary>
         int Count { get; }
 
+
         /// <summary>
         /// 取出一个对象
         /// </summary>
         /// <param name="waitTimeInMillisecond"></param>
         /// <returns></returns>
-        Task<object?> TakeAsync(int waitTimeInMillisecond);
+        object? Take();
         /// <summary>
         /// 取出一个对象
         /// </summary>
         /// <param name="waitTimeInMillisecond"></param>
         /// <returns></returns>
-        Task<object?> TakeAsync();
+        object? Take(int waitTimeInMillisecond);
 
 
         /// <summary>
