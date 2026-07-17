@@ -221,6 +221,15 @@ namespace MNet.LTSQL
         {
             return new ClauseToken(clause, subs);
         }
+        public static FromClauseToken CreateFromClauseToken(LTSQLToken src)
+        {
+            return new FromClauseToken(src);
+        }
+        public static WhereClauseToken CreateWhereClauseToken(LTSQLToken condition)
+        {
+            return new WhereClauseToken(condition);
+        }
+
         public static SequenceToken CreateSequenceToken(params LTSQLToken[] tokens)
         {
             return SequenceToken.Create(tokens);

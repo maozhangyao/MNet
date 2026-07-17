@@ -9,14 +9,8 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class ClauseToken : LTSQLToken
     {
-        public ClauseToken(string clause, LTSQLToken[] subs) : this(clause, subs, null)
+        public ClauseToken(string clause, LTSQLToken[] subs)
         { }
-        public ClauseToken(string clause, LTSQLToken[] subs, Dictionary<string, object> metadata)
-        {
-            this.ClauseName = clause;
-            this.SubClause = subs;
-            this.Metadata = metadata == null ? null : new Dictionary<string, object>(metadata);
-        }
 
 
         /// <summary>
@@ -33,7 +27,11 @@ namespace MNet.LTSQL.SqlTokens
         {
             return visitor.VisitClauseToken(this);
         }
-        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        protected internal virtual ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new ClauseToken(this.ClauseName, newSubClause);
+        }
+        protected internal virtual LTSQLToken[] VisitChildrenCore(LTSQLTokenVisitor visitor)
         {
             LTSQLToken[] arr = null;
             if (this.SubClause != null)
@@ -44,8 +42,13 @@ namespace MNet.LTSQL.SqlTokens
                     arr[i] = visitor.Visit(this.SubClause[i]);
                 }
             }
+            return arr;
+        }
 
-            return new ClauseToken(this.ClauseName, arr, this.Metadata);
+        protected internal sealed override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            LTSQLToken[] arr = this.VisitChildrenCore(visitor);
+            return VisitChildren(arr);
         }
         public override string ToString()
         {
@@ -53,6 +56,84 @@ namespace MNet.LTSQL.SqlTokens
                 return this.ClauseName;
 
             return this.ClauseName + " " + this.SubClause.JoinAsString(" ");
+        }
+    }
+
+
+    public class FromClauseToken : ClauseToken
+    {
+        public FromClauseToken(LTSQLToken src) : base("FROM", new[] { src })
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new FromClauseToken(newSubClause[0]);
+        }
+    }
+
+    public class WhereClauseToken : ClauseToken
+    {
+        public WhereClauseToken(LTSQLToken condition) : base("WHERE", new[] { condition })
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new WhereClauseToken(newSubClause[0]);
+        }
+    }
+
+    public class OrderByClauseToken : ClauseToken
+    {
+        public OrderByClauseToken(LTSQLToken[] orderList) : base("ORDER BY", new[] { LTSQLTokenFactory.CreateListToken(orderList) })
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new OrderByClauseToken(newSubClause);
+        }
+    }
+
+    public class GroupClauseToken : ClauseToken
+    {
+        public GroupClauseToken(LTSQLToken[] groupList) : base("GROUP BY", new []{ LTSQLTokenFactory.CreateListToken(groupList) })
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new GroupClauseToken(newSubClause);
+        }
+    }
+
+    public class HavingClauseToken : ClauseToken
+    {
+        public HavingClauseToken(LTSQLToken condition) : base("HAVAING", new[] { condition })
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new HavingClauseToken(newSubClause[0]);
+        }
+    }
+
+    public class TopClauseToken : ClauseToken
+    {
+        public TopClauseToken(LTSQLToken take) : base("TOP", new[] { take } )
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return new TopClauseToken(newSubClause[0]);
+        }
+    }
+
+    public class DistinctToken : ClauseToken
+    {
+        public DistinctToken() : base("DISTINCT", null)
+        { }
+
+        protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
+        {
+            return this;//对象直接重用
         }
     }
 }

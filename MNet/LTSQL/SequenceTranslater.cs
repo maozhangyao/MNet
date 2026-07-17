@@ -695,6 +695,14 @@ namespace MNet.LTSQL
             TableDescriptor descriptor = null;
             SqlQueryToken sqlToken = new SqlQueryToken();
 
+            LTSQLToken from = null;
+            LTSQLToken where = null;
+            LTSQLToken order = null;
+            LTSQLToken group = null;
+            LTSQLToken having = null;
+            LTSQLToken page = null;
+            LTSQLToken select = null;
+            
             //
             this.BeforeTranslate(query, ref root);
 
@@ -702,8 +710,10 @@ namespace MNet.LTSQL
             //from 是可能null的
             if (query.From != null)
             {
-                sqlToken.From = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, out descriptor));
-                sqlToken.Table = descriptor;
+
+
+                from = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, out descriptor));
+                //sqlToken.Table = descriptor;
                 parameterObj = LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias ?? descriptor.TableName, descriptor, descriptor.MappingType);
                 this._context.SetRootParameter(root, parameterObj);
             }

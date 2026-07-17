@@ -12,29 +12,38 @@ namespace MNet.LTSQL.SqlTokens
     {
         internal SqlQueryToken() 
         { }
-        internal SqlQueryToken(bool priority)
+
+        internal SqlQueryToken(TableDescriptor table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority)
         {
             this.IsPriority = priority;
+            this.Table = table;
+            this.From = from;
+            this.Where = where;
+            this.Group = group;
+            this.Having = having;
+            this.Order = Order;
+            this.Page = page;
+            this.Select = select;
         }
 
 
         //from
-        public LTSQLToken From { get; set; }
+        public LTSQLToken From { get; }
         //where
-        public LTSQLToken Where { get; set; }
+        public LTSQLToken Where { get; }
         //group
-        public LTSQLToken Group { get; set; }
+        public LTSQLToken Group { get; }
         //having
-        public LTSQLToken Having { get; set; }
+        public LTSQLToken Having { get; }
         //order
-        public LTSQLToken Order { get; set; }
+        public LTSQLToken Order { get; }
         //select
-        public LTSQLToken Select { get; set; }
+        public LTSQLToken Select { get; }
         //分页子句
-        public LTSQLToken Page { get; set; }
+        public LTSQLToken Page { get; }
 
         public Type MappingType => base.ValueType;
-        public TableDescriptor Table { get; set; }
+        public TableDescriptor Table { get; }
         public LTSQLToken this[string key] => this.Table?.Fields?.FirstOrDefault(p => p.Field == key)?.Value;
 
 
@@ -56,17 +65,16 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            SqlQueryToken sub = (SqlQueryToken)this.LiteClone();
+            
+            LTSQLToken from = this.From?.Visit(visitor);
+            LTSQLToken where = this.Where?.Visit(visitor);
+            LTSQLToken group = this.Group?.Visit(visitor);
+            LTSQLToken having = this.Having?.Visit(visitor);
+            LTSQLToken order = this.Order?.Visit(visitor);
+            LTSQLToken page = this.Page?.Visit(visitor);
+            LTSQLToken select = this.Select?.Visit(visitor);
 
-            sub.From = this.From?.Visit(visitor);
-            sub.Where = this.Where?.Visit(visitor);
-            sub.Group = this.Group?.Visit(visitor);
-            sub.Having = this.Having?.Visit(visitor);
-            sub.Order = this.Order?.Visit(visitor);
-            sub.Page = this.Page?.Visit(visitor);
-            sub.Select = this.Select?.Visit(visitor);
-
-            return sub;
+            return new SqlQueryToken(this.Table, from, where, group, having, order, page, select, this.IsPriority);
         }
         protected override string ToString(string fmt)
         {
