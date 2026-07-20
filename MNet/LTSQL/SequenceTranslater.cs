@@ -341,7 +341,7 @@ namespace MNet.LTSQL
                     LambdaExpression expr2 = join.JoinKey2.AsLambda();
                     LambdaExpression expr3 = Expression.Lambda(Expression.Equal(expr1.Body, expr2.Body), expr1.TakeParamter(0), expr2.TakeParamter(0));
                     LTSQLToken joinKeys = this.TranslateLambda(expr3, t1, t2);
-                    JoinToken joinToken = new JoinToken(join.JoinType, query1, query2, joinKeys);
+                    JoinToken joinToken = LTSQLTokenFactory.CreateJoinToken(join.JoinType, query1, query2, joinKeys);
                     return joinToken;
                 }
                 else
