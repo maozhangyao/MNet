@@ -134,7 +134,7 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitDataSetToken(DataSetToken token)
+        public virtual LTSQLToken VisitSetOperationToken(SetOperationToken token)
         {
             return this._visitor(token);
         }

@@ -11,30 +11,36 @@ namespace MNet.LTSQL.SqlTokens
     /// <summary>
     /// 表示集合操作
     /// </summary>
-    public class DataSetToken : SqlValueToken, ISelectable
+    public class SetOperationToken : SqlValueToken, ISelectable
     {
-        internal DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
-            : this(valueType, querys, settype, distinct, false)
+        internal SetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+            : this(table, querys, settype, distinct, false)
         { }
-        internal DataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool prior)
+        internal SetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool prior)
         {
-            this.Querys = querys.ToArray();
+            this.Table = table;
             this.SetType = settype;
             this.Distinct = distinct;
             this.IsPriority = prior;
+            this.Querys = querys.ToArray();
+            this.ValueType = table.MappingType;
         }
 
 
+        public bool Distinct { get; }
+        public DbSetType SetType { get; }
         //数组形式表示，而不是使用树结构表示节点，是为了避免递归时栈溢出
         //因为有可能有大量的 单 select 硬编码语句如：
         // select 1 union select 2 union select 3 .... union select 1000000
         // 这种情况，如果使用树结构，那么就会很可能导致栈溢出
         public LTSQLToken[] Querys { get; }
-        public DbSetType SetType { get; }
-        public bool Distinct { get; }
+        public TableDescriptor Table { get; }
         public Type MappingType => this.ValueType;
-        public TableDescriptor Table { get; set; }
-        public LTSQLToken this[string key] => this.Table?.GetField(key)?.Value;
+        //
+        public LTSQLToken this[string key]
+        {
+            get => this.Table?.GetField(key)?.Value;
+        }
 
 
         public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
@@ -53,7 +59,7 @@ namespace MNet.LTSQL.SqlTokens
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitDataSetToken(this);
+            return visitor.VisitSetOperationToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
@@ -63,10 +69,7 @@ namespace MNet.LTSQL.SqlTokens
                 arr[i] = visitor.Visit(this.Querys[i]);
             }
 
-            return new DataSetToken(this.ValueType, arr, this.SetType, this.Distinct, this.IsPriority)
-            {
-                Table = this.Table
-            };
+            return new SetOperationToken(this.Table, arr, this.SetType, this.Distinct, this.IsPriority);
         }
         protected override string ToString(string fmt)
         {

@@ -328,7 +328,7 @@ namespace MNet.LTSQL
                 }
                 ctx.Writer.Write(")");
             })
-            .UseSpecialByType<DataSetToken>((t, ctx, nxt) =>
+            .UseSpecialByType<SetOperationToken>((t, ctx, nxt) =>
             {
                 for (int i = 0; i < t.Querys.Length; i++)
                 {

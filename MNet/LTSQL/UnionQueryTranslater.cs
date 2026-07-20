@@ -48,10 +48,7 @@ namespace MNet.LTSQL
                 descriptor.AddField(new FieldDescriptor(field.Field, field.Value, field.FieldValueType));
             }
 
-            return new DataSetToken(query.MappingType, rts, set.SetType, set.Distinct)
-            {
-                Table = descriptor
-            };
+            return LTSQLTokenFactory.CreateSetOperationToken(descriptor, rts, set.SetType, set.Distinct);
         }
     }
 }

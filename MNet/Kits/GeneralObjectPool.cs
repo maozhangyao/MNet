@@ -95,7 +95,7 @@ namespace MNet.Kits
                             {
                                 disp.Dispose();
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 //Console.Error.WriteLine(ex);
                             }
@@ -192,7 +192,7 @@ namespace MNet.Kits
                     this.IncrCount();
                     return val;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     throw;
                 }

@@ -319,16 +319,16 @@ namespace MNet.LTSQL
         {
             return new SqlQueryToken(table, from, where, group, having, order, page, select, priority);
         }
-        public static DataSetToken CreateDataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+        public static SetOperationToken CreateSetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
         {
-            return CreateDataSetToken(valueType, querys, settype, distinct, false);
+            return CreateSetOperationToken(table, querys, settype, distinct, false);
         }
-        public static DataSetToken CreateDataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool priority)
+        public static SetOperationToken CreateSetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool priority)
         {
             if (querys == null)
                 throw new ArgumentNullException(nameof(querys));
 
-            return new DataSetToken(valueType, querys, settype, distinct, priority);
+            return new SetOperationToken(table, querys, settype, distinct, priority);
         }
         public static GroupObjToken CreateGroupObjToken(LTSQLToken groupElement, LTSQLToken groupKey)
         {

@@ -282,7 +282,7 @@ namespace MNet.LTSQL
                 this.Visit(exprs);
                 return this.PopToken();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw;
             }
