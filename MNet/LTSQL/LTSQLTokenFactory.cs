@@ -229,6 +229,40 @@ namespace MNet.LTSQL
         {
             return new WhereClauseToken(condition);
         }
+        public static OrderByClauseToken CreateOrderByClauseToken(params LTSQLToken[] orderList)
+        {
+            return new OrderByClauseToken(orderList);
+        }
+        public static GroupClauseToken CreateGroupClauseToken(params LTSQLToken[] groupList)
+        {
+            return new GroupClauseToken(groupList);
+        }
+        public static HavingClauseToken CreateHavingClauseToken(LTSQLToken condition)
+        {
+            if (condition == null)
+                throw new ArgumentNullException(nameof(condition));
+
+            return new HavingClauseToken(condition);
+        }
+        public static TopClauseToken CreateTopClauseToken(LTSQLToken take)
+        {
+            if (take == null)
+                throw new ArgumentNullException(nameof(take));
+
+            return new TopClauseToken(take);
+        }
+        public static SelectClauseToken CreateSelectClauseToken(params LTSQLToken[] fields)
+        {
+            return new SelectClauseToken(fields, null, null);
+        }
+        public static SelectClauseToken CreateSelectClauseToken(LTSQLToken[] fields, LTSQLToken distinct, LTSQLToken topClause)
+        {
+            return new SelectClauseToken(fields, distinct, topClause);
+        }
+        public static DistinctToken CreateDistinctToken()
+        {
+            return new DistinctToken();
+        }
 
         public static SequenceToken CreateSequenceToken(params LTSQLToken[] tokens)
         {
@@ -246,7 +280,7 @@ namespace MNet.LTSQL
         {
             List<LTSQLToken> list = new List<LTSQLToken>(tokens);
             list.Add(append);
-            
+
             return new ListToken(list);
         }
         public static SwitchCaseToken CreateSwitchCase(LTSQLToken then, LTSQLToken thenValue, LTSQLToken thenElse, Type valueType)
@@ -270,6 +304,40 @@ namespace MNet.LTSQL
         {
             return new UpdateClauseToken(table, (setClause as TupleToken) ?? CreateTupleToken(setClause), whereClause);
         }
+        public static JoinToken CreateJoinToken(JoinType joinType, LTSQLToken mainQuery, LTSQLToken joinQuery, LTSQLToken joinKeys)
+        {
+            if (mainQuery == null)
+                throw new ArgumentNullException(nameof(mainQuery));
+            if (joinQuery == null)
+                throw new ArgumentNullException(nameof(joinQuery));
+            if (joinKeys == null)
+                throw new ArgumentNullException(nameof(joinKeys));
+
+            return new JoinToken(joinType, mainQuery, joinQuery, joinKeys);
+        }
+        public static SqlQueryToken CreateSqlQueryToken(TableDescriptor table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority = false)
+        {
+            return new SqlQueryToken(table, from, where, group, having, order, page, select, priority);
+        }
+        public static DataSetToken CreateDataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+        {
+            return CreateDataSetToken(valueType, querys, settype, distinct, false);
+        }
+        public static DataSetToken CreateDataSetToken(Type valueType, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool priority)
+        {
+            if (querys == null)
+                throw new ArgumentNullException(nameof(querys));
+
+            return new DataSetToken(valueType, querys, settype, distinct, priority);
+        }
+        public static GroupObjToken CreateGroupObjToken(LTSQLToken groupElement, LTSQLToken groupKey)
+        {
+            if (groupElement == null)
+                throw new ArgumentNullException(nameof(groupElement));
+
+            return new GroupObjToken(groupElement, groupKey);
+        }
+
         public static SyntaxToken Syntax(string txt, bool escape = false)
         {
             return SyntaxToken.Create(txt);

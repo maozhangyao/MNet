@@ -106,7 +106,7 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitSelectToken(SelectToken token)
+        public virtual LTSQLToken VisitSelectClauseToken(SelectClauseToken token)
         {
             return this._visitor(token);
         }

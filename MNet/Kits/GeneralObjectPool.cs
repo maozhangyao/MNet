@@ -96,7 +96,9 @@ namespace MNet.Kits
                                 disp.Dispose();
                             }
                             catch (Exception ex)
-                            { }
+                            {
+                                //Console.Error.WriteLine(ex);
+                            }
                         }
                         this.ReleaseCount();
                     }

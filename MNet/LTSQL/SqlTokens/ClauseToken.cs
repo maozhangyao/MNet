@@ -1,6 +1,9 @@
+using MNet.LTSQL.SqlTokenExtends;
 using MNet.Utils;
 using System;
+using System.Linq;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace MNet.LTSQL.SqlTokens
 {
@@ -9,14 +12,17 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class ClauseToken : LTSQLToken
     {
-        public ClauseToken(string clause, LTSQLToken[] subs)
-        { }
+        internal ClauseToken(string clause, LTSQLToken[] subs)
+        {
+            this.Clause = clause;
+            this.SubClause = subs;
+        }
 
 
         /// <summary>
         /// 子句名称： select, from, where, group, order, having 等等
         /// </summary>
-        public string ClauseName { get; }
+        public string Clause { get; }
         /// <summary>
         /// 子句内容列表
         /// </summary>
@@ -29,7 +35,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal virtual ClauseToken VisitChildren(LTSQLToken[] newSubClause)
         {
-            return new ClauseToken(this.ClauseName, newSubClause);
+            return new ClauseToken(this.Clause, newSubClause);
         }
         protected internal virtual LTSQLToken[] VisitChildrenCore(LTSQLTokenVisitor visitor)
         {
@@ -53,16 +59,16 @@ namespace MNet.LTSQL.SqlTokens
         public override string ToString()
         {
             if (this.SubClause == null || this.SubClause.Length < 1)
-                return this.ClauseName;
+                return this.Clause;
 
-            return this.ClauseName + " " + this.SubClause.JoinAsString(" ");
+            return this.Clause + " " + this.SubClause.JoinAsString(" ");
         }
     }
 
 
     public class FromClauseToken : ClauseToken
     {
-        public FromClauseToken(LTSQLToken src) : base("FROM", new[] { src })
+        internal FromClauseToken(LTSQLToken src) : base("FROM", new[] { src })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
@@ -73,7 +79,7 @@ namespace MNet.LTSQL.SqlTokens
 
     public class WhereClauseToken : ClauseToken
     {
-        public WhereClauseToken(LTSQLToken condition) : base("WHERE", new[] { condition })
+        internal WhereClauseToken(LTSQLToken condition) : base("WHERE", new[] { condition })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
@@ -84,29 +90,35 @@ namespace MNet.LTSQL.SqlTokens
 
     public class OrderByClauseToken : ClauseToken
     {
-        public OrderByClauseToken(LTSQLToken[] orderList) : base("ORDER BY", new[] { LTSQLTokenFactory.CreateListToken(orderList) })
+        internal OrderByClauseToken(LTSQLToken[] orderList) : base("ORDER BY", new[] { LTSQLTokenFactory.CreateListToken(orderList) })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
         {
-            return new OrderByClauseToken(newSubClause);
+            if (newSubClause[0] is IContainerable container)
+                return new OrderByClauseToken(container.ToArray());
+            else
+                return null;
         }
     }
 
     public class GroupClauseToken : ClauseToken
     {
-        public GroupClauseToken(LTSQLToken[] groupList) : base("GROUP BY", new []{ LTSQLTokenFactory.CreateListToken(groupList) })
+        internal GroupClauseToken(LTSQLToken[] groupList) : base("GROUP BY", new[] { LTSQLTokenFactory.CreateListToken(groupList) })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
         {
-            return new GroupClauseToken(newSubClause);
+            if (newSubClause[0] is IContainerable container)
+                return new GroupClauseToken(container.ToArray());
+            else
+                return null;
         }
     }
 
     public class HavingClauseToken : ClauseToken
     {
-        public HavingClauseToken(LTSQLToken condition) : base("HAVAING", new[] { condition })
+        internal HavingClauseToken(LTSQLToken condition) : base("HAVING", new[] { condition })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
@@ -117,7 +129,7 @@ namespace MNet.LTSQL.SqlTokens
 
     public class TopClauseToken : ClauseToken
     {
-        public TopClauseToken(LTSQLToken take) : base("TOP", new[] { take } )
+        internal TopClauseToken(LTSQLToken take) : base("TOP", new[] { take })
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)
@@ -128,7 +140,7 @@ namespace MNet.LTSQL.SqlTokens
 
     public class DistinctToken : ClauseToken
     {
-        public DistinctToken() : base("DISTINCT", null)
+        internal DistinctToken() : base("DISTINCT", null)
         { }
 
         protected internal override ClauseToken VisitChildren(LTSQLToken[] newSubClause)

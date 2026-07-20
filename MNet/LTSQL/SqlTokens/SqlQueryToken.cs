@@ -21,7 +21,7 @@ namespace MNet.LTSQL.SqlTokens
             this.Where = where;
             this.Group = group;
             this.Having = having;
-            this.Order = Order;
+            this.Order = order;
             this.Page = page;
             this.Select = select;
         }

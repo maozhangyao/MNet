@@ -179,7 +179,7 @@ namespace MNet.LTSQL
                 return null;
 
             TupleToken _new = new TupleToken(tuple.MappingType);
-            foreach((string key, LTSQLToken val) in tuple)
+            foreach ((string key, LTSQLToken val) in tuple)
             {
                 LTSQLToken newVal = null;
                 if (val is ITupleable sub)
@@ -196,7 +196,7 @@ namespace MNet.LTSQL
 
             return _new;
         }
-        
+
 
 
         // 调用外部翻译扩展
@@ -250,16 +250,16 @@ namespace MNet.LTSQL
         }
 
 
-        
+
         private LTSQLToken TranslateLambda(LambdaExpression lambda, params LTSQLToken[] rets)
         {
-            if(rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
+            if (rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
                 throw new Exception("替换参数个数大于实际的参数个数");
 
             var paras = lambda.Parameters.ToArray();
             int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
             List<(Expression expr, LTSQLToken ret)> list = new List<(Expression expr, LTSQLToken ret)>();
-            for(int i = 0; i < len; i++)
+            for (int i = 0; i < len; i++)
             {
                 list.Add((paras[i], rets[i]));
             }
@@ -268,9 +268,9 @@ namespace MNet.LTSQL
         }
         private LTSQLToken Translate(Expression exprs, params (Expression expr, LTSQLToken ret)[] list)
         {
-            if(list.Length > 0)
+            if (list.Length > 0)
             {
-                ParameterExpression p;
+                //ParameterExpression p;
                 foreach ((Expression expr, LTSQLToken ret) in list)
                 {
                     this.UseToken(expr, ret);
@@ -408,7 +408,7 @@ namespace MNet.LTSQL
 
             return token;
         }
-        private LTSQLToken TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle, LTSQLToken parameters, out GroupObjToken groupToken)
+        private LTSQLToken[] TranslateGroup(LambdaExpression groupKey, LambdaExpression groupEle, LTSQLToken parameters, out GroupObjToken groupToken)
         {
             groupToken = null;
             LTSQLToken groupKeyToken = null;
@@ -434,7 +434,7 @@ namespace MNet.LTSQL
             if (groupKeyTokens.Count <= 0)
                 return null; //不是直接group by操作，可能是直接做单一的聚合查询，如 select count(1) from xxx
 
-            return LTSQLTokenFactory.CreateListToken(groupKeyTokens.ToArray());
+            return groupKeyTokens.ToArray();
         }
         private LTSQLToken TranslateHaving(LambdaExpression havings, LTSQLToken parameters)
         {
@@ -452,7 +452,7 @@ namespace MNet.LTSQL
                 throw;
             }
         }
-        private LTSQLToken TranslateOrder(List<OrderKeyPart> orders, LTSQLToken parameters)
+        private LTSQLToken[] TranslateOrder(List<OrderKeyPart> orders, LTSQLToken parameters)
         {
             if (orders.IsEmpty())
                 return null;
@@ -471,9 +471,9 @@ namespace MNet.LTSQL
                     );
             }
 
-            return LTSQLTokenFactory.CreateListToken(orderKeyTokens.ToArray());
+            return orderKeyTokens.ToArray();
         }
-        private LTSQLToken TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, out TableDescriptor descriptor)
+        private LTSQLToken[] TranslateSelect(LambdaExpression selectKey, LTSQLToken parameters, out TableDescriptor descriptor)
         {
             descriptor = new TableDescriptor();
             try
@@ -506,7 +506,7 @@ namespace MNet.LTSQL
                     descriptor.AddField(new FieldDescriptor(_transparentField, token, selectKey.ReturnType));
                 }
 
-                return LTSQLTokenFactory.CreateListToken(fields.ToArray());
+                return fields.ToArray();
             }
             catch (Exception ex)
             {
@@ -531,7 +531,7 @@ namespace MNet.LTSQL
                 LambdaExpression lambda = query.Where.AsLambda();
                 ParameterExpression _old = lambda.TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                Expression newExpr = exprModifier.ModifyParameter(lambda.Body,_old, _new);
+                Expression newExpr = exprModifier.ModifyParameter(lambda.Body, _old, _new);
                 query.Where = Expression.Lambda(newExpr, _new);
             }
 
@@ -693,7 +693,7 @@ namespace MNet.LTSQL
             string root = null;
             LTSQLToken parameterObj = null;
             TableDescriptor descriptor = null;
-            SqlQueryToken sqlToken = new SqlQueryToken();
+            SqlQueryToken sqlToken = null;
 
             LTSQLToken from = null;
             LTSQLToken where = null;
@@ -702,7 +702,7 @@ namespace MNet.LTSQL
             LTSQLToken having = null;
             LTSQLToken page = null;
             LTSQLToken select = null;
-            
+
             //
             this.BeforeTranslate(query, ref root);
 
@@ -712,7 +712,7 @@ namespace MNet.LTSQL
             {
 
 
-                from = LTSQLTokenFactory.CreateClauseToken("FROM", this.TranslateFrom(query.From, root, out descriptor));
+                from = LTSQLTokenFactory.CreateFromClauseToken(this.TranslateFrom(query.From, root, out descriptor));
                 //sqlToken.Table = descriptor;
                 parameterObj = LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias ?? descriptor.TableName, descriptor, descriptor.MappingType);
                 this._context.SetRootParameter(root, parameterObj);
@@ -722,7 +722,7 @@ namespace MNet.LTSQL
             if (query.Where != null)
             {
                 LTSQLToken condition = this.TranslateWhere(query.Where.AsLambda(), parameterObj);
-                sqlToken.Where = LTSQLTokenFactory.CreateClauseToken("WHERE", condition);
+                where = LTSQLTokenFactory.CreateWhereClauseToken(condition);
             }
 
             //group by，注意存在select count(*) from xxx ；即无需group by 子句的全部数据分组
@@ -731,9 +731,9 @@ namespace MNet.LTSQL
                 LambdaExpression lambda1 = query.GroupKey.AsLambda();
                 LambdaExpression lambda2 = query.GroupElement.AsLambda();
 
-                LTSQLToken groupKeys = this.TranslateGroup(lambda1, lambda2, parameterObj, out GroupObjToken groupObj);
+                LTSQLToken[] groupKeys = this.TranslateGroup(lambda1, lambda2, parameterObj, out GroupObjToken groupObj);
                 if (groupKeys != null)
-                    sqlToken.Group = LTSQLTokenFactory.CreateClauseToken("GROUP BY", groupKeys);
+                    group = LTSQLTokenFactory.CreateGroupClauseToken(groupKeys);
 
                 parameterObj = groupObj;
                 this._context.SetRootParameter(root, parameterObj);
@@ -743,57 +743,51 @@ namespace MNet.LTSQL
             if (query.Having != null)
             {
                 LTSQLToken condition = this.TranslateHaving(query.Having.AsLambda(), parameterObj);
-                sqlToken.Having = LTSQLTokenFactory.CreateClauseToken("HAVING", condition);
+                having = LTSQLTokenFactory.CreateHavingClauseToken(condition);
             }
 
             //order by
             if (query.Orders.IsNotEmpty())
             {
-                LTSQLToken orderKeys = this.TranslateOrder(query.Orders, parameterObj);
-                sqlToken.Order = LTSQLTokenFactory.CreateClauseToken("ORDER BY", orderKeys);
+                LTSQLToken[] orderKeys = this.TranslateOrder(query.Orders, parameterObj);
+                order = LTSQLTokenFactory.CreateOrderByClauseToken(orderKeys);
             }
 
             //select
-            LTSQLToken selectFieldsToken = null;
+            LTSQLToken[] selectFields = null;
             if (query.SelectKey != null)
             {
                 TableDescriptor descriptorNew = new TableDescriptor();
-                selectFieldsToken = this.TranslateSelect(query.SelectKey.AsLambda(), parameterObj, out descriptorNew);
-                sqlToken.Table = descriptorNew;
+                selectFields = this.TranslateSelect(query.SelectKey.AsLambda(), parameterObj, out descriptorNew);
+                descriptor = descriptorNew;
             }
             else
             {
                 //需要注意字段唯一命名问题
-                TupleToken defaultSelect = LTSQLTokenFactory.CreateTupleToken(sqlToken.Table.ExpendTuple(sqlToken.Table.MappingType));
-                selectFieldsToken = LTSQLTokenFactory.CreateListToken(defaultSelect.Select(p => LTSQLTokenFactory.CreateAliasToken(p.value, p.key)).ToArray());
+                TupleToken defaultSelect = LTSQLTokenFactory.CreateTupleToken(descriptor.ExpendTuple(descriptor.MappingType));
+                selectFields = defaultSelect.Select(p => LTSQLTokenFactory.CreateAliasToken(p.value, p.key)).ToArray();
             }
 
             //distict
             LTSQLToken distinckClause = null;
             if (query.Distinct)
-                distinckClause = LTSQLTokenFactory.CreateClauseToken("DISTINCT");
+                distinckClause = LTSQLTokenFactory.CreateDistinctToken();
 
             //分页
             LTSQLToken topLimitClause = null;
-            if (query.Skip != null || query.Take != null)
+            if ((query.Skip == null || query.Skip == 0) && query.Take != null && this._context.Options?.DbType == DbTypes.MSSQL)
             {
-                if (query.Skip == null && this._context.Options?.DbType == DbTypes.MSSQL)
-                {
-                    //sql server 的 top 语法
-                    topLimitClause = LTSQLTokenFactory.CreateClauseToken("TOP",
-                        LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), query.Take, typeof(int))
-                    );
-                }
-                else
-                {
-                    sqlToken.Page = LTSQLTokenFactory.CreatePageToken(query.Skip, query.Take);
-                }
+                //sql server 的 top 语法
+                SqlParameterToken sqlParam = LTSQLTokenFactory.CreateSqlParameterToken(this._context.ParameterNameGenerator.Next(), query.Take, typeof(int));
+                topLimitClause = LTSQLTokenFactory.CreateTopClauseToken(sqlParam);
+            }
+            else if (query.Take != null)
+            {
+                page = LTSQLTokenFactory.CreatePageToken(query.Skip ?? 0, query.Take);
             }
 
-            sqlToken.Select = LTSQLTokenFactory.CreateClauseToken("SELECT",
-                new[] { distinckClause, topLimitClause, selectFieldsToken }.Where(p => p != null).ToArray()
-            );
-
+            select = LTSQLTokenFactory.CreateSelectClauseToken(selectFields,  distinckClause, topLimitClause);
+            sqlToken = LTSQLTokenFactory.CreateSqlQueryToken(descriptor, from, where, group, having, order, page, select, false);
             sqlToken = sqlToken.ChangeType(typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType)) as SqlQueryToken;
             sqlToken = this.PostTranslate(sqlToken) as SqlQueryToken;
             return sqlToken;
@@ -807,7 +801,7 @@ namespace MNet.LTSQL
             if (part.Where != null)
                 this._context.SetRootParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
-            ITupleable tuple =  this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
+            ITupleable tuple = this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
             if (tuple == null)
                 throw new Exception($"无法翻译Update表达式：{part.UpdateSet}");
 
@@ -832,7 +826,7 @@ namespace MNet.LTSQL
 
             //where
             LTSQLToken whereClause = null;
-            if(part.Where != null)
+            if (part.Where != null)
             {
                 LTSQLToken where = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
                 whereClause = LTSQLTokenFactory.CreateClauseToken("WHERE", where);
@@ -1099,7 +1093,7 @@ namespace MNet.LTSQL
                 return expr;
 
             LTSQLToken right = this.PopToken();
-            LTSQLToken left  = this.PopToken();
+            LTSQLToken left = this.PopToken();
             ValueToken vall = left as ValueToken;
             ValueToken valr = right as ValueToken;
 
@@ -1275,7 +1269,7 @@ namespace MNet.LTSQL
             Expression expr = base.VisitConditional(node);
             if (this.OnTranslateExpression(node, node.Type))
                 return expr;
-            
+
             LTSQLToken thenElse = this.PopToken(); // else 的值
             LTSQLToken thenValue = this.PopToken(); // then 的值
             LTSQLToken then = this.PopToken(); // then 的判断

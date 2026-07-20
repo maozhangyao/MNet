@@ -51,7 +51,7 @@ namespace LTSQLXUnitTest
 
 
         /// <summary>
-        /// 基础查询：select * from xxx
+        /// 基础查询：select * from 
         /// </summary>
         [Fact]
         public void Query001ForDapper()
