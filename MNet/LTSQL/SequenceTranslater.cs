@@ -527,12 +527,11 @@ namespace MNet.LTSQL
             //统一根参数名(存在select 字段硬编码查询)
             if (query.Where != null)
             {
-                //where 多条件合并
                 LambdaExpression lambda = query.Where.AsLambda();
                 ParameterExpression _old = lambda.TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                Expression newExpr = exprModifier.ModifyParameter(lambda.Body, _old, _new);
-                query.Where = Expression.Lambda(newExpr, _new);
+                query.Where = exprModifier.WithParameterModifier(_ => _new)
+                    .ModifyParameter(lambda, _old);
             }
 
             // group by
@@ -544,47 +543,54 @@ namespace MNet.LTSQL
                 {
                     _old = query.GroupKey.AsLambda().TakeParamter(0);
                     _new = Expression.Parameter(_old.Type, root);
-                    query.GroupKey = exprModifier.ModifyParameter(query.GroupKey, _old, _new);
+                    query.GroupKey = exprModifier
+                        .WithParameterModifier(_ => _new)
+                        .ModifyParameter(query.GroupKey, _old);
                 }
 
                 if (query.GroupElement != null)
                 {
                     _old = query.GroupElement.AsLambda().TakeParamter(0);
                     _new = Expression.Parameter(_old.Type, root);
-                    query.GroupElement = exprModifier.ModifyParameter(query.GroupElement, _old, _new);
+                    query.GroupElement = exprModifier
+                        .WithParameterModifier(_ => _new)
+                        .ModifyParameter(query.GroupElement, _old);
                 }
             }
 
             // having
             if (query.Having != null)
             {
-                //多条件合并
                 LambdaExpression lambda = query.Having.AsLambda();
                 ParameterExpression _old = lambda.AsLambda().TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                Expression newExpr = exprModifier.ModifyParameter(lambda.Body, _old, _new);
-                query.Having = Expression.Lambda(newExpr, _new);
+                query.Having = exprModifier.WithParameterModifier(_ => _new)
+                    .ModifyParameter(lambda, _old);
             }
 
-            //排序（仅在不存在分组的情况下才有替换参数的意义）
+            //排序
             if (query.Orders.IsNotEmpty())
             {
                 ParameterExpression _old = query.Orders[0].Key.AsLambda().TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                foreach (var orderItem in query.Orders)
+                exprModifier.WithParameterModifier(_ => _new);
+
+                foreach (OrderKeyPart orderItem in query.Orders)
                 {
                     LambdaExpression lambda = orderItem.Key.AsLambda();
-                    orderItem.Key = exprModifier.ModifyParameter(lambda, lambda.TakeParamter(0), _new);
+                    orderItem.Key = exprModifier.ModifyParameter(lambda, lambda.TakeParamter(0));
                 }
             }
 
-            //投影（仅在不存在分组的情况下才有替换参数的意义, 并且只有在非join select的情况下才会存在统一参数）
+            //投影
             if (query.SelectKey != null)
             {
                 LambdaExpression lambda = query.SelectKey.AsLambda();
                 ParameterExpression _old = lambda.TakeParamter(0);
                 ParameterExpression _new = Expression.Parameter(_old.Type, root);
-                query.SelectKey = exprModifier.ModifyParameter(lambda, _old, _new);
+                query.SelectKey = exprModifier
+                    .WithParameterModifier(_ => _new)
+                    .ModifyParameter(lambda, _old);
             }
 
         }

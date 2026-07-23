@@ -27,9 +27,10 @@ namespace MNet.Utils
             if (expr1 == null || expr2 == null)
                 return expr1 ?? expr2;
 
-            ExpressionModifier modifier = new ExpressionModifier();
-            Expression newExpr1Body = modifier.ModifyParameter(expr1.Body, expr1.TakeParamter(0), expr2.TakeParamter(0));
-            
+            Expression newExpr1Body = new ExpressionModifier()
+                .WithParameterModifier(p => expr2.TakeParamter(0))
+                .ModifyParameter(expr1.Body, expr1.TakeParamter(0));
+
             return Expression.Lambda<Func<T, bool>>(
                     Expression.AndAlso(newExpr1Body, expr2.Body), expr2.TakeParamter(0)
                 );
@@ -41,8 +42,9 @@ namespace MNet.Utils
             if (expr1 == null || expr2 == null)
                 return expr1 ?? expr2;
 
-            ExpressionModifier modifier = new ExpressionModifier();
-            Expression newExpr1Body = modifier.ModifyParameter(expr1.Body, expr1.TakeParamter(0), expr2.TakeParamter(0));
+            Expression newExpr1Body = new ExpressionModifier()
+                .WithParameterModifier(p => expr2.TakeParamter(0))
+                .ModifyParameter(expr1.Body, expr1.TakeParamter(0));
 
             return Expression.Lambda<Func<T, bool>>(
                     Expression.OrElse(newExpr1Body, expr2.Body), expr2.TakeParamter(0)

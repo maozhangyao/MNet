@@ -197,9 +197,10 @@ namespace MNet.LTSQL
         {
             ParameterExpression parameter = expr.Parameters[0];
             ConstantExpression constant = Expression.Constant(obj, typeof(T));
-            ExpressionModifier modifier = new ExpressionModifier();
+            Expression newBody = new ExpressionModifier()
+                                    .WithModifer(ExpressionType.Parameter, _ => constant)
+                                    .ModifyParameter(expr, 0, true).Body;
 
-            Expression newBody = modifier.VisitParameter(expr.Body, p => parameter == p ? constant : p);
             return Expression.Lambda<Func<TResult>>(newBody).AsSelect();
         }
         public static ILTSQLOrderedQueryable<TResult> AsSelect<T, TResult>(this T obj, Func<T, Expression<Func<TResult>>> getNewExpr)
@@ -424,9 +425,12 @@ namespace MNet.LTSQL
                 if (lambda.ReturnType != typeof(T))
                     throw new Exception($"在连续select过程中，上一次select返回值类型({lambda.ReturnType.FullName})与当前select入参类型不匹配({typeof(T).FullName})。");
 
-                ExpressionModifier modifier = new ExpressionModifier();
+                //ExpressionModifier modifier = new ExpressionModifier();
                 Expression _oldPara = lambda.TakeParamter(0);
-                Expression _newbody = modifier.ModifyParameter(expr.Body, expr.TakeParamter(0), lambda.Body);
+                Expression _newbody = new ExpressionModifier()
+                    .WithModifer(ExpressionType.Parameter, _ => lambda.Body)
+                    .ModifyParameter(expr.Body, expr.TakeParamter(0));
+
                 Expression _newExpr = Expression.Lambda(_newbody, _oldPara as ParameterExpression);
                 selectKeyExpr = _newExpr;
             }
