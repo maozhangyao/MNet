@@ -6,6 +6,9 @@ using MNet.Utils;
 
 namespace MNet.LTSQL
 {
+    /// <summary>
+    /// 表达式修改器
+    /// </summary>
     public class ExpressionModifier : ExpressionVisitor
     {
         public ExpressionModifier()
