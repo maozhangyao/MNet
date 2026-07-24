@@ -68,13 +68,14 @@ namespace MNet.LTSQL
                 ctx.Writer.WriteWhite();
                 nxt(t.Right);
             })
-            .UseSpecialByType<BinaryToken>((t, ctx, nxt) =>
+            .UseSpecial(t => t is BinaryToken, (t, ctx, nxt) =>
             {
-                nxt(t.Left);
+                BinaryToken bin = (BinaryToken)t;
+                nxt(bin.Left);
                 ctx.Writer.WriteWhite();
-                ctx.Writer.Write(t.Opration);
+                ctx.Writer.Write(bin.Opration);
                 ctx.Writer.WriteWhite();
-                nxt(t.Right);
+                nxt(bin.Right);
 
             })
             .UseSpecialByType<ConstantToken>((t, ctx, nxt) =>
@@ -291,30 +292,6 @@ namespace MNet.LTSQL
                     }
                 }
             })
-            .UseSpecialByType<FromClauseToken>((t, ctx, nxt) =>
-            {
-                ctx.Writer.WriteWhite(t.Clause);
-                if (t.SubClause != null)
-                {
-                    foreach (var sub in t.SubClause)
-                    {
-                        nxt(sub);
-                        ctx.Writer.WriteWhite();
-                    }
-                }
-            })
-            .UseSpecialByType<WhereClauseToken>((t, ctx, nxt) =>
-            {
-                ctx.Writer.WriteWhite(t.Clause);
-                if (t.SubClause != null)
-                {
-                    foreach (var sub in t.SubClause)
-                    {
-                        nxt(sub);
-                        ctx.Writer.WriteWhite();
-                    }
-                }
-            })
             .UseSpecialByType<TupleToken>((t, ctx, nxt) =>
             {
                 ctx.Writer.Write("(");
@@ -393,6 +370,12 @@ namespace MNet.LTSQL
                     ctx.Writer.Write("WHERE ");
                     nxt(t.WhereClause);
                 }
+            })
+            .UseSpecialByType<OrderByItemToken>((t, ctx, nxt) =>
+            {
+                nxt(t.Field);
+                ctx.Writer.WriteWhite();
+                ctx.Writer.Write(t.Desc ? "DESC" : "ASC");
             });
 
             return builder;

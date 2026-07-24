@@ -78,6 +78,42 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitAndToken(AndToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitOrToken(OrToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitNotToken(NotToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitLtToken(LtToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitLeToken(LeToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitGtToken(GtToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitGeToken(GeToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitEqToken(EqToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitNeqToken(NeqToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitBoolCalcToken(BoolCalcToken token)
         {
             return this._visitor(token);
@@ -146,6 +182,9 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitOrderByItemToken(OrderByItemToken token)
+        {
+            return this._visitor(token);
+        }
     }
 }
- 

@@ -17,7 +17,7 @@ namespace MNet.LTSQL.SqlTokens
         {
             this.Value = value;
             this.ParameterName = pName;
-            this.ValueType = valueType;
+            this.ValueType = valueType ?? value?.GetType();
         }
 
 

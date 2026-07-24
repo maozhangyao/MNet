@@ -43,13 +43,22 @@ namespace MNet.LTSQL
             writer.WriteLine(part?.ToString());
         }
 
+        /// <summary>
+        /// 写一个空格空白符
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public static void WriteWhite(this ISqlWriter writer)
         {
             if (writer == null)
                 throw new ArgumentNullException(nameof(writer));
             writer.WriteWhite(null);
         }
-        
+        /// <summary>
+        ///  使用默认的四个空格作为缩进空间，开启新的缩进范围
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public static void BeginScope(this ISqlWriter writer)
         {
             if (writer == null)

@@ -25,11 +25,11 @@ namespace MNet.LTSQL
         void WriteWhite(string? part);
         
         /// <summary>
-        /// 开始一个子作用域
+        /// 开始一个缩进作用域，会在已有的缩进情况下追加缩进。prefix表示用来缩进的字符串，一般是4个空格
         /// </summary>
         void BeginScope(string prefix);
         /// <summary>
-        /// 结束一个子作用域
+        /// 结束当前的缩进效果
         /// </summary>
         void EndScope();
         

@@ -11,8 +11,6 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class BinaryToken : SqlValueToken, IPriorable
     {
-        internal BinaryToken()
-        { }
         internal BinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
             : this(opt, left, right, typeOfValue, false)
         { }
@@ -38,6 +36,8 @@ namespace MNet.LTSQL.SqlTokens
         public readonly static string OPT_GREATER_OR_EQUAL = ">=";
         public readonly static string OPT_LESS = "<";
         public readonly static string OPT_LESS_OR_EQUAL = "<=";
+        public readonly static string OPT_AND = "AND";
+        public readonly static string OPT_OR = "OR";
 
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
@@ -48,8 +48,14 @@ namespace MNet.LTSQL.SqlTokens
         {
             LTSQLToken left = this.Left?.Visit(visitor);
             LTSQLToken right = this.Right?.Visit(visitor);
-            return new BinaryToken(this.Opration, left, right, this.ValueType, this.IsPriority);
+            return this.VisitChildren(left, right);
         }
+        protected internal virtual BinaryToken VisitChildren(LTSQLToken newLeft, LTSQLToken newRight)
+        {
+            return new BinaryToken(this.Opration, newLeft, newRight, this.ValueType, this.IsPriority);
+        }
+       
+
         protected override string ToString(string fmt)
         {
             string val = $"{this.Left} {this.Opration} {this.Right}";
