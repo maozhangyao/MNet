@@ -132,7 +132,7 @@ namespace MNet.LTSQL
                 ctx.Writer.Write(")");
 
             })
-            .UseSpecialByType<ObjectAccessToken>((t, ctx, nxt) =>
+            .UseSpecialByType<AccessPropertyToken>((t, ctx, nxt) =>
             {
                 nxt(t.Object);
                 ctx.Writer.Write('.');

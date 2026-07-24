@@ -5,9 +5,9 @@ using System.Collections.Generic;
 namespace MNet.LTSQL.SqlTokens
 {
     // sql 对象的访问
-    public class ObjectAccessToken : SqlValueToken
+    public class AccessPropertyToken : SqlValueToken
     {
-        internal ObjectAccessToken(LTSQLToken obj, string prop, Type valueOfType) 
+        internal AccessPropertyToken(LTSQLToken obj, string prop, Type valueOfType) 
         {
             this.Prop = prop;
             this.Object = obj;
@@ -20,7 +20,7 @@ namespace MNet.LTSQL.SqlTokens
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
-            return visitor.VisitObjectAccessToken(this);
+            return visitor.VisitAccessPropertyToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
@@ -28,7 +28,7 @@ namespace MNet.LTSQL.SqlTokens
             if (newObject == this.Object)
                 return this;
 
-            return new ObjectAccessToken(newObject, this.Prop, this.ValueType) { IsPriority = this.IsPriority };
+            return new AccessPropertyToken(newObject, this.Prop, this.ValueType) { IsPriority = this.IsPriority };
         }
         protected override string ToString(string fmt)
         {

@@ -41,7 +41,7 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(propType));
 
 
-            return new ObjectAccessToken(obj, prop, propType);
+            return new AccessPropertyToken(obj, prop, propType);
         }
 
         public static LTSQLToken CreateFunctionObjectToken(string fName, Type fType = null)

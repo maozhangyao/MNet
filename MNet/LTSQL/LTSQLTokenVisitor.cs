@@ -138,7 +138,7 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitObjectAccessToken(ObjectAccessToken token)
+        public virtual LTSQLToken VisitAccessPropertyToken(AccessPropertyToken token)
         {
             return this._visitor(token);
         }

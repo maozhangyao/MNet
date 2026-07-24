@@ -495,7 +495,7 @@ namespace MNet.LTSQL
                         descriptor.AddField(new FieldDescriptor(key, val, tuple.GetValueType(key)));
 
                 }
-                else if (token is ObjectAccessToken access)
+                else if (token is AccessPropertyToken access)
                 {
                     fields.Add(LTSQLTokenFactory.CreateAliasToken(access, access.Prop));
                     descriptor.AddField(new FieldDescriptor(access.Prop, access, access.ValueType));
