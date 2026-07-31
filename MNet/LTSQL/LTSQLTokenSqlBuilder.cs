@@ -60,14 +60,6 @@ namespace MNet.LTSQL
                 ctx.Writer.Write(" AS ");
                 ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
             })
-            .UseSpecialByType<BoolCalcToken>((t, ctx, nxt) =>
-            {
-                nxt(t.Left); //可能为 null， 如 Exists， Not Exists 操作
-                ctx.Writer.WriteWhite();
-                ctx.Writer.Write(t.Opration);
-                ctx.Writer.WriteWhite();
-                nxt(t.Right);
-            })
             .UseSpecial(t => t is BinaryToken, (t, ctx, nxt) =>
             {
                 BinaryToken bin = (BinaryToken)t;

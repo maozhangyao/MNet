@@ -641,12 +641,12 @@ namespace MNet.LTSQL
                 {
                     if (t is BinaryToken bt && (bt.Opration == BinaryToken.OPT_EQUAL || bt.Opration == BinaryToken.OPT_NOT_EQUAL))
                     {
-                        string opt = bt.Opration == BinaryToken.OPT_EQUAL ? "IS" : "IS NOT";
+                        bool isNot = bt.Opration == BinaryToken.OPT_NOT_EQUAL;
 
                         if (bt.Left is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, bt.Right, bt.Left);
+                            return LTSQLTokenFactory.CreateIsToken(bt.Right, bt.Left, isNot);
                         else if (bt.Right is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, bt.Left, bt.Right);
+                            return LTSQLTokenFactory.CreateIsToken(bt.Left, bt.Right, isNot);
                     }
                     return t;
                 });

@@ -130,7 +130,15 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
-        public virtual LTSQLToken VisitBoolCalcToken(BoolCalcToken token)
+        public virtual LTSQLToken VisitIsToken(IsToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitLikeToken(LikeToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitInToken(InToken token)
         {
             return this._visitor(token);
         }

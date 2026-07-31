@@ -223,7 +223,7 @@ namespace MNet.LTSQL
                         }
                     }
 
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, left, right.TryPriority(true));
+                    ctx.ResultToken = LTSQLTokenFactory.CreateInToken(left, right.TryPriority(true));
                 }
 
                 // in 操作，支持元组匹配
@@ -244,7 +244,7 @@ namespace MNet.LTSQL
                     //子查询
                     if (query != null)
                     {
-                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple, token, true);
+                        ctx.ResultToken = LTSQLTokenFactory.CreateInToken(tuple, token, priority: true);
                     }
                     //参数硬编码
                     else if (list != null)
@@ -273,8 +273,8 @@ namespace MNet.LTSQL
                             }
                             tokens.Add(tupleItem);
                         }
-                        ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_IN, tuple,
-                                LTSQLTokenFactory.CreateListToken(true, tokens.ToArray()), true
+                        ctx.ResultToken = LTSQLTokenFactory.CreateInToken(tuple,
+                                LTSQLTokenFactory.CreateListToken(true, tokens.ToArray()), priority: true
                             );
                     }
                 }
@@ -453,19 +453,19 @@ namespace MNet.LTSQL
                 if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.Contains))
                 {
                     LTSQLToken liekStrToken = SqlFunctionHelper.StringLikeConcat(db, ctx.MethodParameterTokenList[0]).Build();
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, SqlFunctionHelper.StringLikeLConcat(db, ctx.OwnerToken).Build(), liekStrToken);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateLikeToken(SqlFunctionHelper.StringLikeLConcat(db, ctx.OwnerToken).Build(), liekStrToken);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.StartsWith))
                 {
                     LTSQLToken liekStrToken = SqlFunctionHelper.StringLikeLConcat(db, ctx.MethodParameterTokenList[0]).Build();
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, liekStrToken);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateLikeToken(ctx.OwnerToken, liekStrToken);
                 }
                 //like xxx%
                 else if (ctx.OwnerType == typeof(string) && ctx.Member.Name == nameof(string.EndsWith))
                 {
                     LTSQLToken liekStrToken = SqlFunctionHelper.StringLikeRConcat(db, ctx.MethodParameterTokenList[0]).Build();
-                    ctx.ResultToken = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_LIKE, ctx.OwnerToken, liekStrToken);
+                    ctx.ResultToken = LTSQLTokenFactory.CreateLikeToken(ctx.OwnerToken, liekStrToken);
                 }
             });
 

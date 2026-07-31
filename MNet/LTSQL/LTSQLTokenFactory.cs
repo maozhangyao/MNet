@@ -205,14 +205,6 @@ namespace MNet.LTSQL
         {
             return new BinaryToken(opt, left, right, typeOfValue, priority);
         }
-        public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right)
-        {
-            return CreateBoolCalcToken(opt, left, right, false);
-        }
-        public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right, bool priority)
-        {
-            return new BoolCalcToken(left, right, opt, false, priority);
-        }
         public static AndToken CreateAndToken(LTSQLToken left, LTSQLToken right)
         {
             return new AndToken(left, right);
@@ -248,6 +240,18 @@ namespace MNet.LTSQL
         public static NotToken CreateNotToken(SqlValueToken valueOfBool)
         {
             return new NotToken(valueOfBool);
+        }
+        public static IsToken CreateIsToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        {
+            return new IsToken(left, right, isNot, priority);
+        }
+        public static LikeToken CreateLikeToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        {
+            return new LikeToken(left, right, isNot, priority);
+        }
+        public static InToken CreateInToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        {
+            return new InToken(left, right, isNot, priority);
         }
         public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
         {
