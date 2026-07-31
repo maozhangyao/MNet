@@ -78,6 +78,22 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitAddToken(AddToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitSubtractToken(SubtractToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitDivideToken(DivideToken token)
+        {
+            return this._visitor(token);
+        }
+        public virtual LTSQLToken VisitMultiplyToken(MultiplyToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitAndToken(AndToken token)
         {
             return this._visitor(token);

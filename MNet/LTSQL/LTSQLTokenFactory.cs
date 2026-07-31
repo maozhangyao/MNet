@@ -181,21 +181,21 @@ namespace MNet.LTSQL
 
             return new PriorityCalcToken(inner);
         }
-        public static BinaryToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        public static AddToken CreateAdd(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("+", left, right, typeOfValue, true);
+            return new AddToken(left, right, typeOfValue, true);
         }
-        public static BinaryToken CreateSubtract(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        public static SubtractToken CreateSubtract(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("-", left, right, typeOfValue, true);
+            return new SubtractToken(left, right, typeOfValue, true);
         }
-        public static BinaryToken CreateDivide(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        public static DivideToken CreateDivide(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("/", left, right, typeOfValue, true);
+            return new DivideToken(left, right, typeOfValue, true);
         }
-        public static BinaryToken CreateMultiply(LTSQLToken left, LTSQLToken right, Type typeOfValue)
+        public static MultiplyToken CreateMultiply(LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
-            return CreateBinaryToken("*", left, right, typeOfValue, true);
+            return new MultiplyToken(left, right, typeOfValue, true);
         }
         public static BinaryToken CreateBinaryToken(string opt, LTSQLToken left, LTSQLToken right, Type typeOfValue)
         {
@@ -212,6 +212,42 @@ namespace MNet.LTSQL
         public static BoolCalcToken CreateBoolCalcToken(string opt, LTSQLToken left, LTSQLToken right, bool priority)
         {
             return new BoolCalcToken(left, right, opt, false, priority);
+        }
+        public static AndToken CreateAndToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new AndToken(left, right);
+        }
+        public static OrToken CreateOrToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new OrToken(left, right);
+        }
+        public static EqToken CreateEqToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new EqToken(left, right);
+        }
+        public static NeqToken CreateNeqToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new NeqToken(left, right);
+        }
+        public static GtToken CreateGtToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new GtToken(left, right);
+        }
+        public static GeToken CreateGeToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new GeToken(left, right);
+        }
+        public static LtToken CreateLtToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new LtToken(left, right);
+        }
+        public static LeToken CreateLeToken(LTSQLToken left, LTSQLToken right)
+        {
+            return new LeToken(left, right);
+        }
+        public static NotToken CreateNotToken(SqlValueToken valueOfBool)
+        {
+            return new NotToken(valueOfBool);
         }
         public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
         {
@@ -232,6 +268,10 @@ namespace MNet.LTSQL
         public static OrderByClauseToken CreateOrderByClauseToken(params LTSQLToken[] orderList)
         {
             return new OrderByClauseToken(orderList);
+        }
+        public static OrderByItemToken CreateOrderByItemToken(LTSQLToken field, bool desc)
+        {
+            return new OrderByItemToken(field, desc);
         }
         public static GroupClauseToken CreateGroupClauseToken(params LTSQLToken[] groupList)
         {

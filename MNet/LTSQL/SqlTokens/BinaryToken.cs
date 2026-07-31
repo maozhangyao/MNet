@@ -30,6 +30,10 @@ namespace MNet.LTSQL.SqlTokens
         public readonly LTSQLToken Right;
 
         //标准的二元操作符
+        public readonly static string OPT_ADD = "+";
+        public readonly static string OPT_SUBTRACT = "-";
+        public readonly static string OPT_DIVIDE = "/";
+        public readonly static string OPT_MULTIPLY = "*";
         public readonly static string OPT_EQUAL = "=";
         public readonly static string OPT_NOT_EQUAL = "<>";
         public readonly static string OPT_GREATER = ">";
