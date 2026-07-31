@@ -639,14 +639,14 @@ namespace MNet.LTSQL
 
                 sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
                 {
-                    if (t is BoolCalcToken cdt && (cdt.Opration == BoolCalcToken.OPT_EQUAL || cdt.Opration == BoolCalcToken.OPT_NOT_EQUAL))
+                    if (t is BinaryToken bt && (bt.Opration == BinaryToken.OPT_EQUAL || bt.Opration == BinaryToken.OPT_NOT_EQUAL))
                     {
-                        string opt = cdt.Opration == BoolCalcToken.OPT_EQUAL ? BoolCalcToken.OPT_IS : BoolCalcToken.OPT_IS_NOT;
+                        string opt = bt.Opration == BinaryToken.OPT_EQUAL ? "IS" : "IS NOT";
 
-                        if (cdt.Left is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Right, cdt.Left);
-                        else if (cdt.Right is NullToken)
-                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, cdt.Left, cdt.Right);
+                        if (bt.Left is NullToken)
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, bt.Right, bt.Left);
+                        else if (bt.Right is NullToken)
+                            return LTSQLTokenFactory.CreateBoolCalcToken(opt, bt.Left, bt.Right);
                     }
                     return t;
                 });
@@ -1154,11 +1154,11 @@ namespace MNet.LTSQL
                         throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
                     //元组中的各个属性做相等操作，用AND操作连接（join 操作会出现元组对比）
-                    BoolCalcToken cur = null;
+                    BinaryToken cur = null;
                     for (int i = 0; i < tupl.Props.Length; i++)
                     {
-                        BoolCalcToken equals = LTSQLTokenFactory.CreateBoolCalcToken("=", tupl.Props[i], tupr.Props[i]);
-                        cur = cur == null ? equals : LTSQLTokenFactory.CreateBoolCalcToken("AND", cur, equals);
+                        BinaryToken equals = LTSQLTokenFactory.CreateEqToken(tupl.Props[i], tupr.Props[i]);
+                        cur = cur == null ? equals : LTSQLTokenFactory.CreateAndToken(cur, equals);
                     }
 
                     this.PushToken(cur.IsPriority ? cur : (cur.SetPriority(true) as LTSQLToken));
@@ -1187,28 +1187,28 @@ namespace MNet.LTSQL
                     binary = LTSQLTokenFactory.CreateMultiply(sqll, sqlr, node.Type);
                     break;
                 case ExpressionType.Equal:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateEqToken(sqll, sqlr);
                     break;
                 case ExpressionType.NotEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_NOT_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateNeqToken(sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThanOrEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_GREATER_OR_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateGeToken(sqll, sqlr);
                     break;
                 case ExpressionType.LessThanOrEqual:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_LESS_OR_EQUAL, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateLeToken(sqll, sqlr);
                     break;
                 case ExpressionType.LessThan:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_LESS, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateLtToken(sqll, sqlr);
                     break;
                 case ExpressionType.GreaterThan:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BinaryToken.OPT_GREATER, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateGtToken(sqll, sqlr);
                     break;
                 case ExpressionType.AndAlso:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_AND, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateAndToken(sqll, sqlr);
                     break;
                 case ExpressionType.OrElse:
-                    binary = LTSQLTokenFactory.CreateBoolCalcToken(BoolCalcToken.OPT_OR, sqll, sqlr);
+                    binary = LTSQLTokenFactory.CreateOrToken(sqll, sqlr);
                     break;
                 case ExpressionType.Coalesce:
                     {

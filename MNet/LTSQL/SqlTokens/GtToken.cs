@@ -1,9 +1,20 @@
+using MNet.LTSQL.SqlTokenExtends;
+
 namespace MNet.LTSQL.SqlTokens
 {
-    public class GtToken : BinaryToken
+    public class GtToken : BinaryToken, INotable
     {
-        internal GtToken(LTSQLToken left, LTSQLToken right) : base(BinaryToken.OPT_GREATER, left, right, typeof(bool))
+        internal GtToken(LTSQLToken left, LTSQLToken right) : this(left, right, false)
         { }
+        internal GtToken(LTSQLToken left, LTSQLToken right, bool priority) : base(BinaryToken.OPT_GREATER, left, right, typeof(bool), priority)
+        { }
+
+        public bool IsNot => false;
+
+        public LTSQLToken Not()
+        {
+            return new LeToken(this.Left, this.Right, this.IsPriority);
+        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
@@ -11,7 +22,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         protected internal override BinaryToken VisitChildren(LTSQLToken newLeft, LTSQLToken newRight)
         {
-            return new GtToken(newLeft, newRight);
+            return new GtToken(newLeft, newRight, this.IsPriority);
         }
     }
 }
