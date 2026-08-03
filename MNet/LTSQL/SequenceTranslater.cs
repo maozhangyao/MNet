@@ -462,13 +462,7 @@ namespace MNet.LTSQL
             {
                 LambdaExpression lambda = getKey.Key.AsLambda();
                 LTSQLToken token = this.TranslateLambda(lambda, parameters);
-                orderKeyTokens.Add(
-                    SequenceToken.Create(
-                        token,
-                        SyntaxToken.Create(" "),
-                        SyntaxToken.Create(getKey.Asc ? "ASC" : "DESC")
-                        )
-                    );
+                orderKeyTokens.Add(LTSQLTokenFactory.CreateOrderByItemToken(token, !getKey.Asc));
             }
 
             return orderKeyTokens.ToArray();
@@ -814,7 +808,7 @@ namespace MNet.LTSQL
             //where
             LTSQLToken whereClause = null;
             if (part.Where != null)
-                whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
+                whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken); 
 
             UpdateClauseToken updateClause = LTSQLTokenFactory.CreateUpdateClauseToken(tableObjToken, tuple, whereClause);
             return PostTranslate(updateClause);
@@ -835,7 +829,7 @@ namespace MNet.LTSQL
             if (part.Where != null)
             {
                 LTSQLToken where = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
-                whereClause = LTSQLTokenFactory.CreateClauseToken("WHERE", where);
+                whereClause = LTSQLTokenFactory.CreateWhereClauseToken(where);
             }
 
             LTSQLToken deleteClauseToken = whereClause != null ? SequenceToken.Create(deleteClause, whereClause) : SequenceToken.Create(deleteClause);
