@@ -1,9 +1,14 @@
+using System;
+
 namespace MNet.LTSQL.SqlTokens
 {
     public class NotToken : SqlValueToken 
     {
         internal NotToken(SqlValueToken valueOfBool)
         {
+            if (valueOfBool == null)
+                throw new ArgumentNullException(nameof(valueOfBool));
+
             this.Value = valueOfBool;
             this.ValueType = typeof(bool);
         }

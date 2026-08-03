@@ -273,7 +273,7 @@ namespace MNet.LTSQL
             })
             .UseSpecial(t => t is ClauseToken, (t, ctx, nxt) =>
             {
-                ClauseToken clause = (ClauseToken)t; 
+                ClauseToken clause = (ClauseToken)t;
                 ctx.Writer.WriteWhite(clause.Clause);
                 if (clause.SubClause != null)
                 {
@@ -368,6 +368,11 @@ namespace MNet.LTSQL
                 nxt(t.Field);
                 ctx.Writer.WriteWhite();
                 ctx.Writer.Write(t.Desc ? "DESC" : "ASC");
+            })
+            .UseSpecialByType<NotToken>((t, ctx, nxt) => {
+                ctx.Writer.Write("NOT(");
+                nxt(t.Value);
+                ctx.Writer.Write(")");
             });
 
             return builder;
