@@ -900,7 +900,7 @@ namespace MNet.LTSQL
             if (tranlator == null)
                 throw new Exception($"未配置{q.GetType().FullName}类型的SQL翻译器");
 
-            LTSQLToken token = tranlator.Translate(q, options).BreakClause();
+            LTSQLToken token = tranlator.Translate(q, new LTSQLTranslateScope(LTSQLContext.Create(options))).BreakClause();
             SqlBuilderOptions bCtx = ctx ?? LTSQLOptionsSetting.GetSqlBuildOptions(options);
             ISqlBuilder builder = LTSQLTokenSqlBuilder.Default;
 

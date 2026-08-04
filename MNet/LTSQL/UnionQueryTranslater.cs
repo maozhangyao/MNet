@@ -12,11 +12,6 @@ namespace MNet.LTSQL
     /// </summary>
     public class UnionQueryTranslater : IQueryTranslater
     {
-        public LTSQLToken Translate(QueryPart query, LTSQLOptions options)
-        {
-            return this.Translate(query, new LTSQLTranslateScope(LTSQLContext.Create(options)));
-        }
-
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
             QuerySetPart set = query as QuerySetPart;

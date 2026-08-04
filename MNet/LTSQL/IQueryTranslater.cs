@@ -9,7 +9,6 @@ namespace MNet.LTSQL
     /// </summary>
     public interface IQueryTranslater
     {
-        LTSQLToken Translate(QueryPart query, LTSQLOptions options);
         LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope);
     }
 }
