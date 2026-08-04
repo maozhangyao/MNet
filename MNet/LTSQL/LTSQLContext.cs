@@ -8,6 +8,11 @@ namespace MNet.LTSQL
 {
     public class LTSQLContext
     {
+        //作用域参数
+        private readonly Dictionary<string, LTSQLToken> ScopeParamters = new Dictionary<string, LTSQLToken>();
+
+
+        public QueryPart Part { get; set; }
         //选项
         public LTSQLOptions Options { get; set; }
         //表名生成器
@@ -17,18 +22,20 @@ namespace MNet.LTSQL
         //
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
 
-        public QueryPart Part { get; set; }
-
-
-        public string RootParameterName { get; private set; }
-        public LTSQLToken RootParameterToken { get; private set; }
-
-        public void SetRootParameter(string parameterName, LTSQLToken parameterToken)
+        
+        public LTSQLToken GetScopeParameter(string parameterName)
         {
-            this.RootParameterName = parameterName;
-            this.RootParameterToken = parameterToken;
+            if (this.ScopeParamters.ContainsKey(parameterName))
+                return this.ScopeParamters[parameterName];
+            return null;
         }
-
+        public void SetScopeParameter(string parameterName, LTSQLToken parameterToken)
+        {
+            if (this.ScopeParamters.ContainsKey(parameterName))
+                this.ScopeParamters[parameterName] = parameterToken;
+            else
+                this.ScopeParamters.Add(parameterName, parameterToken);
+        }
         public static LTSQLContext Create(LTSQLOptions options)
         {
             return new LTSQLContext()

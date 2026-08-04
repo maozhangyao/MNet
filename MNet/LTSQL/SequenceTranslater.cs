@@ -5,20 +5,13 @@ using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 #if NET6_0_OR_GREATER
 using System.ComponentModel.DataAnnotations.Schema;
 #endif
-using System.Data.Common;
-using System.Dynamic;
-using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Net.Http.Headers;
-using System.Numerics;
 using System.Reflection;
-using System.Reflection.Emit;
 
 
 namespace MNet.LTSQL
@@ -122,55 +115,22 @@ namespace MNet.LTSQL
             else
                 throw new Exception($"非字段或者属性无法求值：{member.Name}");
         }
-        private LTSQLToken GetRootTableAliasMapping(string parameterName)
+        private LTSQLToken GetScopeParameter(string parameterName)
         {
             LTSQLContext context = this._context;
             LTSQLTranslateScope scope = this._scope;
 
-            while (true)
+            do
             {
-                if (scope == null || context == null)
-                    throw new Exception($"参数名({parameterName})无法找到对应的上下文作用域, 无法解析表命名");
-
-                if (context.RootParameterName == parameterName)
-                    return context.RootParameterToken;
+                LTSQLToken param = context.GetScopeParameter(parameterName);
+                if (param != null)
+                    return param;
 
                 scope = scope.Parent;
                 context = scope?.Context;
-            }
-        }
-        private void UnUseSpecialToken()
-        {
-            this._bufferLayer.Pop();
-        }
-        private string GetExpressionId(Expression expr)
-        {
-            if (expr is ParameterExpression p)
-            {
-                return $"{p.Name}[{p.Type.FullName}]";
-            }
-            return expr.GetHashCode().ToString();
-        }
-        private void UseToken(Expression expr, LTSQLToken token)
-        {
-            string id = this.GetExpressionId(expr);
-            this._bufferLayer.Push((id, token));
+            } while (context != null);
 
-            //this._layer[id] = token;
-        }
-        private LTSQLToken PopParameterToken(Expression expr)
-        {
-            string id = this.GetExpressionId(expr);
-            if (this._bufferLayer.Count > 0)
-            {
-                foreach (var item in this._bufferLayer)
-                {
-                    if (item.expr == id)
-                        return item.token;
-                }
-            }
-            return null;
-            //return this._layer.TryGetValue(this.GetExpressionId(expr), out var val) ? val : null;
+            throw new Exception($"参数名({parameterName})无法找到对应的上下文作用域, 无法解析表命名");
         }
         //删除所有的表格token，将其转换为元组,并且调整为新的所属者
         private TupleToken ChangePropOwner(ITupleable tuple, ObjectToken obj)
@@ -258,45 +218,13 @@ namespace MNet.LTSQL
 
             var paras = lambda.Parameters.ToArray();
             int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
-            List<(Expression expr, LTSQLToken ret)> list = new List<(Expression expr, LTSQLToken ret)>();
-            for (int i = 0; i < len; i++)
-            {
-                list.Add((paras[i], rets[i]));
-            }
+            for (int i = 0; i < len; ++i)
+                this._context.SetScopeParameter(paras[i].Name, rets[i]);
 
-            return this.Translate(lambda.Body, list.ToArray());
+            this.Visit(lambda.Body);
+            return this.PopToken();
         }
-        private LTSQLToken Translate(Expression exprs, params (Expression expr, LTSQLToken ret)[] list)
-        {
-            if (list.Length > 0)
-            {
-                //ParameterExpression p;
-                foreach ((Expression expr, LTSQLToken ret) in list)
-                {
-                    this.UseToken(expr, ret);
-                }
-            }
 
-            try
-            {
-                this.Visit(exprs);
-                return this.PopToken();
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-            finally
-            {
-                if (list.Length > 0)
-                {
-                    foreach ((Expression expr, LTSQLToken ret) in list)
-                    {
-                        this.UnUseSpecialToken();
-                    }
-                }
-            }
-        }
         private LTSQLToken TranslateFrom(QueryPart from, string root, out TableDescriptor descriptor)
         {
             LTSQLToken token = TranslateQueryPart(from, root, out descriptor);
@@ -396,6 +324,7 @@ namespace MNet.LTSQL
                 src = qry;
             }
 
+            this._context.SetScopeParameter(parameterName, src);
             return LTSQLTokenFactory.CreateAliasToken(src, tableAlias);
         }
 
@@ -713,9 +642,7 @@ namespace MNet.LTSQL
 
 
                 from = LTSQLTokenFactory.CreateFromClauseToken(this.TranslateFrom(query.From, root, out descriptor));
-                //sqlToken.Table = descriptor;
                 parameterObj = LTSQLTokenFactory.CreateTableObjectToken(descriptor.Alias ?? descriptor.TableName, descriptor, descriptor.MappingType);
-                this._context.SetRootParameter(root, parameterObj);
             }
 
             //where
@@ -736,7 +663,7 @@ namespace MNet.LTSQL
                     group = LTSQLTokenFactory.CreateGroupClauseToken(groupKeys);
 
                 parameterObj = groupObj;
-                this._context.SetRootParameter(root, parameterObj);
+                this._context.SetScopeParameter(root, parameterObj);
             }
 
             //having
@@ -786,7 +713,7 @@ namespace MNet.LTSQL
                 page = LTSQLTokenFactory.CreatePageToken(query.Skip ?? 0, query.Take);
             }
 
-            select = LTSQLTokenFactory.CreateSelectClauseToken(selectFields,  distinckClause, topLimitClause);
+            select = LTSQLTokenFactory.CreateSelectClauseToken(selectFields, distinckClause, topLimitClause);
             sqlToken = LTSQLTokenFactory.CreateSqlQueryToken(descriptor, from, where, group, having, order, page, select, false);
             sqlToken = sqlToken.ChangeType(typeof(ILTSQLObjectQueryable<>).MakeGenericType(query.MappingType)) as SqlQueryToken;
             sqlToken = this.PostTranslate(sqlToken) as SqlQueryToken;
@@ -799,7 +726,7 @@ namespace MNet.LTSQL
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
 
             if (part.Where != null)
-                this._context.SetRootParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+                this._context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
             ITupleable tuple = this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
             if (tuple == null)
@@ -808,7 +735,7 @@ namespace MNet.LTSQL
             //where
             LTSQLToken whereClause = null;
             if (part.Where != null)
-                whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken); 
+                whereClause = this.TranslateLambda(part.Where.AsLambda(), tableObjToken);
 
             UpdateClauseToken updateClause = LTSQLTokenFactory.CreateUpdateClauseToken(tableObjToken, tuple, whereClause);
             return PostTranslate(updateClause);
@@ -820,7 +747,7 @@ namespace MNet.LTSQL
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
 
             if (part.Where != null)
-                this._context.SetRootParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+                this._context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
             LTSQLToken deleteClause = LTSQLTokenFactory.CreateClauseToken("DELETE FROM", tableObjToken);
 
@@ -840,30 +767,15 @@ namespace MNet.LTSQL
         //翻译参数
         protected override Expression VisitParameter(ParameterExpression node)
         {
-            LTSQLToken token = this.PopParameterToken(node);
-            //PrefixPropToken prefix = token as PrefixPropToken;
-            if (token != null)
+            //外部转换优先
+            if (!this.OnTranslateExpression(node, node.Type))
             {
-                //外部转换优先
-                if (!this.OnTranslateExpression(node, node.Type))
-                    this.PushToken(token);
-            }
-            else
-            {
-                //外部转换优先
-                if (!this.OnTranslateExpression(node, node.Type))
-                {
-                    //确定参数范围
-                    LTSQLToken ptoken = this.GetRootTableAliasMapping(node.Name);
-                    if (ptoken == null)
-                        throw new Exception($"无法解析参数节点：{node}");
+                //确定参数范围
+                LTSQLToken ptoken = this.GetScopeParameter(node.Name);
+                if (ptoken == null)
+                    throw new Exception($"无法解析参数节点：{node}");
 
-                    this.PushToken(ptoken);
-                    //if (tableDescriptor.IsHide)
-                    //    this.PushToken(new PrefixPropToken(node.Name, this._context.TableRefs));
-                    //else
-                    //    this.PushToken(LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.Alias, tableDescriptor, node.Type));
-                }
+                this.PushToken(ptoken);
             }
 
             return base.VisitParameter(node);

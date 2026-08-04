@@ -11,7 +11,7 @@ namespace MNet.LTSQL.Objects
     public class FieldDescriptor
     {
         public FieldDescriptor()
-        {　}
+        { }
         public FieldDescriptor(string field, LTSQLToken token, Type valueType)
         {
             this.Field = field;
