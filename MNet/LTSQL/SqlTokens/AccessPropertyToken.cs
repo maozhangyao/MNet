@@ -1,20 +1,21 @@
 using MNet.LTSQL.SqlTokenExtends;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace MNet.LTSQL.SqlTokens
 {
     // sql 对象的访问
     public class AccessPropertyToken : SqlValueToken
     {
-        internal AccessPropertyToken(LTSQLToken obj, string prop, Type valueOfType) 
+        internal AccessPropertyToken(LTSQLToken obj, FieldToken prop)
         {
-            this.Prop = prop;
             this.Object = obj;
-            this.ValueType = valueOfType;
+            this.Prop = prop;
+            this.ValueType = prop.FieldValueType;
         }
 
-        public string Prop { get; }
+        public FieldToken Prop { get; }
         public LTSQLToken Object { get; }
 
 
@@ -25,14 +26,15 @@ namespace MNet.LTSQL.SqlTokens
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
             var newObject = this.Object.Visit(visitor);
-            if (newObject == this.Object)
-                return this;
+            var newField = this.Prop.Visit(visitor) as FieldToken;
+            if (newField == null)
+                throw new Exception($"{nameof(AccessPropertyToken)}: {newField.GetType().FullName}类型无法转换为{typeof(FieldToken).FullName}");
 
-            return new AccessPropertyToken(newObject, this.Prop, this.ValueType) { IsPriority = this.IsPriority };
+            return new AccessPropertyToken(newObject, newField) { IsPriority = this.IsPriority };
         }
         protected override string ToString(string fmt)
         {
-            string c = this.Object.ToString() + "." + this.Prop;
+            string c = this.Object.ToString() + "." + this.Prop.FieldName;
             return string.Format(fmt, c);
         }
     }

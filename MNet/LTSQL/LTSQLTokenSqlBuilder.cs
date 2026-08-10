@@ -52,10 +52,21 @@ namespace MNet.LTSQL
             })
             .UseSpecialByType<TableObjectToken>((t, ctx, nxt) =>
             {
-                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.ObjectName, ctx));
+                if(!string.IsNullOrEmpty(t.Descriptor.Schema))
+                {
+                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Descriptor.Schema, ctx) + "." + ctx.SqlKeyWordEscape(t.ObjectName, ctx));
+                }
+                else
+                {
+                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.ObjectName, ctx));
+                }
             })
             .UseSpecialByType<TableRefToken>((t, ctx, nxt) => {
-                ctx.Writer.Write(t.Alias);
+                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias,ctx));
+            })
+            .UseSpecialByType<FieldToken>((t, ctx, nxt) =>
+            {
+                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.FieldName, ctx));
             })
             .UseSpecialByType<AliasToken>((t, ctx, nxt) =>
             {
@@ -131,7 +142,7 @@ namespace MNet.LTSQL
             {
                 nxt(t.Object);
                 ctx.Writer.Write('.');
-                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Prop, ctx));
+                nxt(t.Prop);
             })
             .UseSpecialByType<SqlParameterToken>((t, ctx, nxt) =>
             {

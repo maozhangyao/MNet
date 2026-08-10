@@ -41,8 +41,18 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(propType));
 
 
-            return new AccessPropertyToken(obj, prop, propType);
+            return new AccessPropertyToken(obj, LTSQLTokenFactory.CreateFieldToken(prop, propType));
         }
+        public static LTSQLToken CreateAccessToken(LTSQLToken obj, FieldToken prop)
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+            if (prop == null)
+                throw new ArgumentNullException(nameof(prop));
+
+            return new AccessPropertyToken(obj, prop);
+        }
+
 
         public static LTSQLToken CreateFunctionObjectToken(string fName, Type fType = null)
         {
@@ -68,6 +78,13 @@ namespace MNet.LTSQL
                 throw new ArgumentNullException(nameof(descriptor));
 
             return new TableRefToken(alias, descriptor);
+        }
+        public static FieldToken CreateFieldToken(string fieldName, Type fieldValueType)
+        {
+            if (fieldName == null)
+                throw new ArgumentNullException(nameof(fieldName));
+
+            return new FieldToken(fieldName, fieldValueType);
         }
 
         /// <summary>

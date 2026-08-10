@@ -19,7 +19,13 @@ namespace MNet.LTSQL.Objects
             this.FieldValueType = valueType;
         }
 
+        /// <summary>
+        /// 在 LINQ 中，复杂对象的原始属性名称
+        /// </summary>
         public string     Field { get; set; }
+        /// <summary>
+        /// 生成对应的 token
+        /// </summary>
         public LTSQLToken Value { get; set; }
         public Type FieldValueType { get; set; }
     }
@@ -27,10 +33,6 @@ namespace MNet.LTSQL.Objects
     public class TableDescriptor : ITupleable
     {
         public TableDescriptor()
-        { }
-        public TableDescriptor(string tableName, string alias) : this(null, tableName, alias, null)
-        { }
-        public TableDescriptor(string schema, string tableName, string alias) : this(schema, tableName, alias, null)
         { }
         public TableDescriptor(string tableName, string alias, Type type) : this(null, tableName, alias, type)
         { }

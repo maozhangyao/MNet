@@ -45,7 +45,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         public override string ToString()
         {
-            return $"{this.Descriptor.TableName} AS {this.Alias}";
+            return $"{this.Alias}";
         }
     }
 }

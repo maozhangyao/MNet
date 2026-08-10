@@ -211,7 +211,19 @@ namespace MNet.LTSQL
                     if (this.OnTranslateMember(node.Member, null, node.Expression.Type, node, node.Type, objToken, null))
                         return expr;
 
-                    if (objToken is ITupleable tuple)
+                    if(objToken is TableRefToken tbRef)
+                    {
+                        LTSQLToken field = tbRef[memberName];
+                        if (field is ITupleable tuple)
+                        {
+                            this.PushToken(field);
+                        }
+                        else
+                        {
+                            this.PushToken(LTSQLTokenFactory.CreateAccessToken(tbRef, tbRef.Descriptor.GetField(memberName).Value as FieldToken));
+                        }
+                    }
+                    else if (objToken is ITupleable tuple)
                     {
                         LTSQLToken prop = tuple[memberName];
                         if (prop == null)
@@ -226,7 +238,7 @@ namespace MNet.LTSQL
                         //或者透明对象访问到头了
                         //string fieldName = this.OnGetColumnName((objToken as ObjectToken)?.ValueType, (objToken as ObjectToken)?.Alias, node.Member);
                         //this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, fieldName, node.Type));
-                        throw new Exception($"无法解析属性访问: {node}");
+                        throw new Exception($"{objToken.GetType().Name}Token不支持访问属性操作，无法翻译({node})");
                     }
                 }
             }
@@ -305,9 +317,7 @@ namespace MNet.LTSQL
         //lambda 表达式
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
-            //if (this.OnTranslateExpression(node, node.Type))
-            //    return node;
-
+            
             LTSQLToken token = this.PeekToken();
             if (token is GroupObjToken groupToken)
             {
@@ -569,8 +579,12 @@ namespace MNet.LTSQL
             var paras = lambda.Parameters.ToArray();
             int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
             for (int i = 0; i < len; ++i)
-                this.Context.SetScopeParameter(paras[i].Name, rets[i]);
+            {
+                if (rets[i] == null)
+                    throw new Exception("无法将null值进行参数替换");
 
+                this.Context.SetScopeParameter(paras[i].Name, rets[i]);
+            }
             this.Visit(lambda.Body);
             return this.PopToken();
         }

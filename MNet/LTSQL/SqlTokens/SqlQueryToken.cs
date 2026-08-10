@@ -10,9 +10,6 @@ namespace MNet.LTSQL.SqlTokens
 {
     public class SqlQueryToken : SqlValueToken, ISelectable
     {
-        internal SqlQueryToken() 
-        { }
-
         internal SqlQueryToken(TableDescriptor table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority)
         {
             this.IsPriority = priority;

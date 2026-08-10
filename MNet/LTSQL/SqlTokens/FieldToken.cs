@@ -1,7 +1,6 @@
-using MNet.LTSQL.SqlTokens;
 using System;
 
-namespace MNet.LTSQL.Objects
+namespace MNet.LTSQL.SqlTokens
 {
     public class FieldToken : LTSQLToken
     {
@@ -13,5 +12,14 @@ namespace MNet.LTSQL.Objects
 
         public string FieldName { get; }
         public Type FieldValueType { get; }
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitFieldToken(this);
+        }
+        public override string ToString()
+        {
+            return this.FieldName;
+        }
     }
 }
