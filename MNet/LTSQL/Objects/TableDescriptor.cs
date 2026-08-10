@@ -28,17 +28,17 @@ namespace MNet.LTSQL.Objects
     {
         public TableDescriptor()
         { }
-        public TableDescriptor(string tableName, string alias) : this(tableName, alias, null)
+        public TableDescriptor(string tableName, string alias) : this(null, tableName, alias, null)
         { }
-        public TableDescriptor(string tableName, string alias, Type type)
+        public TableDescriptor(string schema, string tableName, string alias) : this(schema, tableName, alias, null)
+        { }
+        public TableDescriptor(string tableName, string alias, Type type) : this(null, tableName, alias, type)
+        { }
+        public TableDescriptor(string schema, string tableName, string alias, Type type)
         {
             this.Alias = alias;
             this.TableName = tableName;
             this.MappingType = type;
-        }
-        public TableDescriptor(string tableName, bool isHide)
-        {
-            this.TableName = tableName;
         }
         public TableDescriptor(TableDescriptor other)
         {
@@ -56,7 +56,9 @@ namespace MNet.LTSQL.Objects
 
 
         public string Alias { get; set; }
+        public string Schema { get; set; }
         public string TableName { get; set; }
+        public string FullName => string.IsNullOrEmpty(this.Schema) ? this.TableName : $"{this.Schema}.{this.TableName}";
         public IEnumerable<FieldDescriptor> Fields => this._fields;
         public Type MappingType { get; set; }
         public LTSQLToken this[string prop] => this._fields.FirstOrDefault(p => p.Field == prop)?.Value;

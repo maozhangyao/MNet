@@ -61,6 +61,15 @@ namespace MNet.LTSQL
 
             return new TableObjectToken(objName, descriptor, objType);
         }
+        
+        public static TableRefToken CreateTableRefToken(string alias, TableDescriptor descriptor)
+        {
+            if (descriptor == null)
+                throw new ArgumentNullException(nameof(descriptor));
+
+            return new TableRefToken(alias, descriptor);
+        }
+
         /// <summary>
         /// 构建一个对象名称，如：表名
         /// </summary>

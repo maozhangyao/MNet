@@ -64,9 +64,10 @@ namespace MNet.LTSQL
             return AsLTSQL<T>(obj, null);
         }
         //指定表名
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName)
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName, string schema = null)
         {
             TablePart tablePart = new TablePart(typeof(T));
+            tablePart.Schema = schema;
             tablePart.TableName = tableName;
 
             SqlQueryPart query = new SqlQueryPart();

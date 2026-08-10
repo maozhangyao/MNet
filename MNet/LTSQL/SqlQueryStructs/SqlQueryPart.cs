@@ -16,7 +16,7 @@ namespace MNet.LTSQL.SqlQueryStructs
             this.MappingType = mappingType;
         }
 
-
+        public string Schema { get; set; }
         //指定的table名称(优先级最高)
         public string TableName { get; set; }
         //字段集合

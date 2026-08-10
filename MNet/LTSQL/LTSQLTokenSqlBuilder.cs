@@ -46,13 +46,16 @@ namespace MNet.LTSQL
             .UseSpecialByType<ObjectToken>((t, ctx, nxt) =>
             {
                 if (t.ObjectType == SqlObjectType.Table)
-                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
+                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.ObjectName, ctx));
                 else
-                    ctx.Writer.Write(t.Alias);
+                    ctx.Writer.Write(t.ObjectName);
             })
             .UseSpecialByType<TableObjectToken>((t, ctx, nxt) =>
             {
-                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
+                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.ObjectName, ctx));
+            })
+            .UseSpecialByType<TableRefToken>((t, ctx, nxt) => {
+                ctx.Writer.Write(t.Alias);
             })
             .UseSpecialByType<AliasToken>((t, ctx, nxt) =>
             {

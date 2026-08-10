@@ -109,6 +109,7 @@ namespace MNet.LTSQL
         private LTSQLToken TranslateQueryPart(QueryPart from, string parameterName, out TableDescriptor descriptor)
         {
             LTSQLToken src = null;
+            TableRefToken tbRef = null;
             string tableAlias = null;
             descriptor = null;
 
@@ -160,8 +161,9 @@ namespace MNet.LTSQL
             else if (from is TablePart table)
             {
                 tableAlias = this.Context.TableAliasGenerator.Next();
-                descriptor = this.TranslateTableByType(from.MappingType, table.TableName, tableAlias);
+                descriptor = this.TranslateTableByType(from.MappingType, table.Schema, table.TableName, tableAlias);
                 src = LTSQLTokenFactory.CreateTableObjectToken(descriptor.TableName, descriptor, table.MappingType);
+                tbRef = LTSQLTokenFactory.CreateTableRefToken(tableAlias, descriptor);
             }
             else
             {
@@ -183,7 +185,9 @@ namespace MNet.LTSQL
                     //去掉子查询中的table token是为了防止访问table token时，分不清楚table token的作用域到底是当前查询的还是来自于子查询的。
                     //并且上层查询也不允许访问子查询中的table token，所以直接将table 转换为 tuple，将对table的访问改成对tuple的访问，并帮助忽略隐藏字段。
                     //改变子查询的字段所属者
-                    ITupleable tuple = this.ChangePropOwner(select, LTSQLTokenFactory.CreateTableObjectToken(tableAlias, descriptor, select.MappingType));
+
+                    tbRef = LTSQLTokenFactory.CreateTableRefToken(tableAlias, descriptor);
+                    ITupleable tuple = this.ChangePropOwner(select, tbRef);
                     foreach ((string key, LTSQLToken val) in tuple)
                     {
                         if (val is TableObjectToken t)
@@ -194,16 +198,15 @@ namespace MNet.LTSQL
                         string fieldAlias = key ?? "field";
                         descriptor.AddField(new FieldDescriptor(fieldAlias, val, select.GetValueType(key)));
                     }
-
                 }
-
                 src = qry;
             }
 
-            this.Context.SetScopeParameter(parameterName, src);
+            if (tbRef != null)
+                this.Context.SetScopeParameter(parameterName, tbRef);
+
             return LTSQLTokenFactory.CreateAliasToken(src, tableAlias);
         }
-
         private LTSQLToken TranslateWhere(LambdaExpression wheres, LTSQLToken parameter)
         {
             if (wheres == null)
@@ -314,6 +317,8 @@ namespace MNet.LTSQL
                 throw;
             }
         }
+        
+        
         //统一命名
         private void BeforeTranslate(SqlQueryPart query, ref string root)
         {
@@ -393,6 +398,7 @@ namespace MNet.LTSQL
             }
 
         }
+        
         private LTSQLToken PostTranslate(LTSQLToken sqlToken)
         {
             //内联查询翻译
@@ -416,7 +422,7 @@ namespace MNet.LTSQL
             //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
             sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
             {
-                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.Alias == SqlFunctionHelper.F_EXISTS)
+                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.ObjectName == SqlFunctionHelper.F_EXISTS)
                 {
                     LTSQLToken parameter = c.Parameters[0];
                     FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this.Context.Options.DbType, parameter.TryPriority(false))
@@ -454,13 +460,22 @@ namespace MNet.LTSQL
             return sqlToken;
         }
 
-        private TableDescriptor TranslateTableByType(Type t, string tableName = null, string tableAlias = null)
+        private TableDescriptor TranslateTableByType(Type t, string schema = null, string tableName = null, string tableAlias = null)
         {
             if (tableName == null)
+            {
                 tableName = this.OnGetTableName(t, tableAlias);
+            }
+
+            if (schema == null)
+            {
+                int pos = tableName.IndexOf('.');
+                if (pos > 0)
+                    schema = tableName.Substring(0, pos);
+            }
 
             tableAlias ??= tableName;
-            TableDescriptor descriptor = new TableDescriptor(tableName, tableAlias ?? tableName, t);
+            TableDescriptor descriptor = new TableDescriptor(schema, tableName, tableAlias ?? tableName, t);
 
             //解析属性
             foreach (PropertyInfo prop in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
@@ -640,7 +655,7 @@ namespace MNet.LTSQL
             sqlToken = this.PostTranslate(sqlToken) as SqlQueryToken;
             return sqlToken;
         }
-       
+        
         public LTSQLToken Translate(QueryPart query, LTSQLTranslateScope scope)
         {
             if (query as SqlQueryPart == null && query as UpdatePart == null && query as DeletePart == null)

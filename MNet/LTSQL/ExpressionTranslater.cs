@@ -574,5 +574,13 @@ namespace MNet.LTSQL
             this.Visit(lambda.Body);
             return this.PopToken();
         }
+        public virtual LTSQLToken TranslateLambda(Expression lambda)
+        {
+            if (lambda == null)
+                throw new ArgumentNullException(nameof(lambda));
+
+            this.Visit(lambda);
+            return this.PopToken();
+        }
     }
 }
