@@ -6,6 +6,8 @@ using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
+using System.Data;
+
 #if NET6_0_OR_GREATER
 using System.ComponentModel.DataAnnotations.Schema;
 #endif
@@ -24,38 +26,6 @@ namespace MNet.LTSQL
 
 
         private string _transparentField = "transparent_field";
-
-
-        private static string GetTableName(LTSQLMemberContext ctx)
-        {
-            if (ctx.Owner == null)
-                throw new Exception("表名称获取异常， 未传入实体类型，无法获取。");
-
-#if NET6_0_OR_GREATER
-            TableAttribute attr1 = ctx.Owner.GetCustomAttribute<TableAttribute>();
-            QTableAttribute attr2 = ctx.Owner.GetCustomAttribute<QTableAttribute>();
-            return attr1?.Name ?? attr2?.Name ?? ctx.Owner.Name;
-#else
-            QTableAttribute attr = ctx.Owner.GetCustomAttribute<QTableAttribute>();
-            return attr?.Name ?? ctx.Owner.Name;
-#endif
-        }
-        private static string GetColumnName(LTSQLMemberContext ctx)
-        {
-            if (ctx.Member == null)
-                throw new Exception("表字段获取异常， 未传入属性或者字段信息，无法获取。");
-
-#if NET6_0_OR_GREATER
-            ColumnAttribute attr1 = ctx.Owner.GetCustomAttribute<ColumnAttribute>();
-            QColumnAttribute attr2 = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
-            return attr1?.Name ?? attr2?.Name ?? ctx.Member.Name;
-#else
-            QColumnAttribute attr = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
-            return attr?.Name ?? ctx.Member.Name;
-#endif
-        }
-
-
 
 
         //删除所有的表格token，将其转换为元组,并且调整为新的所属者
@@ -82,25 +52,6 @@ namespace MNet.LTSQL
 
             return _new;
         }
-
-
-        private string OnGetTableName(Type owner, string alias)
-        {
-            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
-            memberCtx.Owner = owner;
-            memberCtx.OwnerName = alias;
-            return this.Context.Options.GetTableName(memberCtx);
-        }
-        private string OnGetColumnName(Type owner, string alias, MemberInfo member)
-        {
-            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
-            memberCtx.Owner = owner;
-            memberCtx.OwnerName = alias;
-            memberCtx.Member = member;
-            return this.Context.Options.GetColumnName(memberCtx);
-        }
-
-
         private LTSQLToken TranslateFrom(QueryPart from, string root, out TableDescriptor descriptor)
         {
             LTSQLToken token = TranslateQueryPart(from, root, out descriptor);
@@ -405,109 +356,7 @@ namespace MNet.LTSQL
             }
 
         }
-        
-        private LTSQLToken PostTranslate(LTSQLToken sqlToken)
-        {
-            //内联查询翻译
-            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-            {
-                //如果存在内联查询，需要进一步翻译
-                if (t is SqlParameterToken p)
-                {
-                    if (p.Value is ILTSQLQueryable subquery)
-                    {
-                        LTSQLToken subQueryToken = new SequenceTranslater()
-                                .Translate(subquery.Query, this.Scope.NewScope());
-
-                        var token = subQueryToken is IPriorable proir && !proir.IsPriority ? proir.SetPriority(true) as LTSQLToken : subQueryToken;
-                        return token;
-                    }
-                }
-                return t;
-            });
-
-            //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
-            sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
-            {
-                if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.ObjectName == SqlFunctionHelper.F_EXISTS)
-                {
-                    LTSQLToken parameter = c.Parameters[0];
-                    FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this.Context.Options.DbType, parameter.TryPriority(false))
-                    .Build() as FunctionCallToken;
-                    return c.IsNot ? fcall.Not() : fcall;
-                }
-                return t;
-            });
-
-            //null 等式处理
-            if (!this.Context.Options.DisNullable)
-            {
-                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-                {
-                    if (t is SqlParameterToken p && p.Value == null)
-                        return LTSQLTokenFactory.CreateNullToken(p.ValueType, this.Context.Options.DbType);
-                    return t;
-                });
-
-                sqlToken = LTSQLTokenVisitor.Visit(sqlToken, (t) =>
-                {
-                    if (t is BinaryToken bt && (bt.Opration == BinaryToken.OPT_EQUAL || bt.Opration == BinaryToken.OPT_NOT_EQUAL))
-                    {
-                        bool isNot = bt.Opration == BinaryToken.OPT_NOT_EQUAL;
-
-                        if (bt.Left is NullToken)
-                            return LTSQLTokenFactory.CreateIsToken(bt.Right, bt.Left, isNot);
-                        else if (bt.Right is NullToken)
-                            return LTSQLTokenFactory.CreateIsToken(bt.Left, bt.Right, isNot);
-                    }
-                    return t;
-                });
-            }
-
-            return sqlToken;
-        }
-
-        private TableDescriptor TranslateTableByType(Type t, string schema = null, string tableName = null, string tableAlias = null)
-        {
-            if (tableName == null)
-            {
-                tableName = this.OnGetTableName(t, tableAlias);
-            }
-
-            if (schema == null)
-            {
-                int pos = tableName.IndexOf('.');
-                if (pos > 0)
-                    schema = tableName.Substring(0, pos);
-            }
-
-            tableAlias ??= tableName;
-            TableDescriptor descriptor = new TableDescriptor(schema, tableName, tableAlias ?? tableName, t);
-
-            //解析属性
-            foreach (PropertyInfo prop in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (prop.IsDefined(typeof(NonFiledAttribute)))
-                    continue;
-
-                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.PropertyType);
-                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
-            }
-            //解析字段
-            foreach (FieldInfo prop in t.GetFields(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (prop.IsDefined(typeof(NonFiledAttribute)))
-                    continue;
-
-                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.FieldType);
-                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
-            }
-
-            return descriptor;
-        }
-
+       
         // update 翻译
         private LTSQLToken TranslateUpdateCore(UpdatePart part)
         {

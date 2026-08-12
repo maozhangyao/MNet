@@ -484,7 +484,6 @@ namespace MNet.LTSQL
             if (builder == null)
                 throw new ArgumentNullException(nameof(builder));
 
-
             this._newCommons.Add((condition, builder));
             return this;
         }
