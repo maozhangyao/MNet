@@ -317,17 +317,16 @@ namespace MNet.LTSQL
         //lambda 表达式
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
-            
             LTSQLToken token = this.PeekToken();
             if (token is GroupObjToken groupToken)
             {
                 //表示开始对分组对象的聚合函数作翻译，需要解析lambda表达式作为聚合函数的参数
-                LTSQLToken ret = this.TranslateLambda(node.AsLambda(), groupToken.Element);
+                LTSQLToken ret = this.TranslateLambda(node, groupToken.Element);
                 this.PushToken(ret);
                 return node;
             }
 
-            //访问到lambda表达式，表示某些函数求值，其入参为lambda函数
+            //访问到lambda表达式无需继续翻译，表示某些函数求值，其入参为lambda函数
             this.PushToken(LTSQLTokenFactory.CreateSqlParameterToken(this.Context.ParameterNameGenerator.Next(), node, node.Type));
             return node;
         }
@@ -576,16 +575,24 @@ namespace MNet.LTSQL
             if (rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
                 throw new Exception("替换参数个数大于实际的参数个数");
 
-            var paras = lambda.Parameters.ToArray();
+            ParameterExpression[] paras = lambda.Parameters.ToArray();
             int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
+            List<(string, LTSQLToken)> overParameters = new List<(string, LTSQLToken)>();
             for (int i = 0; i < len; ++i)
             {
                 if (rets[i] == null)
                     throw new Exception("无法将null值进行参数替换");
 
+                overParameters.Add((paras[i].Name, this.Context.GetScopeParameter(paras[i].Name)));
                 this.Context.SetScopeParameter(paras[i].Name, rets[i]);
             }
+
             this.Visit(lambda.Body);
+
+            foreach((string name, LTSQLToken token) in overParameters)
+            {
+                this.Context.SetScopeParameter(name, token);
+            }
             return this.PopToken();
         }
         public virtual LTSQLToken TranslateLambda(Expression lambda)
