@@ -202,6 +202,10 @@ namespace MNet.LTSQL
         {
             return this._visitor(token);
         }
+        public virtual LTSQLToken VisitTupleToken(TupleToken token)
+        {
+            return this._visitor(token);
+        }
         public virtual LTSQLToken VisitSetOperationToken(SetOperationToken token)
         {
             return this._visitor(token);

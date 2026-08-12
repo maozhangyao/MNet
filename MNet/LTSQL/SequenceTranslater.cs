@@ -193,14 +193,8 @@ namespace MNet.LTSQL
                     // 但是SQL中不可能支持字段表示复杂对象，所以当翻译存储复杂对象的属性时，需要将该复杂对象表示为tuple，将属性访问的值变成tuple值。
                     tbRef = LTSQLTokenFactory.CreateTableRefToken(tableAlias, descriptor);
 
-                    //ITupleable tuple = this.ChangePropOwner(select, tbRef); 
                     foreach ((string key, LTSQLToken val) in select)
                     {
-                        //if (val is TableObjectToken t || val is TableRefToken r)
-                        //    throw new Exception("错误的select表达式，禁止引用子查询中的表格");
-                        //if (val is GroupObjToken g)
-                        //    throw new Exception("错误的select表达式，禁止引用子查询中的分组变量");
-
                         string fieldAlias = key ?? "field";
                         Type fieldValueType = select.GetValueType(key);
                         if (val is ITupleable tuple)
@@ -249,7 +243,7 @@ namespace MNet.LTSQL
                 groupKeyToken = this.TranslateLambda(groupKey);
 
                 if (groupKeyToken is TupleToken tuple)
-                    groupKeyTokens.AddRange(tuple.Props.ToArray());
+                    groupKeyTokens.AddRange(tuple.PropValues.ToArray());
                 else
                     groupKeyTokens.Add(groupKeyToken);
             }

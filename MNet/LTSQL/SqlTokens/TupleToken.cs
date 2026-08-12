@@ -29,7 +29,7 @@ namespace MNet.LTSQL.SqlTokens
         /// <summary>
         /// 返回属性值
         /// </summary>
-        public LTSQLToken[] Props => this._props?.Select(p => p.Item2)?.ToArray() ?? new LTSQLToken[0];
+        public LTSQLToken[] PropValues => this._props?.Select(p => p.Item2)?.ToArray() ?? new LTSQLToken[0];
         public LTSQLToken this[string key]
         {
             get
@@ -91,6 +91,36 @@ namespace MNet.LTSQL.SqlTokens
             b.Append(")");
 
             return b.ToString();
+        }
+
+        protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
+        {
+            return visitor.VisitTupleToken(this);
+        }
+        protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
+        {
+            if (this._props == null || this._props.Count == 0)
+                return this;
+
+            bool changed = false;
+            List<(string, LTSQLToken, Type)> newProps = new List<(string, LTSQLToken, Type)>(this._props.Count);
+            foreach ((string key, LTSQLToken value, Type valueType) in this._props)
+            {
+                LTSQLToken newValue = value?.Visit(visitor);
+                if (newValue != null && !object.ReferenceEquals(newValue, value))
+                    changed = true;
+
+                newProps.Add((key, newValue ?? value, valueType));
+            }
+
+            if (!changed)
+                return this;
+
+            TupleToken newToken = new TupleToken(this.ValueType);
+            foreach ((string key, LTSQLToken value, Type valueType) in newProps)
+                newToken.Add(key, value, valueType);
+
+            return newToken;
         }
     }
 }

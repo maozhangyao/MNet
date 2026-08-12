@@ -435,14 +435,14 @@ namespace MNet.LTSQL
                 // join 的联表条件，可能会导致产元组条件
                 if (vall is TupleToken tupl && valr is TupleToken tupr)
                 {
-                    if (tupl.Props.Length != tupr.Props.Length)
+                    if (tupl.PropValues.Length != tupr.PropValues.Length)
                         throw new Exception($"二元表达式左右两边的子节点求值后的类型不一致:{node}");
 
                     //元组中的各个属性做相等操作，用AND操作连接（join 操作会出现元组对比）
                     BinaryToken cur = null;
-                    for (int i = 0; i < tupl.Props.Length; i++)
+                    for (int i = 0; i < tupl.PropValues.Length; i++)
                     {
-                        BinaryToken equals = LTSQLTokenFactory.CreateEqToken(tupl.Props[i], tupr.Props[i]);
+                        BinaryToken equals = LTSQLTokenFactory.CreateEqToken(tupl.PropValues[i], tupr.PropValues[i]);
                         cur = cur == null ? equals : LTSQLTokenFactory.CreateAndToken(cur, equals);
                     }
 

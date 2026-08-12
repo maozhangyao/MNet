@@ -302,7 +302,7 @@ namespace MNet.LTSQL
             {
                 ctx.Writer.Write("(");
                 bool flag = false;
-                foreach (LTSQLToken item in t.Props)
+                foreach (LTSQLToken item in t.PropValues)
                 {
                     if (flag)
                         ctx.Writer.Write(", ");
