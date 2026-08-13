@@ -7,6 +7,6 @@ namespace MNet.LTSQL.SqlQueryStructs
     /// </summary>
     public class UpdatePart : NonQueryPart
     { 
-        public Expression UpdateSet { get; set; }
+        public Expression SetUpdate { get; set; }
     }
 }

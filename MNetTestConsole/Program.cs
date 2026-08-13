@@ -73,5 +73,4 @@ Console.WriteLine("Delete 语句：");
 ConsoleHelper.WriteLineWithYellow(delete.ToSql(DbTypes.SQLLite));
 
 
-
 return 0;

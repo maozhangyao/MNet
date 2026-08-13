@@ -19,15 +19,15 @@ namespace MNet.LTSQL
         private LTSQLToken TranslateUpdateCore(UpdatePart part)
         {
             //翻译表信息
-            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
+            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType, part.Schema, part.TableName, null);
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
             //TableRefToken tbRef = LTSQLTokenFactory.CreateTableRefToken();
             //if (part.Where != null)
             //    this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
-            ITupleable tuple = this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
+            ITupleable tuple = this.TranslateLambda(part.SetUpdate.AsLambda(), tableObjToken) as ITupleable;
             if (tuple == null)
-                throw new Exception($"无法翻译Update表达式：{part.UpdateSet}");
+                throw new Exception($"无法翻译Update表达式：{part.SetUpdate}");
 
             //where
             LTSQLToken whereClause = null;

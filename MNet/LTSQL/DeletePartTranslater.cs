@@ -33,7 +33,7 @@ namespace MNet.LTSQL
         private LTSQLToken TranslateDeleteCore(DeletePart part)
         {
             //翻译表信息
-            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
+            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType, part.Schema, part.TableName, null);
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
 
             //if (part.Where != null)

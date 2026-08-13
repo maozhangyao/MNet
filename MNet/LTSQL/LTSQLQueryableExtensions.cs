@@ -67,6 +67,7 @@ namespace MNet.LTSQL
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName, string schema = null)
         {
             TablePart tablePart = new TablePart(typeof(T));
+            tablePart.Refer = obj;
             tablePart.Schema = schema;
             tablePart.TableName = tableName;
 
@@ -759,28 +760,67 @@ namespace MNet.LTSQL
 
 
         
-        public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> update)
+        public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> setUpdate)
         {
-            if (update == null)
-                throw new ArgumentNullException(nameof(update));
+            if (setUpdate == null)
+                throw new ArgumentNullException(nameof(setUpdate));
+
+            return AsUpdate(null, null, setUpdate);
+        }
+        public static ILTSQLNonQueryable<T> AsUpdate<T>(string table, string schema, Expression<Func<T, object>> setUpdate)
+        {
+            return AsUpdate<T>(default, setUpdate, table, schema);
+        }
+        public static ILTSQLNonQueryable<T> AsUpdate<T>(this T entity, Expression<Func<T, object>> setUpdate, string table = null, string schema = null)
+        {
+            if (setUpdate == null)
+                throw new ArgumentNullException(nameof(setUpdate));
 
             return new LTSQLObject<T>(new UpdatePart()
             {
+                Refer = entity,
+                Schema = schema,
+                TableName = table,
                 MappingType = typeof(T)
-            }).UpdateSet(update);
+            }).SetUpdate(setUpdate);
         }
-        public static ILTSQLNonQueryable<T> UpdateSet<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, object>> update)
+        public static ILTSQLNonQueryable<T> SetUpdate<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, object>> setUpdate)
         {
-            if (update == null)
-                throw new ArgumentNullException(nameof(update));
+            if (setUpdate == null)
+                throw new ArgumentNullException(nameof(setUpdate));
 
             UpdatePart part = nonQuery.Query as UpdatePart;
             if (part == null)
                 throw new Exception($"非法的{nameof(QueryPart)}");
 
             part = part.CopyNew() as UpdatePart;
-            part.UpdateSet = update;
+            part.SetUpdate = setUpdate;
             return new LTSQLObject<T>(part);
+        }
+
+        public static ILTSQLNonQueryable<T> AsDelete<T>()
+        {
+            return AsDelete<T>(null);
+        }
+        public static ILTSQLNonQueryable<T> AsDelete<T>(Expression<Func<T, bool>> expr)
+        {
+            return AsDelete<T>(null, null, expr);
+        }
+        public static ILTSQLNonQueryable<T> AsDelete<T>(string table, string schema, Expression<Func<T, bool>> expr)
+        {
+            return AsDelete(default, expr, table, schema);
+        }
+        public static ILTSQLNonQueryable<T> AsDelete<T>(this T entity, Expression<Func<T, bool>> expr = null, string table = null, string schema = null)
+        {
+            LTSQLObject<T> obj = new LTSQLObject<T>(new DeletePart()
+            {
+                Refer = entity,
+                Schema = schema,
+                TableName = table,
+                MappingType = typeof(T),
+            });
+
+            return Where((ILTSQLNonQueryable<T>)obj, expr);
         }
         public static ILTSQLNonQueryable<T> Where<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, bool>> expr)
         {
@@ -799,18 +839,6 @@ namespace MNet.LTSQL
 
             part.Where = ExpressionUtils.MergeAnd((Expression<Func<T, bool>>)part.Where, expr);
             return new LTSQLObject<T>(part);
-        }
-
-        public static ILTSQLNonQueryable<T> AsDelete<T>()
-        {
-            return new LTSQLObject<T>(new DeletePart()
-            {
-                MappingType = typeof(T)
-            });
-        }
-        public static ILTSQLNonQueryable<T> AsDelete<T>(Expression<Func<T, bool>> expr)
-        {
-            return AsDelete<T>().Where(expr);
         }
 
 

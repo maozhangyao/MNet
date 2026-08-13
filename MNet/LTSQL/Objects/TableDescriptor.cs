@@ -39,6 +39,7 @@ namespace MNet.LTSQL.Objects
         public TableDescriptor(string schema, string tableName, string alias, Type type)
         {
             this.Alias = alias;
+            this.Schema = schema;
             this.TableName = tableName;
             this.MappingType = type;
         }

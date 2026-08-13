@@ -16,11 +16,14 @@ namespace MNet.LTSQL.SqlQueryStructs
             this.MappingType = mappingType;
         }
 
+        //指向传入的实例对象
+        public object Refer { get; set; }
         public string Schema { get; set; }
         //指定的table名称(优先级最高)
         public string TableName { get; set; }
         //字段集合
         public string[] TableFields { get; set; }
+
 
         public override QueryPart CopyNew()
         {
