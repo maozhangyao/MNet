@@ -237,7 +237,7 @@ namespace MNet.LTSQL
                 return t;
             });
 
-            //子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
+            //exsits内部子查询，优先级运算处理(sqllite不支持多余的括号，所以需要处理)
             sqlToken = LTSQLTokenVisitor.Visit(sqlToken, t =>
             {
                 if (t is FunctionCallToken c && c.FunctionObject is ObjectToken f && f.ObjectName == SqlFunctionHelper.F_EXISTS)
@@ -245,7 +245,7 @@ namespace MNet.LTSQL
                     LTSQLToken parameter = c.Parameters[0];
                     FunctionCallToken fcall = SqlFunctionHelper.ExistsFunction(this.Context.Options.DbType, parameter.TryPriority(false))
                     .Build() as FunctionCallToken;
-                    return c.IsNot ? fcall.Not() : fcall;
+                    return fcall;
                 }
                 return t;
             });
@@ -687,8 +687,8 @@ namespace MNet.LTSQL
                 return expr;
 
             LTSQLToken token = this.PopToken();
-            if (token is INotable notable)
-                token = notable.Not();
+            if (token is SqlValueToken boolean && boolean.ValueType == typeof(bool))
+                token = LTSQLTokenFactory.CreateNotToken(boolean);
             else
                 throw new Exception($"表达式不支持取反操作：{node}");
 

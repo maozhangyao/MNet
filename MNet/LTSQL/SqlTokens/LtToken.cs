@@ -2,19 +2,13 @@ using MNet.LTSQL.SqlTokenExtends;
 
 namespace MNet.LTSQL.SqlTokens
 {
-    public class LtToken : BinaryToken, INotable
+    public class LtToken : BinaryToken
     {
         internal LtToken(LTSQLToken left, LTSQLToken right) : this(left, right, false)
         { }
         internal LtToken(LTSQLToken left, LTSQLToken right, bool priority) : base(BinaryToken.OPT_LESS, left, right, typeof(bool), priority)
         { }
 
-        public bool IsNot => false;
-
-        public LTSQLToken Not()
-        {
-            return new GeToken(this.Left, this.Right, this.IsPriority);
-        }
 
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {

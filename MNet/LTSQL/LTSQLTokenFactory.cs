@@ -262,17 +262,17 @@ namespace MNet.LTSQL
         {
             return new NotToken(valueOfBool);
         }
-        public static IsToken CreateIsToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        public static IsToken CreateIsToken(LTSQLToken left, LTSQLToken right, bool priority = false)
         {
-            return new IsToken(left, right, isNot, priority);
+            return new IsToken(left, right, priority);
         }
-        public static LikeToken CreateLikeToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        public static LikeToken CreateLikeToken(LTSQLToken left, LTSQLToken right, bool priority = false)
         {
-            return new LikeToken(left, right, isNot, priority);
+            return new LikeToken(left, right, priority);
         }
-        public static InToken CreateInToken(LTSQLToken left, LTSQLToken right, bool isNot = false, bool priority = false)
+        public static InToken CreateInToken(LTSQLToken left, LTSQLToken right, bool priority = false)
         {
-            return new InToken(left, right, isNot, priority);
+            return new InToken(left, right, priority);
         }
         public static SqlParameterToken CreateSqlParameterToken(string pName, object value, Type valueType)
         {

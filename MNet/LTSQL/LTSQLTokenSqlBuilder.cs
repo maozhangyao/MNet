@@ -121,7 +121,7 @@ namespace MNet.LTSQL
             })
             .UseSpecialByType<FunctionCallToken>((t, ctx, nxt) =>
             {
-                nxt(t.FunctionName);
+                nxt(t.FunctionObject);
                 ctx.Writer.Write("(");
                 if (t.Parameters != null)
                 {
