@@ -543,6 +543,7 @@ namespace MNet.LTSQL
             valr = valr.TryPriority(true) as ValueToken;
 
             //理论上也不需要验证类型是否相等，因为编译编译通过了就证明类型能够相互转换了
+            //但是翻译的过程可能出错
             if (vall.ValueType != valr.ValueType)
             {
                 //对可空类型的检验支持，如：int? 与 int 是相等的
