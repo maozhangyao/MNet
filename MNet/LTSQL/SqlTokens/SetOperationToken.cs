@@ -13,10 +13,10 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public class SetOperationToken : SqlValueToken, ISelectable
     {
-        internal SetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+        internal SetOperationToken(ITupleable table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
             : this(table, querys, settype, distinct, false)
         { }
-        internal SetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool prior)
+        internal SetOperationToken(ITupleable table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool prior)
         {
             this.Table = table;
             this.SetType = settype;
@@ -34,18 +34,18 @@ namespace MNet.LTSQL.SqlTokens
         // select 1 union select 2 union select 3 .... union select 1000000
         // 这种情况，如果使用树结构，那么就会很可能导致栈溢出
         public LTSQLToken[] Querys { get; }
-        public TableDescriptor Table { get; }
+        public ITupleable Table { get; }
         public Type MappingType => this.ValueType;
         //
         public LTSQLToken this[string key]
         {
-            get => this.Table?.GetField(key)?.Value;
+            get => this.Table[key];
         }
 
 
         public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
         {
-            return this.Table.Fields.Select(p => (p.Field, p.Value)).GetEnumerator();
+            return this.Table.GetEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -53,7 +53,7 @@ namespace MNet.LTSQL.SqlTokens
         }
         public Type GetValueType(string key)
         {
-            return this.Table?.GetField(key)?.FieldValueType;
+            return this.Table.GetValueType(key);
         }
      
 

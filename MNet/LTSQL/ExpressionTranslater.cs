@@ -11,6 +11,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 
 namespace MNet.LTSQL
@@ -100,7 +101,7 @@ namespace MNet.LTSQL
                     continue;
 
                 string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.PropertyType);
+                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.Name, prop.PropertyType);
                 descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
             }
             //解析字段
@@ -110,7 +111,7 @@ namespace MNet.LTSQL
                     continue;
 
                 string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.FieldType);
+                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.Name, prop.FieldType);
                 descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
             }
 
@@ -358,17 +359,10 @@ namespace MNet.LTSQL
                     if (this.OnTranslateMember(node.Member, null, node.Expression.Type, node, node.Type, objToken, null))
                         return expr;
 
-                    if(objToken is TableRefToken tbRef)
+                    if(objToken is TableRefToken || objToken is TableObjectToken)
                     {
-                        LTSQLToken field = tbRef[memberName];
-                        if (field is ITupleable tuple)
-                        {
-                            this.PushToken(field);
-                        }
-                        else
-                        {
-                            this.PushToken(LTSQLTokenFactory.CreateAccessToken(tbRef, tbRef.Descriptor.GetField(memberName).Value as FieldToken));
-                        }
+                        LTSQLToken field = ((ITupleable)objToken)[memberName];
+                        this.PushToken(LTSQLTokenFactory.CreateAccessToken(objToken, (FieldToken)field));
                     }
                     else if (objToken is ITupleable tuple)
                     {

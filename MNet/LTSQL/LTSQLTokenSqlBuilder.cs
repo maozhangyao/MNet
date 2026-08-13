@@ -62,7 +62,7 @@ namespace MNet.LTSQL
                 }
             })
             .UseSpecialByType<TableRefToken>((t, ctx, nxt) => {
-                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias,ctx));
+                ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Alias, ctx));
             })
             .UseSpecialByType<FieldToken>((t, ctx, nxt) =>
             {
@@ -411,7 +411,7 @@ namespace MNet.LTSQL
         //特定逻辑
         private void NextAtSpecial(LTSQLToken token, SqlWriterContext context)
         {
-             //从尾部开始遍历，尾部优先级高于头部
+            //从尾部开始遍历，尾部优先级高于头部
             int cnt = this._newSpecials.Count;
             for (int i = cnt - 1; i >= 0; i--)
             {

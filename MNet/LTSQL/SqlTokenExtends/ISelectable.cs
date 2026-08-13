@@ -6,8 +6,6 @@ using MNet.LTSQL.Objects;
 namespace MNet.LTSQL.SqlTokenExtends
 {
     public interface ISelectable : ITupleable
-    {
-        TableDescriptor Table { get; }
-    }
+    {　}
 }
 

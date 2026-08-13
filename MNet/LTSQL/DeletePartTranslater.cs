@@ -36,8 +36,8 @@ namespace MNet.LTSQL
             TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
 
-            if (part.Where != null)
-                this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+            //if (part.Where != null)
+            //    this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
             LTSQLToken deleteClause = LTSQLTokenFactory.CreateClauseToken("DELETE FROM", tableObjToken);
 

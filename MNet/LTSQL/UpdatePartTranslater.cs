@@ -1,9 +1,9 @@
+using System;
 using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
-using System;
 #if NET6_0_OR_GREATER
 using System.ComponentModel.DataAnnotations.Schema;
 #endif
@@ -21,9 +21,9 @@ namespace MNet.LTSQL
             //翻译表信息
             TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType);
             TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
-
-            if (part.Where != null)
-                this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
+            //TableRefToken tbRef = LTSQLTokenFactory.CreateTableRefToken();
+            //if (part.Where != null)
+            //    this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
 
             ITupleable tuple = this.TranslateLambda(part.UpdateSet.AsLambda(), tableObjToken) as ITupleable;
             if (tuple == null)

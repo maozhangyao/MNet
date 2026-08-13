@@ -10,7 +10,7 @@ namespace MNet.LTSQL.SqlTokens
 {
     public class SqlQueryToken : SqlValueToken, ISelectable
     {
-        internal SqlQueryToken(TableDescriptor table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority)
+        internal SqlQueryToken(TupleToken table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority)
         {
             this.IsPriority = priority;
             this.Table = table;
@@ -38,31 +38,30 @@ namespace MNet.LTSQL.SqlTokens
         public LTSQLToken Select { get; }
         //分页子句
         public LTSQLToken Page { get; }
-
+        public TupleToken Table { get; }
         public Type MappingType => base.ValueType;
-        public TableDescriptor Table { get; }
-        public LTSQLToken this[string key] => this.Table?.Fields?.FirstOrDefault(p => p.Field == key)?.Value;
+        public LTSQLToken this[string key] => this.Table[key];
 
 
-        public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
-        {
-            return this.Table.Fields.Select(f => (f.Field, f.Value)).GetEnumerator();
-        }
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }
         public Type GetValueType(string key)
         {
-            return this.Table.Fields?.FirstOrDefault(p => p.Field == key)?.FieldValueType;
+            return this.Table.GetValueType(key);
         }
+        public IEnumerator<(string key, LTSQLToken value)> GetEnumerator()
+        {
+            return this.Table.GetEnumerator();
+        }
+
         protected internal override LTSQLToken Visit(LTSQLTokenVisitor visitor)
         {
             return visitor.VisitSqlQueryToken(this);
         }
         protected internal override LTSQLToken VisitChildren(LTSQLTokenVisitor visitor)
         {
-            
             LTSQLToken from = this.From?.Visit(visitor);
             LTSQLToken where = this.Where?.Visit(visitor);
             LTSQLToken group = this.Group?.Visit(visitor);

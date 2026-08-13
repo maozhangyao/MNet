@@ -9,6 +9,13 @@ namespace MNet.LTSQL.SqlTokens
     /// </summary>
     public abstract class ValueToken : LTSQLToken
     {
+        protected ValueToken()
+        { }
+        protected ValueToken(Type valueType)
+        {
+            this.ValueType = valueType;
+        }
+
         /// <summary>
         /// 值对应的类型
         /// </summary>

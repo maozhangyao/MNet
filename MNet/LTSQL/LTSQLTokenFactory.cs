@@ -40,8 +40,7 @@ namespace MNet.LTSQL
             if (propType == null)
                 throw new ArgumentNullException(nameof(propType));
 
-
-            return new AccessPropertyToken(obj, LTSQLTokenFactory.CreateFieldToken(prop, propType));
+            return new AccessPropertyToken(obj, LTSQLTokenFactory.CreateFieldToken(prop, prop, propType));
         }
         public static LTSQLToken CreateAccessToken(LTSQLToken obj, FieldToken prop)
         {
@@ -79,14 +78,13 @@ namespace MNet.LTSQL
 
             return new TableRefToken(alias, descriptor);
         }
-        public static FieldToken CreateFieldToken(string fieldName, Type fieldValueType)
+        public static FieldToken CreateFieldToken(string fieldName, string originFieldName, Type fieldValueType)
         {
             if (fieldName == null)
                 throw new ArgumentNullException(nameof(fieldName));
 
-            return new FieldToken(fieldName, fieldValueType);
+            return new FieldToken(fieldName, originFieldName, fieldValueType);
         }
-
         /// <summary>
         /// 构建一个对象名称，如：表名
         /// </summary>
@@ -95,9 +93,6 @@ namespace MNet.LTSQL
         /// <returns></returns>
         public static ObjectToken CreateObjectToken(SqlObjectType objType, string obj, Type typeOfObj)
         {
-            if (objType == SqlObjectType.Table)
-                return new TableObjectToken(obj, null, typeOfObj);
-
             return new ObjectToken(
                     objType
                     , obj
@@ -370,6 +365,10 @@ namespace MNet.LTSQL
 
             return token;
         }
+        public static TupleToken CreateTupleToken(Type mapping)
+        {
+            return new TupleToken(mapping);
+        }
         public static UpdateClauseToken CreateUpdateClauseToken(TableObjectToken table, ITupleable setClause, LTSQLToken whereClause)
         {
             return new UpdateClauseToken(table, (setClause as TupleToken) ?? CreateTupleToken(setClause), whereClause);
@@ -385,15 +384,15 @@ namespace MNet.LTSQL
 
             return new JoinToken(joinType, mainQuery, joinQuery, joinKeys);
         }
-        public static SqlQueryToken CreateSqlQueryToken(TableDescriptor table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority = false)
+        public static SqlQueryToken CreateSqlQueryToken(TupleToken table, LTSQLToken from, LTSQLToken where, LTSQLToken group, LTSQLToken having, LTSQLToken order, LTSQLToken page, LTSQLToken select, bool priority = false)
         {
             return new SqlQueryToken(table, from, where, group, having, order, page, select, priority);
         }
-        public static SetOperationToken CreateSetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
+        public static SetOperationToken CreateSetOperationToken(TupleToken table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct)
         {
             return CreateSetOperationToken(table, querys, settype, distinct, false);
         }
-        public static SetOperationToken CreateSetOperationToken(TableDescriptor table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool priority)
+        public static SetOperationToken CreateSetOperationToken(TupleToken table, IEnumerable<LTSQLToken> querys, DbSetType settype, bool distinct, bool priority)
         {
             if (querys == null)
                 throw new ArgumentNullException(nameof(querys));

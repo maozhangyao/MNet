@@ -1,4 +1,4 @@
-﻿namespace MNet.LTSQL.SqlTokens
+namespace MNet.LTSQL.SqlTokens
 {
     /// <summary>
     /// 对象类型
@@ -6,6 +6,10 @@
     public enum SqlObjectType
     {
         Table,
-        Function
+        Function,
+        /// <summary>
+        /// 对象命名引用
+        /// </summary>
+        RefObject
     }
 }
