@@ -48,9 +48,9 @@ namespace MNet.LTSQL
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>()
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(string tableName = null, string schema = null)
         {
-            return AsLTSQL((T)default);
+            return AsLTSQL((T)default, tableName, schema);
         }
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj)
         {
