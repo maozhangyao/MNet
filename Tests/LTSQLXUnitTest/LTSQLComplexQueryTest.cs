@@ -62,8 +62,8 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             var query = from p1 in persion.AsLTSQL().Where(p => p.Id > 1)
-                        join p2 in persion.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
-                        join p3 in persion.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
+                        join p2 in persion.AsLTSQL().AsRight() on p1.MotherId equals p2.Id
+                        join p3 in persion.AsLTSQL().AsLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
                         group new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } by new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } into gs
                         where gs.Key.Id1 + gs.Key.Id2 + gs.Key.Id3 > 0
                         orderby gs.Key.Id1 + gs.Key.Id3
@@ -100,8 +100,8 @@ namespace LTSQLXUnitTest
 
             var query = from p in persion.AsLTSQL()
                         where p.Age > 20
-                        join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                        join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                        join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                        join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                         where c.Course.Contains("数学")
                         group new { p, c } by new { c.Course, AgeRange = p.Age > 30 ? "Senior" : "Junior" } into g
                         where g.Count() >= 1
@@ -150,7 +150,7 @@ namespace LTSQLXUnitTest
 
             // 子查询2：年龄大于平均年龄的人员
             var avgAgeQuery = persion.AsLTSQL()
-                .WithAverage(p => p.Age);
+                .ToAverage(p => p.Age);
 
             var query = persion.AsLTSQL()
                 .Where(p => hasTeacher.Contains(p.Id))
@@ -171,7 +171,7 @@ namespace LTSQLXUnitTest
 
             // 获取平均年龄用于验证
             double avgAge = connection.QueryFirst<double>(
-                persion.AsLTSQL().WithAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().ToAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             );
 
             // 获取有教师记录的人员 ID 列表
@@ -241,7 +241,7 @@ namespace LTSQLXUnitTest
 
             // 正确做法：使用标准 Join 代替 SelectMany 的相关子查询
             var query = from p in persion.AsLTSQL()
-                        join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
+                        join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
                         group t by p.SelfName into g
                         select new
                         {
@@ -373,7 +373,7 @@ namespace LTSQLXUnitTest
 
             // 查找有父亲记录的人员及其父亲信息
             var query = from child in persion.AsLTSQL()
-                        join father in persion.AsLTSQL().WithInner() on child.FatherId equals father.Id
+                        join father in persion.AsLTSQL().AsInner() on child.FatherId equals father.Id
                         select new
                         {
                             ChildId = child.Id,
@@ -483,7 +483,7 @@ namespace LTSQLXUnitTest
 
             // 子查询：计算每门课程的统计信息
             var courseStats = (from t in teacher.AsLTSQL()
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                group new { t, c } by c.Course into g
                                select new
                                {
@@ -495,7 +495,7 @@ namespace LTSQLXUnitTest
             // 主查询：结合多个条件、连接、分组和子查询
             var query = from p in persion.AsLTSQL()
                         where p.Age > 20
-                        join t in teacher.AsLTSQL().WithLeft() on p.Id equals t.PersionId
+                        join t in teacher.AsLTSQL().AsLeft() on p.Id equals t.PersionId
                         where t == null || t.CourseId > 0
                         select new
                         {

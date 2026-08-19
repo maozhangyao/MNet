@@ -187,8 +187,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                select new
                                {
                                    p.Id,

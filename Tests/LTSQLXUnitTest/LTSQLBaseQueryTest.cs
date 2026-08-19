@@ -280,8 +280,8 @@ namespace LTSQLXUnitTest
             {
                 this._outp.WriteLine("不带条件的 inner join:");
                 string sql = (from p in persion.AsLTSQL()
-                              join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                              join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                              join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                              join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                               select new CPersionSelect1
                               {
                                   Id = p.Id,
@@ -301,8 +301,8 @@ namespace LTSQLXUnitTest
             {
                 this._outp.WriteLine("带条件的 inner join:");
                 string sql = (from p in persion.AsLTSQL()
-                              join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                              join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                              join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                              join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                               where p.Id < 100
                               select new CPersionSelect1
                               {

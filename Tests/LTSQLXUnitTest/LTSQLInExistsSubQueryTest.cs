@@ -231,7 +231,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             var avgAgeQuery = persion.AsLTSQL()
-                .WithAverage(p => p.Age);
+                .ToAverage(p => p.Age);
 
             (string sql, _) = persion.AsLTSQL()
                 .Where(p => p.Age > avgAgeQuery.FirstOrDefault())
@@ -244,7 +244,7 @@ namespace LTSQLXUnitTest
 
             // 获取平均年龄用于验证
             double avgAge = connection.QueryFirst<double>(
-                persion.AsLTSQL().WithAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
+                persion.AsLTSQL().ToAverage(p => p.Age).ToSqlWithParameter(DbTypes.SQLLite, false).Item1
             );
 
             _outp.WriteLine($"Average Age: {avgAge}");
@@ -273,7 +273,7 @@ namespace LTSQLXUnitTest
                     PersonName = p.SelfName,
                     TeacherCount = teacher.AsLTSQL()
                         .Where(t => t.PersionId == p.Id)
-                        .WithCount()
+                        .ToCount()
                         .FirstOrDefault()
                 })
                 .ToSqlWithParameter(DbTypes.SQLLite, false);

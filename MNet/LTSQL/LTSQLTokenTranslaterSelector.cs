@@ -93,56 +93,22 @@ namespace MNet.LTSQL
                         return;
                     if (mthd == null || ctx.Owner != null)
                         return;
-                    if (ctx.OwnerType != typeof(Enumerable) && ctx.OwnerType != typeof(LTSQLQueryableExtensions))
+                    if (ctx.OwnerType != typeof(ExpressionFunctionExtensions))
                         return;
 
-                    string sqlFunc = "";
-                    string extdName = "";
                     string mthdName = ctx.Member.Name;
-                    string sum = nameof(Enumerable.Sum);
-                    string max = nameof(Enumerable.Max);
-                    string min = nameof(Enumerable.Min);
-                    string avg = nameof(Enumerable.Average);
-                    string cnt = nameof(Enumerable.Count);
-                    string lcnt = nameof(Enumerable.LongCount);
-
-                    bool flag = true;
-                    if (mthdName == sum)
+                    bool isCountFunc = mthdName.EndsWith(nameof(Enumerable.Count));
+                    string sqlFuncName = mthdName switch
                     {
-                        sqlFunc = "SUM";
-                        extdName = nameof(LTSQLQueryableExtensions.WithSum);
-                    }
-                    else if (mthdName == max)
-                    {
-                        sqlFunc = "MAX";
-                        extdName = nameof(LTSQLQueryableExtensions.WithMax);
-                    }
-                    else if (mthdName == min)
-                    {
-                        sqlFunc = "MIN";
-                        extdName = nameof(LTSQLQueryableExtensions.WithMin);
-                    }
-                    else if (mthdName == avg)
-                    {
-                        sqlFunc = "AVG";
-                        extdName = nameof(LTSQLQueryableExtensions.WithAverage);
-                    }
-                    else if (mthdName == cnt)
-                    {
-                        sqlFunc = "COUNT";
-                        extdName = nameof(LTSQLQueryableExtensions.WithCount);
-                    }
-                    else if (mthdName == lcnt)
-                    {
-                        sqlFunc = "COUNT";
-                        extdName = nameof(LTSQLQueryableExtensions.WithLongCount);
-                    }
-                    else
-                    {
-                        flag = false;
-                    }
-
-                    if (!flag)
+                        nameof(Enumerable.Sum) => "SUM",
+                        nameof(Enumerable.Max) => "MAX",
+                        nameof(Enumerable.Min) => "MIN",
+                        nameof(Enumerable.Count) => "COUNT",
+                        nameof(Enumerable.LongCount) => "COUNT",
+                        nameof(Enumerable.Average) => "AVG",
+                        _ => null
+                    };
+                    if (sqlFuncName == null)
                         return;
 
                     // SUM 是扩展方法，所以该方法的第一个参数表示实例对象
@@ -153,16 +119,23 @@ namespace MNet.LTSQL
                     if (inst is GroupObjToken gpObj)
                     {
                         LTSQLToken[] parameters = ctx.MethodParameterTokenList.Skip(1).ToArray();
-                        if((mthdName == cnt || mthdName == lcnt) && parameters.IsEmpty())
+                        if (isCountFunc && parameters.IsEmpty())
                             parameters = new[] { SyntaxToken.Create("*") };
 
-                        //ctx.ResultToken = LTSQLTokenFactory.CreateFunctionCallToken(sqlFunc, parameters, mthd.ReturnType);
-                        ctx.ResultToken = new FunctionTokenBuilder().WithFunctionName(sqlFunc, mthd.ReturnType).WithFunctionArgs(parameters).Build();
+                        ctx.ResultToken = new FunctionTokenBuilder().WithFunctionName(sqlFuncName, mthd.ReturnType).WithFunctionArgs(parameters).Build();
                     }
                     else if (inst.TryGetSqlQueryable(out ILTSQLQueryable query))
                     {
-                        ILTSQLQueryable newQuery = (ILTSQLQueryable)InvokeCommonGroupMethod(extdName, callExpr, query);
-                        ctx.ResultToken = ctx.TokenSqlParameter(newQuery);
+                        //独立查询(子查询)，调用了分组方法。由于子查询的翻译是延迟的，所以需要动态的生成分组方法调用表达式并沉淀。
+                        Type[] genaricParameters = mthd.GetGenericArguments();
+                        //count、longCount 方法存在只有一个入参的函数重载
+                        Expression groupMethodParameter = null; 
+                        if(ctx.MethodParameterTokenList.Length == 2)
+                            groupMethodParameter = (ctx.MethodParameterTokenList[1] as SqlParameterToken).Value as LambdaExpression;
+
+                        object newSubQuery = isCountFunc ? InternalExpressionGenerator.DynamicInvokeCountMethod(mthdName, query, groupMethodParameter, genaricParameters[0])  // count, longCount
+                                             : InternalExpressionGenerator.DynamicInvokeGroupMethod(mthdName, query, groupMethodParameter, genaricParameters[0], genaricParameters[1]); // sum,max,min,avg
+                        ctx.ResultToken = ctx.TokenSqlParameter(newSubQuery);
                     }
                 }
             });
@@ -284,9 +257,7 @@ namespace MNet.LTSQL
             // EXISTS 操作
             defaultTranslater.UseMemberTranslate(ctx =>
             {
-                if ((typeof(Enumerable) == ctx.OwnerType
-                    || typeof(LTSQLQueryableExtensions) == ctx.OwnerType
-                    || typeof(IEnumerable).IsAssignableFrom(ctx.OwnerType))
+                if (typeof(LTSQLQueryableExtensions) == ctx.OwnerType
                     && (ctx.Member.Name == nameof(Enumerable.Any))
                     && ctx.MethodParameterTokenList.IsNotEmpty()
                     && ctx.MethodParameterTokenList.Length == 1
@@ -512,59 +483,6 @@ namespace MNet.LTSQL
             });
 
             return defaultTranslater;
-        }
-
-
-        //通用分组方法调用
-        private static object InvokeCommonGroupMethod(string gpMethod, MethodCallExpression callExpr, ILTSQLQueryable qInst)
-        {
-            int argsLen = callExpr.Arguments.Count;
-
-            Expression aggExpr = argsLen < 2 ? null : callExpr.Arguments[1]; // 聚合的lambda
-            Type selectorValueType = argsLen < 2 ? null : aggExpr.AsLambda().ReturnType; // 需要聚合的类型
-            Type entityType = callExpr.Method.GetGenericArguments()[0]; //实体类型
-            Type aggRetType = callExpr.Method.ReturnType;// 聚合之后的值的类型
-
-            MethodInfo m = GetExtMethod(gpMethod, m =>
-            {
-                var paras = m.GetParameters();
-                if (paras.Length != argsLen)
-                    return false;
-
-                //扩展方法：所以至少有一个参数有的
-                if (argsLen < 2)
-                    return m.ReturnType.GetGenericArguments()[0] == aggRetType;
-
-                //聚合值的类型(注意：聚合值和聚合后的值类型不一定一样)
-                Type t = paras[1].ParameterType.GetGenericArguments()[0].GetGenericArguments()[1];
-                return m.ReturnType.GetGenericArguments()[0] == aggRetType && t == selectorValueType;
-            });
-
-            if (argsLen == 1)
-                return InvokeExtMethod(m, new[] { entityType }, qInst);
-            return InvokeExtMethod(m, new[] { entityType }, qInst, aggExpr);
-        }
-        private static MethodInfo GetExtMethod(string gpMethod, Func<MethodInfo, bool> where)
-        {
-            MethodInfo[] ms = typeof(LTSQLQueryableExtensions).GetMethods()
-                .Where(p => p.Name == gpMethod)
-                .Where(p => where(p))
-                .ToArray();
-
-            if (ms.IsEmpty())
-                throw new Exception($"{gpMethod}方法未找到。");
-            if (ms.Length != 1)
-                throw new Exception($"{gpMethod}方法匹配到多个无法确定唯一。");
-
-            return ms[0];
-        }
-        private static object InvokeExtMethod(MethodInfo mthd, Type[] makeTypes, params object[] args)
-        {
-            if (makeTypes.IsNotEmpty())
-            {
-                mthd = mthd.MakeGenericMethod(makeTypes);
-            }
-            return mthd.Invoke(null, args);
         }
     }
 }

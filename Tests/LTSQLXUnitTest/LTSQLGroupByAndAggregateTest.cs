@@ -168,7 +168,7 @@ namespace LTSQLXUnitTest
 
             // 直接使用 WithCount 方法
             (string sql2, _) = persion.AsLTSQL()
-                .WithCount()
+                .ToCount()
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL with WithCount: {sql2}");
@@ -188,7 +188,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithCount(p => p.Age > 30)
+                .ToCount(p => p.Age > 30)
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -208,7 +208,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithSum(p => p.Id)
+                .ToSum(p => p.Id)
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -228,7 +228,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithMax(p => p.Age)
+                .ToMax(p => p.Age)
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -256,7 +256,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithMin(p => p.Age)
+                .ToMin(p => p.Age)
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -284,7 +284,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithAverage(p => p.Age)
+                .ToAverage(p => p.Age)
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");
@@ -312,7 +312,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = persion.AsLTSQL()
-                .WithLongCount()
+                .ToLongCount()
                 .ToSqlWithParameter(DbTypes.SQLLite, false);
 
             _outp.WriteLine($"SQL: {sql}");

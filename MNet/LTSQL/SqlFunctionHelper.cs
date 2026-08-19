@@ -1,6 +1,7 @@
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -17,7 +18,6 @@ namespace MNet.LTSQL
         public static string F_DATE_MSSql = "GETDATE";
         public static string F_DATE_Oracle = "SYSDATE";
         public static string F_DATE_SqlLite = "DATETIME";
-
 
 
         private static Exception UnknownDb(DbTypes db)

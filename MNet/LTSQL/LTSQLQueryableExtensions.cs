@@ -18,6 +18,12 @@ namespace MNet.LTSQL
 {
     public static class LTSQLQueryableExtensions
     {
+        private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
+        {
+            sequence = sequence.SetNextStep(QueryStepSeq.OrderBy);
+            sequence.Orders ??= new List<OrderKeyPart>();
+            sequence.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
+        }
         private static SqlQueryPart SetNextStep(this SqlQueryPart query, QueryStepSeq step, bool equals = true)
         {
             if (query.Step >= step)
@@ -35,26 +41,13 @@ namespace MNet.LTSQL
             query.Step = step;
             return query.CopyNew() as SqlQueryPart;
         }
-        private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
-        {
-            sequence = sequence.SetNextStep(QueryStepSeq.OrderBy);
-            sequence.Orders ??= new List<OrderKeyPart>();
-            sequence.Orders.Add(new OrderKeyPart() { Key = expr, Asc = !desc });
-        }
-        //将序列直接转换为分组模式(不带group by 子句)
-        private static ILTSQLObjectQueryable<IGrouping<TKey, T>> AsGroup<TKey, T>(this ILTSQLObjectQueryable<T> src)
-        {
-            src = src.AsLTSQL();
-            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
-            query.GroupFlag = true;
-            query.GroupElement = (Expression<Func<T, T>>)(p => p);
-
-            return new LTSQLObject<IGrouping<TKey, T>>(query);
-        }
 
 
-
-        //初始化查询对象，以支持LINQ语法
+        /// <summary>
+        /// 初始化查询对象，以支持LINQ语法
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>()
         {
             return AsLTSQL((T)default);
@@ -63,7 +56,14 @@ namespace MNet.LTSQL
         {
             return AsLTSQL<T>(obj, null);
         }
-        //指定表名
+        /// <summary>
+        /// 初始化查询对象，支持指定表名以及架构
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="tableName">表名</param>
+        /// <param name="schema">表架构</param>
+        /// <returns></returns>
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName, string schema = null)
         {
             TablePart tablePart = new TablePart(typeof(T));
@@ -79,7 +79,12 @@ namespace MNet.LTSQL
             var ltsql = new LTSQLObject<T>(query);
             return ltsql;
         }
-        //指定from为子查询形式的数据源，开启新的外层查询
+        /// <summary>
+        /// 初始化查询对象并指定from数据源
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="frm"></param>
+        /// <returns></returns>
         public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this ILTSQLObjectQueryable<T> frm)
         {
             SqlQueryPart query = new SqlQueryPart();
@@ -98,11 +103,36 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
+        /// <summary>
+        /// 将序列直接转换为分组模式，即将整个数据序列当作一个分组区域，形如：
+        ///         select count(*), max(cost), min(cost), sum(cost) from xxxx
+        /// 不依赖任何分组关键，直接对整个数据源做聚合操作
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLObjectQueryable<IGrouping<T, T>> AsGroup<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            src = src.AsLTSQL();
+            SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.GroupBy);
+            query.GroupFlag = true;
+            //query.GroupKey = (Expression<Func<T, T>>)(p => p);
+            query.GroupElement = (Expression<Func<T, T>>)(p => p);
+
+            return new LTSQLObject<IGrouping<T, T>>(query);
+        }
 
 
-        // 硬编码select字段进行查询如：
-        // SELECT 'Mr. liu' as name, 18 as age, 'like books' as Description
-        // 批量版本：将使用 union all 连接
+        /// <summary>
+        /// 硬编码形式的select语句支持，如：
+        ///     SELECT 'Mr. liu' as name, 18 as age, 'like books' as Description
+        /// 
+        /// 批量版本：将使用 union all 连接
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static ILTSQLOrderedQueryable<T> AsSelect<T>(this List<T> list)
         {
             if (list.IsEmpty())
@@ -229,7 +259,52 @@ namespace MNet.LTSQL
         }
 
 
-        //集合化
+        /// <summary>
+        /// 联表
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="flag"></param>
+        /// <returns></returns>
+        public static ILTSQLOrderedQueryable<T> AsJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
+        {
+            return new LTSQLObject<T>(src.SqlQuery.CopyNew() as SqlQueryPart) { JoinFlag = flag };
+        }
+        /// <summary>
+        /// 设置联接类型为左连接
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLOrderedQueryable<T> AsLeft<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.AsJoin(JoinType.LeftJoin);
+        }
+        /// <summary>
+        /// 设置联接类型为右联接
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLOrderedQueryable<T> AsRight<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.AsJoin(JoinType.RightJoin);
+        }
+        public static ILTSQLOrderedQueryable<T> AsInner<T>(this ILTSQLObjectQueryable<T> src)
+        {
+            return src.AsJoin(JoinType.InnerJoin);
+        }
+
+
+        /// <summary>
+        /// 集合化
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="setType"></param>
+        /// <param name="distinct">是否去重</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static ILTSQLObjectSetable<T> AsSet<T>(this ILTSQLObjectQueryable<T> src, DbSetType setType, bool distinct = false)
         {
             if (src == null)
@@ -246,8 +321,14 @@ namespace MNet.LTSQL
             QuerySetPart set = new QuerySetPart(typeof(T), new QueryPart[] { src.Query.CopyNew() }, setType, distinct);
             return new LTSQLObject<T>(set);
         }
-
-        //多集合共同取并集
+        /// <summary>
+        /// 多集合共同取并集
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="other"></param>
+        /// <param name="distinct"></param>
+        /// <returns></returns>
         public static ILTSQLObjectSetable<T> UnionSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = false)
         {
             return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
@@ -256,8 +337,14 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Union, distinct).AppendSet(other);
         }
-
-        //多集合共同取交集
+        /// <summary>
+        /// 多集合共同取交集
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="other"></param>
+        /// <param name="distinct"></param>
+        /// <returns></returns>
         public static ILTSQLObjectSetable<T> IntersectSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
@@ -266,8 +353,14 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Intersect, distinct).AppendSet(other);
         }
-
-        //多集合共同取差集
+        /// <summary>
+        /// 多集合共同取差集
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="other"></param>
+        /// <param name="distinct"></param>
+        /// <returns></returns>
         public static ILTSQLObjectSetable<T> ExceptSet<T>(this ILTSQLObjectQueryable<T> src, ILTSQLQueryable other, bool distinct = true)
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
@@ -276,10 +369,16 @@ namespace MNet.LTSQL
         {
             return AsSet(src, DbSetType.Except, distinct).AppendSet(other);
         }
-
-        //向当前集合追加相同集合操作, 比如：
-        //向并集集合，在追加集合做并集
-        //向交集集合，在追加集合做并集
+        /// <summary>
+        /// 向当前集合追加相同集合操作, 比如：
+        /// 向并集集合，在追加集合做并集
+        /// 向交集集合，在追加集合做并集
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="other"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public static ILTSQLObjectSetable<T> AppendSet<T>(this ILTSQLObjectSetable<T> src, params ILTSQLQueryable[] other)
         {
             if (src == null)
@@ -296,37 +395,13 @@ namespace MNet.LTSQL
         }
 
 
-
-        public static ILTSQLOrderedQueryable<T> WithJoin<T>(this ILTSQLObjectQueryable<T> src, JoinType flag)
-        {
-            return new LTSQLObject<T>(src.SqlQuery) { JoinFlag = flag };
-        }
         /// <summary>
-        /// 设置联接类型为左连接
+        /// 分页：跳过指定元素个数
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="src"></param>
+        /// <param name="skip"></param>
         /// <returns></returns>
-        public static ILTSQLOrderedQueryable<T> WithLeft<T>(this ILTSQLObjectQueryable<T> src)
-        {
-            return src.WithJoin(JoinType.LeftJoin);
-        }
-        /// <summary>
-        /// 设置联接类型为右联接
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="src"></param>
-        /// <returns></returns>
-        public static ILTSQLOrderedQueryable<T> WithRight<T>(this ILTSQLObjectQueryable<T> src)
-        {
-            return src.WithJoin(JoinType.RightJoin);
-        }
-        public static ILTSQLOrderedQueryable<T> WithInner<T>(this ILTSQLObjectQueryable<T> src)
-        {
-            return src.WithJoin(JoinType.InnerJoin);
-        }
-
-
         public static ILTSQLObjectQueryable<T> Skip<T>(this ILTSQLObjectQueryable<T> src, int skip)
         {
             SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Page);
@@ -337,12 +412,25 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
+        /// <summary>
+        ///  分页：仅取指定个数元素
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="take"></param>
+        /// <returns></returns>
         public static ILTSQLObjectQueryable<T> Take<T>(this ILTSQLObjectQueryable<T> src, int take)
         {
             SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Page);
             query.Take = take;
             return new LTSQLObject<T>(query);
         }
+        /// <summary>
+        /// 去重
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
         public static ILTSQLObjectQueryable<T> Distinct<T>(this ILTSQLObjectQueryable<T> src)
         {
             SqlQueryPart query = src.SqlQuery.SetNextStep(QueryStepSeq.Query);
@@ -350,7 +438,6 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
-
         //where
         public static ILTSQLObjectQueryable<T> Where<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> expr)
         {
@@ -365,7 +452,6 @@ namespace MNet.LTSQL
             query.Having = query.Having == null ? expr : expr.MergeAnd(query.Having as Expression<Func<IGrouping<TKey, T>, bool>>);
             return new LTSQLObject<IGrouping<TKey, T>>(query);
         }
-
         //order
         public static ILTSQLOrderedQueryable<T> OrderBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
@@ -395,7 +481,6 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<T>(query);
         }
-
         //group
         public static ILTSQLObjectQueryable<IGrouping<TKey, T>> GroupBy<T, TKey>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TKey>> keyExpr)
         {
@@ -412,39 +497,6 @@ namespace MNet.LTSQL
 
             return new LTSQLObject<IGrouping<TKey, TElement>>(query);
         }
-
-        //select
-        public static ILTSQLObjectQueryable<TResult> Select<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
-        {
-            //Console.WriteLine(expr);
-            Expression selectKeyExpr = expr;
-            SqlQueryPart _old = src.Query as SqlQueryPart;
-            if (_old.Step == QueryStepSeq.Select)
-            {
-                LambdaExpression lambda = _old.SelectKey.AsLambda();
-                if (lambda == null)
-                    throw new Exception($"在连续select过程中，未能取得上一次select的表达式(当前select:{expr})。");
-                if (lambda.ReturnType != typeof(T))
-                    throw new Exception($"在连续select过程中，上一次select返回值类型({lambda.ReturnType.FullName})与当前select入参类型不匹配({typeof(T).FullName})。");
-
-                //ExpressionModifier modifier = new ExpressionModifier();
-                Expression _oldPara = lambda.TakeParamter(0);
-                Expression _newbody = new ExpressionModifier()
-                    .WithModifer(ExpressionType.Parameter, _ => lambda.Body)
-                    .ModifyParameter(expr.Body, expr.TakeParamter(0));
-
-                Expression _newExpr = Expression.Lambda(_newbody, _oldPara as ParameterExpression);
-                selectKeyExpr = _newExpr;
-            }
-
-            SqlQueryPart _new = (src.SqlQuery.CopyNew() as SqlQueryPart)
-               .SetNextStep(QueryStepSeq.Select, true); //连续的select只需要取最后一次
-
-            _new.SelectKey = selectKeyExpr;
-            _new.MappingType = typeof(TResult);
-            return new LTSQLObject<TResult>(_new);
-        }
-
         //join
         public static ILTSQLObjectQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(this ILTSQLObjectQueryable<TOuter> outer
             , ILTSQLObjectQueryable<TInner> inner
@@ -522,244 +574,86 @@ namespace MNet.LTSQL
         {
             throw new Exception("不支持Join into 写法，请使用Join代替。");
         }
+        //select
+        public static ILTSQLObjectQueryable<TResult> Select<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> expr)
+        {
+            //Console.WriteLine(expr);
+            Expression selectKeyExpr = expr;
+            SqlQueryPart _old = src.Query as SqlQueryPart;
+            if (_old.Step == QueryStepSeq.Select)
+            {
+                LambdaExpression lambda = _old.SelectKey.AsLambda();
+                if (lambda == null)
+                    throw new Exception($"在连续select过程中，未能取得上一次select的表达式(当前select:{expr})。");
+                if (lambda.ReturnType != typeof(T))
+                    throw new Exception($"在连续select过程中，上一次select返回值类型({lambda.ReturnType.FullName})与当前select入参类型不匹配({typeof(T).FullName})。");
 
+                //ExpressionModifier modifier = new ExpressionModifier();
+                Expression _oldPara = lambda.TakeParamter(0);
+                Expression _newbody = new ExpressionModifier()
+                    .WithModifer(ExpressionType.Parameter, _ => lambda.Body)
+                    .ModifyParameter(expr.Body, expr.TakeParamter(0));
 
-        //直接聚合函数
-        public static ILTSQLObjectQueryable<bool> WithAny<T>(this ILTSQLObjectQueryable<T> src)
+                Expression _newExpr = Expression.Lambda(_newbody, _oldPara as ParameterExpression);
+                selectKeyExpr = _newExpr;
+            }
+
+            SqlQueryPart _new = (src.SqlQuery.CopyNew() as SqlQueryPart)
+               .SetNextStep(QueryStepSeq.Select, true); //连续的select只需要取最后一次
+
+            _new.SelectKey = selectKeyExpr;
+            _new.MappingType = typeof(TResult);
+            return new LTSQLObject<TResult>(_new);
+        }
+
+        /// <summary>
+        /// 相当于 sql 的 exsits 函数(终结点函数)
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="src"></param>
+        /// <returns></returns>
+        public static ILTSQLObjectQueryable<bool> ToAny<T>(this ILTSQLObjectQueryable<T> src)
         {
             src = new LTSQLObject<T>(src.SqlQuery.CopyNew() as SqlQueryPart);
             return AsSelect(() => src.Any());
         }
-        public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src)
+        /// <summary>
+        /// 终结点聚合函数，形如：
+        ///     select  count(*) from xxxx
+        ///     select sum(cost) from xxxx
+        /// 整个查询仅返回单个聚合值。当查询执行了终结点聚合函数，表示整个查询的最终结果了。
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="src"></param>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public static ILTSQLObjectQueryable<TResult> ToSum<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> selector)
         {
-            return src.AsGroup<int, T>().Select(g => g.Count());
+            return InternalExpressionGenerator.Sum(src, selector);
         }
-        public static ILTSQLObjectQueryable<int> WithCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> selector)
+        public static ILTSQLObjectQueryable<TResult> ToMax<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> selector)
         {
-            return WithGroup<T, bool, int>(nameof(Enumerable.Count), src, selector);
+            return InternalExpressionGenerator.Max(src, selector);
         }
-        public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src)
+        public static ILTSQLObjectQueryable<TResult> ToMin<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> selector)
         {
-            return src.AsGroup<int, T>().Select(g => g.LongCount());
+            return InternalExpressionGenerator.Min(src, selector);
         }
-        public static ILTSQLObjectQueryable<long> WithLongCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, bool>> selector)
+        public static ILTSQLObjectQueryable<TResult> ToAverage<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> selector)
         {
-            return WithGroup<T, bool, long>(nameof(Enumerable.LongCount), src, selector);
+            return InternalExpressionGenerator.Average(src, selector);
         }
-
-
-        public static ILTSQLObjectQueryable<int> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
+        public static ILTSQLObjectQueryable<int> ToCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, object>> selector = null)
         {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
+            return InternalExpressionGenerator.Count(src, selector);
         }
-        public static ILTSQLObjectQueryable<int?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
+        public static ILTSQLObjectQueryable<long> ToLongCount<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, object>> selector = null)
         {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal?> WithSum<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Sum), src, selector);
+            return InternalExpressionGenerator.LongCount(src, selector);
         }
 
 
-        public static ILTSQLObjectQueryable<int> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<int?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal?> WithMax<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Max), src, selector);
-        }
-
-
-        public static ILTSQLObjectQueryable<int> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<int?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<long?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal?> WithMin<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Min), src, selector);
-        }
-
-
-        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int>> selector)
-        {
-            return WithGroup<T, int, double>(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, int?>> selector)
-        {
-            return WithGroup<T, int?, double?>(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long>> selector)
-        {
-            return WithGroup<T, long, double>(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, long?>> selector)
-        {
-            return WithGroup<T, long?, double?>(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<float?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, float?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<double?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, double?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-        public static ILTSQLObjectQueryable<decimal?> WithAverage<T>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, decimal?>> selector)
-        {
-            return WithGroup(nameof(Enumerable.Average), src, selector);
-        }
-
-
-
-        private static ILTSQLObjectQueryable<TResult> WithGroup<T, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfSum)
-        {
-            MethodInfo m = GetEnumerableGroupMethod(groupMethodName, typeof(TResult)).MakeGenericMethod(typeof(T));
-            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, TResult, int>(m, exprOfSum);
-
-            return src.AsGroup<int, T>().Select(expr);
-        }
-        private static ILTSQLObjectQueryable<TResult> WithGroup<T, TValue, TResult>(string groupMethodName, ILTSQLObjectQueryable<T> src, Expression<Func<T, TValue>> exprOfSum)
-        {
-            MethodInfo m = GetEnumerableGroupMethod(groupMethodName, typeof(TResult)).MakeGenericMethod(typeof(T));
-            Expression<Func<IGrouping<int, T>, TResult>> expr = BuildGroupMethodExpress<T, TValue, TResult, int>(m, exprOfSum);
-
-            return src.AsGroup<int, T>().Select(expr);
-        }
-        private static MethodInfo GetEnumerableGroupMethod(string methodName, Type methodReturnType)
-        {
-            MethodInfo m = typeof(Enumerable).GetMethods()
-                .Where(p => p.Name == methodName && p.IsGenericMethod && p.GetGenericArguments().Length == 1 && p.ReturnType == methodReturnType)
-                .Where(p => p.GetParameters().Length == 2 && p.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                .First();
-            return m;
-        }
-        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TResult>> exprOfGroup)
-        {
-            ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
-            Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(
-              Expression.Call(null, groupMethod, new Expression[] { p, exprOfGroup }),
-              new[] { p }
-               );
-            return expr;
-        }
-        private static Expression<Func<IGrouping<TGroupKey, T>, TResult>> BuildGroupMethodExpress<T, TValue, TResult, TGroupKey>(MethodInfo groupMethod, Expression<Func<T, TValue>> exprOfGroup)
-        {
-            ParameterExpression p = Expression.Parameter(typeof(IGrouping<TGroupKey, T>));
-            Expression<Func<IGrouping<TGroupKey, T>, TResult>> expr = Expression.Lambda<Func<IGrouping<TGroupKey, T>, TResult>>(
-              Expression.Call(null, groupMethod, new Expression[] { p, exprOfGroup }),
-              new[] { p }
-               );
-            return expr;
-        }
-
-
-        
         public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> setUpdate)
         {
             if (setUpdate == null)

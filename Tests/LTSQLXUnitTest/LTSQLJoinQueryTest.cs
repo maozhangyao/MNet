@@ -68,8 +68,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                select new
                                {
                                    PersonId = p.Id,
@@ -103,7 +103,7 @@ namespace LTSQLXUnitTest
 
             // 使用隐式左连接语法
             (string sql, _) = (from p in persion.AsLTSQL()
-                               from t in teacher.AsLTSQL().WithLeft()
+                               from t in teacher.AsLTSQL().AsLeft()
                                where p.Id == t.PersionId
                                select new
                                {
@@ -135,7 +135,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
             CTeacherT teacher = new CTeacherT();
 
-            (string sql, _) = (from p in persion.AsLTSQL().WithRight()
+            (string sql, _) = (from p in persion.AsLTSQL().AsRight()
                                join t in teacher.AsLTSQL() on p.Id equals t.PersionId
                                select new
                                {
@@ -168,8 +168,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                where p.Age > 20
                                orderby p.Id
                                select new
@@ -206,8 +206,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                group new { p, c } by c.Course into g
                                select new
                                {
@@ -241,7 +241,7 @@ namespace LTSQLXUnitTest
             CTeacherT teacher = new CTeacherT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
                                select new
                                {
                                    PersonId = p.Id,
@@ -273,8 +273,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                where p.Age > 25 && c.Course.Contains("数学")
                                select new
                                {
@@ -310,8 +310,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                orderby p.Age descending, p.Id ascending
                                select new
                                {
@@ -354,7 +354,7 @@ namespace LTSQLXUnitTest
             CPersionT persion = new CPersionT();
 
             (string sql, _) = (from p1 in persion.AsLTSQL()
-                               join p2 in persion.AsLTSQL().WithInner() on p1.FatherId equals p2.Id
+                               join p2 in persion.AsLTSQL().AsInner() on p1.FatherId equals p2.Id
                                select new
                                {
                                    ChildId = p1.Id,
@@ -422,8 +422,8 @@ namespace LTSQLXUnitTest
             CCourseT course = new CCourseT();
 
             (string sql, _) = (from p in persion.AsLTSQL()
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                orderby p.Id
                                select new
                                {
@@ -460,8 +460,8 @@ namespace LTSQLXUnitTest
 
             (string sql, _) = (from p in persion.AsLTSQL()
                                where p.Age > 20
-                               join t in teacher.AsLTSQL().WithInner() on p.Id equals t.PersionId
-                               join c in course.AsLTSQL().WithInner() on t.CourseId equals c.Id
+                               join t in teacher.AsLTSQL().AsInner() on p.Id equals t.PersionId
+                               join c in course.AsLTSQL().AsInner() on t.CourseId equals c.Id
                                group new { p, c } by new { c.Course, p.SelfName } into g
                                where g.Count() >= 1
                                orderby g.Key.Course, g.Key.SelfName
