@@ -2,6 +2,7 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.TypeModels;
 
 namespace MNet.LTSQL
 {
@@ -18,11 +19,13 @@ namespace MNet.LTSQL
         // value2 != null   转换为 value2 is not NULL
         public bool DisNullable { get; set; }
 
-        public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
         //获取表名称
         public Func<LTSQLMemberContext, string> GetTableName { get; set; }
         //获取表字段名称
         public Func<LTSQLMemberContext, string> GetColumnName { get; set; }
+        public EntityTypeModelOptions EntityTypeModelOptions { get; set; }
+        public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
         public Action<LTSQLOptions, SqlBuilderOptions> ConfigSqlBuilderOptions { get; set; }
+        
     }
 }

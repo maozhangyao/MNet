@@ -15,6 +15,13 @@ namespace MNet.LTSQL.Attributes
             this.Name = tname;
         }
 
+        /// <summary>
+        /// 映射的表名
+        /// </summary>
         public string Name { get; set; }
+        /// <summary>
+        /// 映射的schema
+        /// </summary>
+        public string? Schema { get; set; }
     }
 }
