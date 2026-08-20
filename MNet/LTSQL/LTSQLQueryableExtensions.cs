@@ -9,13 +9,12 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Text;
-using System.Xml.Linq;
 
 namespace MNet.LTSQL
 {
+    /// <summary>
+    ///  LTSQL 核心扩展
+    /// </summary>
     public static class LTSQLQueryableExtensions
     {
         private static void AddOrder(ref SqlQueryPart sequence, Expression expr, bool desc)
@@ -654,86 +653,6 @@ namespace MNet.LTSQL
         }
 
 
-        public static ILTSQLNonQueryable<T> AsUpdate<T>(Expression<Func<T, object>> setUpdate)
-        {
-            if (setUpdate == null)
-                throw new ArgumentNullException(nameof(setUpdate));
-
-            return AsUpdate(null, null, setUpdate);
-        }
-        public static ILTSQLNonQueryable<T> AsUpdate<T>(string table, string schema, Expression<Func<T, object>> setUpdate)
-        {
-            return AsUpdate<T>(default, setUpdate, table, schema);
-        }
-        public static ILTSQLNonQueryable<T> AsUpdate<T>(this T entity, Expression<Func<T, object>> setUpdate, string table = null, string schema = null)
-        {
-            if (setUpdate == null)
-                throw new ArgumentNullException(nameof(setUpdate));
-
-            return new LTSQLObject<T>(new UpdatePart()
-            {
-                Refer = entity,
-                Schema = schema,
-                TableName = table,
-                MappingType = typeof(T)
-            }).SetUpdate(setUpdate);
-        }
-        public static ILTSQLNonQueryable<T> SetUpdate<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, object>> setUpdate)
-        {
-            if (setUpdate == null)
-                throw new ArgumentNullException(nameof(setUpdate));
-
-            UpdatePart part = nonQuery.Query as UpdatePart;
-            if (part == null)
-                throw new Exception($"非法的{nameof(QueryPart)}");
-
-            part = part.CopyNew() as UpdatePart;
-            part.SetUpdate = setUpdate;
-            return new LTSQLObject<T>(part);
-        }
-
-        public static ILTSQLNonQueryable<T> AsDelete<T>()
-        {
-            return AsDelete<T>(null);
-        }
-        public static ILTSQLNonQueryable<T> AsDelete<T>(Expression<Func<T, bool>> expr)
-        {
-            return AsDelete<T>(null, null, expr);
-        }
-        public static ILTSQLNonQueryable<T> AsDelete<T>(string table, string schema, Expression<Func<T, bool>> expr)
-        {
-            return AsDelete(default, expr, table, schema);
-        }
-        public static ILTSQLNonQueryable<T> AsDelete<T>(this T entity, Expression<Func<T, bool>> expr = null, string table = null, string schema = null)
-        {
-            LTSQLObject<T> obj = new LTSQLObject<T>(new DeletePart()
-            {
-                Refer = entity,
-                Schema = schema,
-                TableName = table,
-                MappingType = typeof(T),
-            });
-
-            return Where((ILTSQLNonQueryable<T>)obj, expr);
-        }
-        public static ILTSQLNonQueryable<T> Where<T>(this ILTSQLNonQueryable<T> nonQuery, Expression<Func<T, bool>> expr)
-        {
-            NonQueryPart part = nonQuery.Query as NonQueryPart;
-            if (part == null)
-                throw new Exception($"非法的{nameof(QueryPart)}");
-            if (expr == null)
-                throw new ArgumentNullException(nameof(expr));
-
-            part = part.CopyNew() as NonQueryPart;
-            if (part.Where == null)
-            {
-                part.Where = expr;
-                return new LTSQLObject<T>(part);
-            }
-
-            part.Where = ExpressionUtils.MergeAnd((Expression<Func<T, bool>>)part.Where, expr);
-            return new LTSQLObject<T>(part);
-        }
 
 
         #region sql格式化

@@ -36,29 +36,4 @@ namespace MNet.LTSQL
             return GetEnumerator();
         }
     }
-
-
-    public interface ILTSQLQueryable
-    {
-        //保存查询的结构
-        public QueryPart Query { get; set; }
-    }
-    //保留泛型信息
-    public interface ILTSQLQueryable<T>　: ILTSQLQueryable
-    {　}
-
-    public interface ILTSQLObjectSetable<T> : ILTSQLQueryable<T>
-    {
-        public QuerySetPart SetQuery { get; }
-    }
-    public interface ILTSQLObjectQueryable<T> : IEnumerable<T>, ILTSQLQueryable<T>
-    {
-        public SqlQueryPart SqlQuery { get; }
-    }
-    public interface ILTSQLOrderedQueryable<T> : ILTSQLObjectQueryable<T>
-    { }
-
-
-    public interface ILTSQLNonQueryable<T> : ILTSQLQueryable
-    { }
 }
