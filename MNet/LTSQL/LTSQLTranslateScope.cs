@@ -23,9 +23,8 @@ namespace MNet.LTSQL
 
         public LTSQLTranslateScope NewScope()
         {
-            var ctx = new LTSQLContext()
+            var ctx = new LTSQLContext(this.Context?.Options)
             {
-                Options = this.Context?.Options,
                 TableAliasGenerator = this.Context?.TableAliasGenerator,
                 ParameterNameGenerator = this.Context?.ParameterNameGenerator,
                 LTSQLTranslater = this.Context?.LTSQLTranslater,

@@ -150,7 +150,7 @@ namespace MNet.LTSQL
 
             do
             {
-                LTSQLToken param = context.GetScopeParameter(parameterName);
+                LTSQLToken param = context.ParameterMgr.RetrieveParameter(parameterName);
                 if (param != null)
                     return param;
 
@@ -717,25 +717,36 @@ namespace MNet.LTSQL
             if (rets.IsNotEmpty() && rets.Length > lambda.Parameters.Count)
                 throw new Exception("替换参数个数大于实际的参数个数");
 
-            ParameterExpression[] paras = lambda.Parameters.ToArray();
-            int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
-            List<(string, LTSQLToken)> overParameters = new List<(string, LTSQLToken)>();
-            for (int i = 0; i < len; ++i)
-            {
-                if (rets[i] == null)
-                    throw new Exception("无法将null值进行参数替换");
 
-                overParameters.Add((paras[i].Name, this.Context.GetScopeParameter(paras[i].Name)));
-                this.Context.SetScopeParameter(paras[i].Name, rets[i]);
+            this.Context.ParameterMgr.PushScope();
+            try
+            {
+                string[] paras = lambda.Parameters.Select(p => p.Name).ToArray();
+                int len = Math.Min(rets?.Length ?? 0, paras?.Length ?? 0);
+                for (int i = 0; i < len; ++i)
+                {
+                    if (rets[i] == null)
+                    {
+                        this.Context.ParameterMgr.RemoveParameter(paras[i]);
+                    }
+                    else
+                    {
+                        this.Context.ParameterMgr.InjectParameter(paras[i], rets[i]);
+                    }
+                }
+
+                this.Visit(lambda.Body);
+                return this.PopToken();
+            }
+            catch
+            {
+                throw;
+            }
+            finally
+            {
+                this.Context.ParameterMgr.PopScope();
             }
 
-            this.Visit(lambda.Body);
-
-            foreach((string name, LTSQLToken token) in overParameters)
-            {
-                this.Context.SetScopeParameter(name, token);
-            }
-            return this.PopToken();
         }
         public virtual LTSQLToken Translate(Expression lambda)
         {

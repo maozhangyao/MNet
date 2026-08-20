@@ -94,7 +94,7 @@ namespace MNet.LTSQL
                 //      select new { aId = a.Id, bId = b.Id, FullId = a.Id + b.Id }
                 // 如上述所示，join object 和 select object 共用的，编译器不会再调用select函数。
                 //this.Context.SetScopeParameter(parameterName, LTSQLTokenFactory.CreateTupleToken(descriptor));
-                this.Context.SetScopeParameter(parameterName, tbMerge);
+                this.Context.ParameterMgr.InjectParameter(parameterName, tbMerge);
 
                 //连接查询
                 //合并查询
@@ -124,7 +124,7 @@ namespace MNet.LTSQL
                 tbRef = LTSQLTokenFactory.CreateTableRefToken(tableAlias, descriptor);
                 fieldToken = ChangePropOwner(descriptor, tbRef);
 
-                this.Context.SetScopeParameter(parameterName, tbRef);
+                this.Context.ParameterMgr.InjectParameter(parameterName, tbRef);
             }
             else
             {
@@ -146,7 +146,7 @@ namespace MNet.LTSQL
                     TupleToken newRef = ChangePropOwner(select, objectRef);
 
                     fieldToken = LTSQLTokenFactory.CreateTupleToken(newRef.ExpendTuple(from.MappingType));
-                    this.Context.SetScopeParameter(parameterName, newRef);
+                    this.Context.ParameterMgr.InjectParameter(parameterName, newRef);
                 }
                 src = qry;
             }
@@ -265,7 +265,7 @@ namespace MNet.LTSQL
             if (query == null)
                 return;
 
-            root = "root_" + this.Context.TableAliasGenerator.Next();
+            root = "root_" + this.Context.ParameterNameGenerator.Next();
             ExpressionModifier exprModifier = new ExpressionModifier();
 
             //统一根参数名(存在select 字段硬编码查询)
@@ -383,7 +383,7 @@ namespace MNet.LTSQL
                     group = LTSQLTokenFactory.CreateGroupClauseToken(groupKeys);
 
                 parameterObj = groupObj;
-                this.Context.SetScopeParameter(root, parameterObj);
+                this.Context.ParameterMgr.InjectParameter(root, parameterObj);
             }
 
             //having
@@ -447,8 +447,20 @@ namespace MNet.LTSQL
             this.Context.Part = query;
             this.Context.Options.GetTableName ??= GetTableName;
             this.Context.Options.GetColumnName ??= GetColumnName;
-
-            return this.TranslateQueryCore(query as SqlQueryPart);
+            
+            try
+            {
+                this.Context.ParameterMgr.PushScope();
+                return this.TranslateQueryCore(query as SqlQueryPart);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+            finally
+            {
+                this.Context.ParameterMgr.PopScope();
+            }
         }
     }
 }

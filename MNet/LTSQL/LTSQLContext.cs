@@ -1,45 +1,49 @@
 using MNet.LTSQL.SqlTokens;
 using System.Linq;
-using System.Collections.Generic;
 using MNet.LTSQL.SqlQueryStructs;
+using System.Runtime.CompilerServices;
 
 namespace MNet.LTSQL
 {
     public class LTSQLContext
     {
-        //作用域参数
-        private readonly Dictionary<string, LTSQLToken> ScopeParamters = new Dictionary<string, LTSQLToken>();
+        public LTSQLContext() : this(null)
+        { }
+        public LTSQLContext(LTSQLOptions options)
+        {
+            this.Options = options;
+            this.ParameterMgr = new ParameterScopeManager();
+        }
 
-
+        /// <summary>
+        /// 翻译源
+        /// </summary>
         public QueryPart Part { get; set; }
-        //选项
-        public LTSQLOptions Options { get; set; }
-        //表名生成器
+        /// <summary>
+        /// 选项
+        /// </summary>
+        public LTSQLOptions Options { get; private set; }
+        /// <summary>
+        /// lambda 参数管理器
+        /// </summary>
+        public ParameterScopeManager ParameterMgr { get; }
+        /// <summary>
+        /// 表命名生成器
+        /// </summary>
         public NameGenerator TableAliasGenerator { get; set; }
-        //sql参数名生成器
+        /// <summary>
+        /// sql参数名生成器
+        /// </summary>
         public NameGenerator ParameterNameGenerator { get; set; }
-        //
+        /// <summary>
+        /// 表达式翻译扩展
+        /// </summary>
         public LTSQLTokenTranslaterSelector LTSQLTranslater { get; set; }
 
-        
-        public LTSQLToken GetScopeParameter(string parameterName)
-        {
-            if (this.ScopeParamters.ContainsKey(parameterName))
-                return this.ScopeParamters[parameterName];
-            return null;
-        }
-        public void SetScopeParameter(string parameterName, LTSQLToken parameterToken)
-        {
-            if (this.ScopeParamters.ContainsKey(parameterName))
-                this.ScopeParamters[parameterName] = parameterToken;
-            else
-                this.ScopeParamters.Add(parameterName, parameterToken);
-        }
         public static LTSQLContext Create(LTSQLOptions options)
         {
-            return new LTSQLContext()
+            return new LTSQLContext(options)
             {
-                Options = options,
                 TableAliasGenerator = new NameGenerator(i => $"t{i}"),
                 ParameterNameGenerator = new NameGenerator(i => $"p{i}"),
                 LTSQLTranslater = new CombineTranslaterSelector(options?.SQLTokenTranslaters, LTSQLTokenTranslaterSelector.Default)

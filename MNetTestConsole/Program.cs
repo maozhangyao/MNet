@@ -29,8 +29,8 @@ CPersionT p = new CPersionT();
 
 //// 右外联接+左外联接+多维度group by + having + order by
 //var query2 = from p1 in p.AsLTSQL().Where(p => p.Id > 1)
-//             join p2 in p.AsLTSQL().WithRight() on p1.MotherId equals p2.Id
-//             join p3 in p.AsLTSQL().WithLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
+//             join p2 in p.AsLTSQL().AsRight() on p1.MotherId equals p2.Id
+//             join p3 in p.AsLTSQL().AsLeft() on new { Id = p1.FatherId } equals new { Id = p3.Id }
 //             group new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } by new { Id1 = p1.Id, Id2 = p2.Id, Id3 = p3.Id } into gs
 //             where gs.Key.Id1 + gs.Key.Id2 + gs.Key.Id3 > 0
 //             orderby gs.Key.Id1 + gs.Key.Id3
@@ -54,8 +54,9 @@ CPersionT p = new CPersionT();
 
 
 //// Update 语句的支持
-//var update = LTSQLQueryableExtensions
-//    .AsUpdate<CPersionT>(p => new {
+//var update = LTSQLNonQueryableExtensions
+//    .AsUpdate<CPersionT>(p => new
+//    {
 //        Age = 900
 //    })
 //    .Where(p => p.Id == 12345);
@@ -65,7 +66,7 @@ CPersionT p = new CPersionT();
 
 
 //// Delete 语句的支持
-//var delete = LTSQLQueryableExtensions
+//var delete = LTSQLNonQueryableExtensions
 //    .AsDelete<CPersionT>(p => p.Id == 1453)
 //    .Where(p => p.Id == 12345);
 //Console.WriteLine();

@@ -60,7 +60,7 @@ namespace DapperQ
         {
             this.ThrowIfDisposed();
 
-            var update = LTSQLQueryableExtensions.AsUpdate<T>(p => p);
+            var update = LTSQLNonQueryableExtensions.AsUpdate<T>(p => p);
             update.Query.Follow = this;
             return update;
         }
@@ -68,7 +68,7 @@ namespace DapperQ
         {
             this.ThrowIfDisposed();
 
-            var delete = LTSQLQueryableExtensions.AsDelete<T>();
+            var delete = LTSQLNonQueryableExtensions.AsDelete<T>();
             delete.Query.Follow = this;
             return delete;
         }
