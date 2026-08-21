@@ -1,4 +1,6 @@
+using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
+using MNet.LTSQL.SqlTokens;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,6 +14,74 @@ namespace MNet.LTSQL
     /// </summary>
     public static class ExpressionFunctionExtensions
     {
+        #region 内部待实现逻辑
+        /// <summary>
+        /// expand type: 类型展开，将表达式的值根据其类型强制变成tuple token
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        internal static T Expdt<T>(this T obj)
+        {
+            return default;
+        }
+        /// <summary>
+        /// 表示内联常量对象，而不是 new 对象
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        internal static T Const<T>(this T obj)
+        {
+            return default;
+        }
+        /// <summary>
+        /// 将值强制替换为指定的token
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        internal static T Replace<T>(this T obj, ValueToken token)
+        {
+            return default;
+        }
+        /// <summary>
+        /// 强制将值解析为一个table token
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="meta"></param>
+        /// <returns></returns>
+        internal static T Table<T>(this T obj, TableMetadata? meta = null)
+        {
+            return default;
+        }
+        /// <summary>
+        /// 动态钩子函数植入，在表达式节点翻译前触发
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
+        internal static T Hooking<T>(this T obj, Func<Expression, ValueToken> handler)
+        {
+            return default;
+        }
+        /// <summary>
+        /// 动态钩子函数植入, 在表达式节点翻译后触发
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
+        internal static T Hooked<T>(this T obj, Func<TranslateContext, ValueToken> handler)
+        {
+            return default;
+        }
+        #endregion
+
+
         /// <summary>
         /// 将值转换为bool。在sql中 0=false,1=true
         /// </summary>
@@ -94,6 +164,7 @@ namespace MNet.LTSQL
             return default(T);
         }
 
+
         /// <summary>
         /// 终结点聚合函数支持
         /// </summary>
@@ -102,22 +173,6 @@ namespace MNet.LTSQL
         /// <param name="src"></param>
         /// <param name="exprOfmax"></param>
         /// <returns></returns>
-        public static TResult Max<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmax)
-        {
-            return default;
-        }
-        public static TResult Min<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmin)
-        {
-            return default;
-        }
-        public static TResult Sum<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmax)
-        {
-            return default;
-        }
-        public static TResult Average<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfAverage)
-        {
-            return default;
-        }
         public static int Count<T>(this ILTSQLObjectQueryable<T> src)
         {
             return 0;
@@ -134,6 +189,23 @@ namespace MNet.LTSQL
         {
             return 0;
         }
+        public static TResult Max<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmax)
+        {
+            return default;
+        }
+        public static TResult Min<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmin)
+        {
+            return default;
+        }
+        public static TResult Sum<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfmax)
+        {
+            return default;
+        }
+        public static TResult Average<T, TResult>(this ILTSQLObjectQueryable<T> src, Expression<Func<T, TResult>> exprOfAverage)
+        {
+            return default;
+        }
+        
 
         /// <summary>
         /// 聚合函数

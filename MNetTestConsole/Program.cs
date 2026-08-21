@@ -74,16 +74,7 @@ CPersionT p = new CPersionT();
 //ConsoleHelper.WriteLineWithYellow(delete.ToSql(DbTypes.SQLLite));
 
 
-var query = LTSQLQueryableExtensions.AsSelect(() => new
-{
-    max = p.AsLTSQL().Max(p => p.Age),
-    min = p.AsLTSQL().Min(p => p.Age),
-    avg = p.AsLTSQL().Average(p => p.Age),
-    sum = p.AsLTSQL().Sum(p => p.Age),
-    cnt = p.AsLTSQL().Count(p => p.SelfName),
-    lnt = p.AsLTSQL().LongCount(p => p.SelfName)
-});
-
+var query = p.AsSelect(p => p);
 string sql = query.ToSql(DbTypes.SQLLite);
 ConsoleHelper.WriteLineWithYellow(sql);
 
