@@ -28,6 +28,5 @@ namespace MNet.LTSQL.TypeModels
         /// 显示提供映射的表格名称
         /// </summary>
         public string? TableName { get; set; }
-        public EntityTypeDescriptor Default { get; set; }
     }
 }

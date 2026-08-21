@@ -1,12 +1,9 @@
 using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.TypeModels;
 using MNet.Utils;
 using System;
-
-#if NET6_0_OR_GREATER
-using System.ComponentModel.DataAnnotations.Schema;
-#endif
 
 namespace MNet.LTSQL
 {
@@ -24,8 +21,6 @@ namespace MNet.LTSQL
             this.ApplyScope(scope);
 
             this.Context.Part = query;
-            this.Context.Options.GetTableName ??= GetTableName;
-            this.Context.Options.GetColumnName ??= GetColumnName;
             return this.TranslateDeleteCore(del);
         }
 
@@ -33,12 +28,8 @@ namespace MNet.LTSQL
         private LTSQLToken TranslateDeleteCore(DeletePart part)
         {
             //翻译表信息
-            TableDescriptor tableDescriptor = this.TranslateTableByType(part.MappingType, part.Schema, part.TableName, null);
-            TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.MappingType);
-
-            //if (part.Where != null)
-            //    this.Context.SetScopeParameter(part.Where.AsLambda().TakeParamter(0).Name, tableObjToken);
-
+            EntityTypeDescriptor tableDescriptor = this.GetEntityTypeDescriptor(part.MappingType, part.Schema, part.TableName, part.Refer);
+            TableObjectToken tableObjToken = LTSQLTokenFactory.CreateTableObjectToken(tableDescriptor.TableName, tableDescriptor, tableDescriptor.Type);
             LTSQLToken deleteClause = LTSQLTokenFactory.CreateClauseToken("DELETE FROM", tableObjToken);
 
             //where

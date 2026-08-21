@@ -2,16 +2,13 @@ using MNet.LTSQL.Attributes;
 using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.TypeModels;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
-#if NET6_0_OR_GREATER
-using System.ComponentModel.DataAnnotations.Schema;
-#endif
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 
 namespace MNet.LTSQL
@@ -32,91 +29,6 @@ namespace MNet.LTSQL
         protected Stack<LTSQLToken> StkTokens { private set;  get; }
 
 
-
-        protected static string GetTableName(LTSQLMemberContext ctx)
-        {
-            if (ctx.Owner == null)
-                throw new Exception("表名称获取异常， 未传入实体类型，无法获取。");
-
-#if NET6_0_OR_GREATER
-            TableAttribute attr1 = ctx.Owner.GetCustomAttribute<TableAttribute>();
-            QTableAttribute attr2 = ctx.Owner.GetCustomAttribute<QTableAttribute>();
-            return attr1?.Name ?? attr2?.Name ?? ctx.Owner.Name;
-#else
-            QTableAttribute attr = ctx.Owner.GetCustomAttribute<QTableAttribute>();
-            return attr?.Name ?? ctx.Owner.Name;
-#endif
-        }
-        protected static string GetColumnName(LTSQLMemberContext ctx)
-        {
-            if (ctx.Member == null)
-                throw new Exception("表字段获取异常， 未传入属性或者字段信息，无法获取。");
-
-#if NET6_0_OR_GREATER
-            ColumnAttribute attr1 = ctx.Owner.GetCustomAttribute<ColumnAttribute>();
-            QColumnAttribute attr2 = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
-            return attr1?.Name ?? attr2?.Name ?? ctx.Member.Name;
-#else
-            QColumnAttribute attr = ctx.Owner.GetCustomAttribute<QColumnAttribute>();
-            return attr?.Name ?? ctx.Member.Name;
-#endif
-        }
-
-        public string OnGetTableName(Type owner, string alias)
-        {
-            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
-            memberCtx.Owner = owner;
-            memberCtx.OwnerName = alias;
-            return this.Context.Options.GetTableName(memberCtx);
-        }
-        public string OnGetColumnName(Type owner, string alias, MemberInfo member)
-        {
-            LTSQLMemberContext memberCtx = new LTSQLMemberContext();
-            memberCtx.Owner = owner;
-            memberCtx.OwnerName = alias;
-            memberCtx.Member = member;
-            return this.Context.Options.GetColumnName(memberCtx);
-        }
-        public TableDescriptor TranslateTableByType(Type t, string schema = null, string tableName = null, string tableAlias = null)
-        {
-            if (tableName == null)
-            {
-                tableName = this.OnGetTableName(t, tableAlias);
-            }
-
-            if (schema == null)
-            {
-                int pos = tableName.IndexOf('.');
-                if (pos > 0)
-                    schema = tableName.Substring(0, pos);
-            }
-
-            tableAlias ??= tableName;
-            TableDescriptor descriptor = new TableDescriptor(schema, tableName, tableAlias ?? tableName, t);
-
-            //解析属性
-            foreach (PropertyInfo prop in t.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (prop.IsDefined(typeof(NonFiledAttribute)))
-                    continue;
-
-                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.Name, prop.PropertyType);
-                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.PropertyType));
-            }
-            //解析字段
-            foreach (FieldInfo prop in t.GetFields(BindingFlags.Instance | BindingFlags.Public))
-            {
-                if (prop.IsDefined(typeof(NonFiledAttribute)))
-                    continue;
-
-                string fieldName = this.OnGetColumnName(t, tableAlias, prop);
-                LTSQLToken fieldAccess = LTSQLTokenFactory.CreateFieldToken(fieldName, prop.Name, prop.FieldType);
-                descriptor.AddField(new FieldDescriptor(prop.Name, fieldAccess, prop.FieldType));
-            }
-
-            return descriptor;
-        }
 
 
         protected LTSQLToken PopToken()
@@ -212,10 +124,6 @@ namespace MNet.LTSQL
             ctx.MethodParameterTokenList = memberCallParameters;
 
             return this.OnTranslateMember(ctx);
-        }
-        protected void ApplyScope(LTSQLTranslateScope scope)
-        {
-            this.Scope = scope;
         }
         protected LTSQLToken PostTranslate(LTSQLToken sqlToken)
         {
@@ -756,5 +664,45 @@ namespace MNet.LTSQL
             this.Visit(lambda);
             return this.PopToken();
         }
+
+        /// <summary>
+        /// 设置作用域
+        /// </summary>
+        /// <param name="scope"></param>
+        public void ApplyScope(LTSQLTranslateScope scope)
+        {
+            this.Scope = scope;
+        }
+
+        /// <summary>
+        /// 生成实体类型模型
+        /// </summary>
+        /// <param name="t"></param>
+        /// <param name="schema"></param>
+        /// <param name="tableName"></param>
+        /// <param name="refer"></param>
+        /// <returns></returns>
+        public EntityTypeDescriptor GetEntityTypeDescriptor(Type t, string? schema = null, string? tableName = null, object? refer = null)
+        {
+            if (schema == null && tableName != null)
+            {
+                int pos = tableName.IndexOf('.');
+                if (pos > 0)
+                {
+                    schema = tableName.Substring(0, pos);
+                    tableName = tableName.Substring(pos + 1);
+                }
+            }
+
+            EntityTypeModelOptions options = this.Context.Options.EntityTypeModelOptions ?? new EntityTypeModelOptions();
+            return EntityTypeModelManager.GetEntityTypeModel(t, options, configure: buildOptions =>
+            {
+                buildOptions.Refer = refer;
+                buildOptions.Schema = schema;
+                buildOptions.TableName = tableName;
+                buildOptions.Database = this.Context.Options.DbType;
+            });
+        }
+
     }
 }

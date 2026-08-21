@@ -3,6 +3,7 @@ using MNet.LTSQL.Objects;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokenExtends;
 using MNet.LTSQL.SqlTokens;
+using MNet.LTSQL.TypeModels;
 using MNet.Utils;
 using System;
 using System.Collections.Generic;
@@ -63,7 +64,7 @@ namespace MNet.LTSQL
 
             LTSQLToken src = null;
             TableRefToken tbRef = null;
-            TableDescriptor descriptor = null;
+            EntityTypeDescriptor descriptor = null;
 
             fieldToken = null;
 
@@ -119,10 +120,10 @@ namespace MNet.LTSQL
             else if (from is TablePart table)
             {
                 tableAlias = this.Context.TableAliasGenerator.Next();
-                descriptor = this.TranslateTableByType(from.MappingType, table.Schema, table.TableName, tableAlias);
+                descriptor = this.GetEntityTypeDescriptor(from.MappingType, table.Schema, table.TableName, table.Refer);
                 src = LTSQLTokenFactory.CreateTableObjectToken(descriptor.TableName, descriptor, table.MappingType);
                 tbRef = LTSQLTokenFactory.CreateTableRefToken(tableAlias, descriptor);
-                fieldToken = ChangePropOwner(descriptor, tbRef);
+                fieldToken = ChangePropOwner(tbRef, tbRef);
 
                 this.Context.ParameterMgr.InjectParameter(parameterName, tbRef);
             }
@@ -445,9 +446,6 @@ namespace MNet.LTSQL
             this.ApplyScope(scope);
 
             this.Context.Part = query;
-            this.Context.Options.GetTableName ??= GetTableName;
-            this.Context.Options.GetColumnName ??= GetColumnName;
-            
             try
             {
                 this.Context.ParameterMgr.PushScope();

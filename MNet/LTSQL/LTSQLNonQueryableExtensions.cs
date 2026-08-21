@@ -38,20 +38,20 @@ namespace MNet.LTSQL
         /// update操作
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="entity">在后续钩子函数中引用的实例</param>
+        /// <param name="refer">在后续钩子函数中引用的实例</param>
         /// <param name="setUpdate"></param>
         /// <param name="table"></param>
         /// <param name="schema"></param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static ILTSQLNonQueryable<T> AsUpdate<T>(this T entity, Expression<Func<T, object>> setUpdate, string table = null, string schema = null)
+        public static ILTSQLNonQueryable<T> AsUpdate<T>(this T refer, Expression<Func<T, object>> setUpdate, string table = null, string schema = null)
         {
             if (setUpdate == null)
                 throw new ArgumentNullException(nameof(setUpdate));
 
             return new LTSQLObject<T>(new UpdatePart()
             {
-                Refer = entity,
+                Refer = refer,
                 Schema = schema,
                 TableName = table,
                 MappingType = typeof(T)
@@ -98,16 +98,16 @@ namespace MNet.LTSQL
         /// delete 操作
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="entity">后续钩子函数中引用</param>
+        /// <param name="refer">后续钩子函数中引用</param>
         /// <param name="where"></param>
         /// <param name="table"></param>
         /// <param name="schema"></param>
         /// <returns></returns>
-        public static ILTSQLNonQueryable<T> AsDelete<T>(this T entity, Expression<Func<T, bool>> where = null, string table = null, string schema = null)
+        public static ILTSQLNonQueryable<T> AsDelete<T>(this T refer, Expression<Func<T, bool>> where = null, string table = null, string schema = null)
         {
             LTSQLObject<T> obj = new LTSQLObject<T>(new DeletePart()
             {
-                Refer = entity,
+                Refer = refer,
                 Schema = schema,
                 TableName = table,
                 MappingType = typeof(T),

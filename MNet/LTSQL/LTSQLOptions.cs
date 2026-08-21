@@ -8,21 +8,27 @@ namespace MNet.LTSQL
 {
     public class LTSQLOptions
     {
-        //一个无意义的id，也许可以用来区别场景
+        /// <summary>
+        /// 一个无意义的id，也许可以用来区别场景
+        /// </summary>
         public string Id { get; set; }
-        //数据库类型
+        /// <summary>
+        /// 数据库类型
+        /// </summary>
         public DbTypes DbType { get; set; }
-        //是否参数化， 默认true
+        /// <summary>
+        /// 是否生成参数化sql， 默认true
+        /// </summary>
         public bool UseSqlParameter { get; set; } = true;
-        //当识别到null参数时，是否禁止自动处理null值等式，比如：
-        // value1 == null   转换为 value1 is NULL
-        // value2 != null   转换为 value2 is not NULL
+        /// <summary>
+        /// 当识别到null参数时，是否禁止自动处理null值等
+        ///  value1 == null   转换为 value1 is NULL
+        ///  value2 != null   转换为 value2 is not NULL
+        /// </summary>
         public bool DisNullable { get; set; }
 
-        //获取表名称
-        public Func<LTSQLMemberContext, string> GetTableName { get; set; }
-        //获取表字段名称
-        public Func<LTSQLMemberContext, string> GetColumnName { get; set; }
+        // TODO token optimize interface design
+
         public EntityTypeModelOptions EntityTypeModelOptions { get; set; }
         public LTSQLTokenTranslaterSelector SQLTokenTranslaters { get; set; }
         public Action<LTSQLOptions, SqlBuilderOptions> ConfigSqlBuilderOptions { get; set; }

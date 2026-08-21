@@ -99,7 +99,9 @@ namespace MNet.LTSQL.TypeModels
                 if (prop.IsDefined(typeof(NonFiledAttribute)))
                     continue;
 
-                string column = this._options.GetColumnName(entityType, prop, buildOptions);
+                string column = this._options?.GetColumnName != null
+                    ? this._options.GetColumnName(entityType, prop, buildOptions)
+                    : prop.Name;
                 builder.WithProperty(prop.Name)
                     .WithPropertyType(prop.PropertyType)
                     .WithColumns(column)
@@ -115,7 +117,9 @@ namespace MNet.LTSQL.TypeModels
                 if (prop.IsDefined(typeof(NonFiledAttribute)))
                     continue;
 
-                string column = this._options.GetColumnName(entityType, prop, buildOptions);
+                string column = this._options?.GetColumnName != null
+                    ? this._options.GetColumnName(entityType, prop, buildOptions)
+                    : prop.Name;
                 builder.WithProperty(prop.Name)
                     .WithPropertyType(prop.FieldType)
                     .WithColumns(column)
@@ -141,6 +145,8 @@ namespace MNet.LTSQL.TypeModels
                 throw new ArgumentNullException(nameof(configure));
 
             EntityTypeModelBuildOptions typeModelBuildOptions = new EntityTypeModelBuildOptions();
+            typeModelBuildOptions.EntityType = t;
+
             configure(typeModelBuildOptions);
 
             //外部生成

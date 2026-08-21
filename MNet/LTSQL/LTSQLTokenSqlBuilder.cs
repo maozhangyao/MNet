@@ -52,9 +52,9 @@ namespace MNet.LTSQL
             })
             .UseSpecialByType<TableObjectToken>((t, ctx, nxt) =>
             {
-                if(!string.IsNullOrEmpty(t.Descriptor.Schema))
+                if(!string.IsNullOrEmpty(t.Descriptor.TableSchema))
                 {
-                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Descriptor.Schema, ctx) + "." + ctx.SqlKeyWordEscape(t.ObjectName, ctx));
+                    ctx.Writer.Write(ctx.SqlKeyWordEscape(t.Descriptor.TableSchema, ctx) + "." + ctx.SqlKeyWordEscape(t.ObjectName, ctx));
                 }
                 else
                 {

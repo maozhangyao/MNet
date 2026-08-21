@@ -1,3 +1,4 @@
+using MNet.LTSQL.Attributes;
 using MNet.LTSQL.SqlQueryStructs;
 using MNet.LTSQL.SqlTokens;
 using MNet.Utils;
@@ -51,22 +52,18 @@ namespace MNet.LTSQL
         {
             return AsLTSQL((T)default, tableName, schema);
         }
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj)
-        {
-            return AsLTSQL<T>(obj, null);
-        }
         /// <summary>
         /// 初始化查询对象，支持指定表名以及架构
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="obj"></param>
+        /// <param name="refer"></param>
         /// <param name="tableName">表名</param>
         /// <param name="schema">表架构</param>
         /// <returns></returns>
-        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T obj, string tableName, string schema = null)
+        public static ILTSQLOrderedQueryable<T> AsLTSQL<T>(this T refer, string tableName = null, string schema = null)
         {
             TablePart tablePart = new TablePart(typeof(T));
-            tablePart.Refer = obj;
+            tablePart.Refer = refer;
             tablePart.Schema = schema;
             tablePart.TableName = tableName;
 
@@ -78,6 +75,7 @@ namespace MNet.LTSQL
             var ltsql = new LTSQLObject<T>(query);
             return ltsql;
         }
+
         /// <summary>
         /// 初始化查询对象并指定from数据源
         /// </summary>
@@ -124,31 +122,14 @@ namespace MNet.LTSQL
 
         /// <summary>
         /// 硬编码形式的select语句支持，如：
-        ///     SELECT 'Mr. liu' as name, 18 as age, 'like books' as Description
+        ///     SELECT 'Mr.liu' AS name, 18 AS age, 'like books' AS Description
         /// 
         /// 批量版本：将使用 union all 连接
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
+        /// <param name="obj">自动将对象的属性或者字段映射为 select 字段</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this List<T> list)
-        {
-            if (list.IsEmpty())
-                throw new ArgumentNullException(nameof(list));
-
-            return AsSelect(list.ToArray());
-        }
-        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T[] list)
-        {
-            if (list.IsEmpty())
-                throw new ArgumentNullException(nameof(list));
-
-            ILTSQLOrderedQueryable<T> query = AsSelect(list[0]);
-            if(list.Length > 1)
-                query = query.AsSet(DbSetType.Union, false).AppendSet(list.Select(p => AsSelect(p)).ToArray()).AsLTSQL();
-            return query;
-        }
         public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T obj)
         {
             Type t = typeof(T);
@@ -172,6 +153,9 @@ namespace MNet.LTSQL
                 FieldInfo[] fields = t.GetFields(BindingFlags.Instance | BindingFlags.Public);
                 foreach (FieldInfo field in fields)
                 {
+                    if (field.IsDefined(typeof(NonFiledAttribute)))
+                        continue;
+
                     var value = field.GetValue(obj);
                     var bind = Expression.Bind(field, Expression.Constant(value, field.FieldType));
                     binds.Add(bind);
@@ -180,6 +164,11 @@ namespace MNet.LTSQL
                 PropertyInfo[] props = t.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.SetProperty | BindingFlags.GetProperty);
                 foreach (PropertyInfo prop in props)
                 {
+                    if (!prop.CanRead)
+                        continue;
+                    if (prop.IsDefined(typeof(NonFiledAttribute)))
+                        continue;
+
                     var value = prop.GetValue(obj);
 
                     var bind = Expression.Bind(prop, Expression.Constant(value, prop.PropertyType));
@@ -187,7 +176,7 @@ namespace MNet.LTSQL
                 }
 
                 if (binds.Count <= 0)
-                    throw new Exception($"未能获取类型{t.Name}的任何公共属性或者字段");
+                    throw new Exception($"未能获取类型{t.Name}任何可读的公共属性或者字段");
 
                 NewExpression _new = Expression.New(construct);
                 MemberInitExpression init = Expression.MemberInit(_new, binds.ToArray());
@@ -224,6 +213,38 @@ namespace MNet.LTSQL
                 return AsSelect(expr);
             }
         }
+        /// <summary>
+        /// 多个对象映射为select语句，并应用并集操作
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this T[] list)
+        {
+            if (list.IsEmpty())
+                throw new ArgumentNullException(nameof(list));
+
+            ILTSQLOrderedQueryable<T> query = AsSelect(list[0]);
+            if (list.Length > 1)
+                query = query.AsSet(DbSetType.Union, false).AppendSet(list.Select(p => AsSelect(p)).ToArray()).AsLTSQL();
+            return query;
+        }
+        public static ILTSQLOrderedQueryable<T> AsSelect<T>(this List<T> list)
+        {
+            if (list.IsEmpty())
+                throw new ArgumentNullException(nameof(list));
+
+            return AsSelect(list.ToArray());
+        }        
+        /// <summary>
+        /// 指定一个辅组求值对象，参与到 select 求值语句中
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TResult"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="expr"></param>
+        /// <returns></returns>
         public static ILTSQLOrderedQueryable<TResult> AsSelect<T, TResult>(this T obj, Expression<Func<T, TResult>> expr)
         {
             ParameterExpression parameter = expr.Parameters[0];
@@ -259,7 +280,7 @@ namespace MNet.LTSQL
 
 
         /// <summary>
-        /// 联表
+        /// 设置查询的联表类型
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="src"></param>
